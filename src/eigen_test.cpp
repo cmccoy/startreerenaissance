@@ -2,29 +2,27 @@
 #include <iostream>
 
 #include <Eigen/Dense>
-#include <Eigen/SVD>
-
+#include <Eigen/Eigenvalues>
 
 using Eigen::Matrix4d;
 using Eigen::Vector4d;
 using Eigen::Array4d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
-typedef Eigen::JacobiSVD<Matrix4d> SubsMatrixDecomp;
-
+typedef Eigen::EigenSolver<Matrix4d> EigenDecomp;
 
 struct GTRModel
 {
-    GTRModel(Matrix4d model) : model(model), decomp(model)
-    {};
     Matrix4d model;
-    SubsMatrixDecomp decomp;
+    EigenDecomp decomp;
+
+    GTRModel(Matrix4d model) : model(model), decomp(model, true)
+    { };
 
     Matrix4d buildPMatrix(const double t) const
     {
-        const Matrix4d& u = decomp.matrixU();
-        const Matrix4d& v = decomp.matrixV();
-        Vector4d lambda = (Array4d(decomp.singularValues()) * t).exp();
-        return u * Eigen::DiagonalMatrix<double, 4, 4>(lambda) * v;
+        const Matrix4d& v = decomp.eigenvectors().real();
+        Vector4d lambda = (Array4d(decomp.eigenvalues().real()) * t).exp();
+        return v * Eigen::DiagonalMatrix<double, 4, 4>(lambda) * v.inverse();
     }
 };
 
@@ -67,13 +65,7 @@ struct Sequence
 
     double logLikelihood(const GTRModel& model) const
     {
-        const Matrix4d u = model.decomp.matrixU();
-        const Matrix4d v = model.decomp.matrixV();
-        Array4d lambda = model.decomp.singularValues();
-        lambda = lambda * distance;
-        lambda = lambda.exp();
-        Vector4d lambdaExp = lambda;
-        const Matrix4d p = u * Eigen::DiagonalMatrix<double, 4, 4>(lambdaExp) * v * transitions;
+        const Matrix4d p = model.buildPMatrix(distance) * transitions;
         double result = 0;
         for(size_t i = 0; i < 4; i++) {
             for(size_t j = 0; j < 4; j++) {
@@ -93,12 +85,12 @@ int main()
     GTRParameters m;
     GTRModel model = m.buildModel();
 
-    std::cout << "singular values:\n";
-    std::cout << model.decomp.singularValues() << '\n';
+    std::cout << "eigenvalues:\n";
+    std::cout << model.decomp.eigenvalues() << '\n';
 
     std::cout << m.params << '\n';
     std::cout << m.pi << '\n';
     std::cout << m.buildQMatrix() << '\n';
-    std::cout << "Distance = 1\n" << model.buildPMatrix(1.0) << '\n';
+    std::cout << "Distance = .1\n" << model.buildPMatrix(0.1) << '\n';
     return 0;
 }
