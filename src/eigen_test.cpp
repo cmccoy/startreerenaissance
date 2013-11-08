@@ -7,14 +7,10 @@
 
 using Eigen::Matrix4d;
 using Eigen::Vector4d;
+using Eigen::Array4d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
 typedef Eigen::JacobiSVD<Matrix4d> SubsMatrixDecomp;
 
-struct Sequence
-{
-    Matrix4d transitions;
-    double distance;
-};
 
 struct GTRModel
 {
@@ -22,6 +18,14 @@ struct GTRModel
     {};
     Matrix4d model;
     SubsMatrixDecomp decomp;
+
+    Matrix4d buildPMatrix(const double t) const
+    {
+        const Matrix4d& u = decomp.matrixU();
+        const Matrix4d& v = decomp.matrixV();
+        Vector4d lambda = (Array4d(decomp.singularValues()) * t).exp();
+        return u * Eigen::DiagonalMatrix<double, 4, 4>(lambda) * v;
+    }
 };
 
 struct GTRParameters
@@ -56,6 +60,34 @@ struct GTRParameters
     Vector4d pi;
 };
 
+struct Sequence
+{
+    Matrix4d transitions;
+    double distance;
+
+    double logLikelihood(const GTRModel& model) const
+    {
+        const Matrix4d u = model.decomp.matrixU();
+        const Matrix4d v = model.decomp.matrixV();
+        Array4d lambda = model.decomp.singularValues();
+        lambda = lambda * distance;
+        lambda = lambda.exp();
+        Vector4d lambdaExp = lambda;
+        const Matrix4d p = u * Eigen::DiagonalMatrix<double, 4, 4>(lambdaExp) * v * transitions;
+        double result = 0;
+        for(size_t i = 0; i < 4; i++) {
+            for(size_t j = 0; j < 4; j++) {
+                const double d = p(i, j);
+                if(d > 0)
+                    result += std::log(d);
+            }
+        }
+
+        return result;
+    };
+};
+
+
 int main()
 {
     GTRParameters m;
@@ -67,5 +99,6 @@ int main()
     std::cout << m.params << '\n';
     std::cout << m.pi << '\n';
     std::cout << m.buildQMatrix() << '\n';
+    std::cout << "Distance = 1\n" << model.buildPMatrix(1.0) << '\n';
     return 0;
 }
