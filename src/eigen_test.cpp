@@ -8,6 +8,7 @@
 using Eigen::Matrix4d;
 using Eigen::Vector4d;
 typedef Eigen::Matrix<double, 6, 1> Vector6d;
+typedef Eigen::JacobiSVD<Matrix4d> SubsMatrixDecomp;
 
 struct Sequence
 {
@@ -17,7 +18,15 @@ struct Sequence
 
 struct GTRModel
 {
-    GTRModel()
+    GTRModel(Matrix4d model) : model(model), decomp(model)
+    {};
+    Matrix4d model;
+    SubsMatrixDecomp decomp;
+};
+
+struct GTRParameters
+{
+    GTRParameters()
     {
         params.fill(1);
         pi.fill(0.25);
@@ -36,19 +45,24 @@ struct GTRModel
         return result;
     };
 
+    GTRModel buildModel() const
+    {
+        return GTRModel(buildQMatrix());
+    }
+
+    // 6 parameters of the GTR
     Vector6d params;
+    // base frequencies
     Vector4d pi;
 };
 
 int main()
 {
-    GTRModel m;
-
-    // Decompose
-    Eigen::JacobiSVD<Matrix4d> decomp(m.buildQMatrix());
+    GTRParameters m;
+    GTRModel model = m.buildModel();
 
     std::cout << "singular values:\n";
-    std::cout << decomp.singularValues() << '\n';
+    std::cout << model.decomp.singularValues() << '\n';
 
     std::cout << m.params << '\n';
     std::cout << m.pi << '\n';
