@@ -18,6 +18,7 @@ struct GTRModel
     GTRModel(Matrix4d model) : model(model), decomp(model, true)
     { };
 
+    /// \brief Get the P matrix for time t
     Matrix4d buildPMatrix(const double t) const
     {
         const Matrix4d& v = decomp.eigenvectors().real();
