@@ -49,8 +49,11 @@ void estimate_branch_lengths(const GTRModel&,
                              std::vector<Sequence>&);
 
 /// \brief Guess a model by counting
-void empirical_model(const std::vector<Sequence>& sequences,
-                     gtr::GTRParameters& model);
+void empirical_model(const std::vector<Sequence>&,
+                     gtr::GTRParameters&);
+
+/// \brief Optimize the GTR model & branch lengths for a collection of sequences
+void optimize(gtr::GTRParameters&, std::vector<Sequence>&);
 
 }
 #endif

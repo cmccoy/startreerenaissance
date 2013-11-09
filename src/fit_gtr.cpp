@@ -63,12 +63,18 @@ int main()
 
     std::cout << "Initial log-like: " << star_likelihood(model, sequences) << '\n';
 
-    estimate_branch_lengths(model, sequences);
+    optimize(params, sequences);
 
     auto f = [](double acc, const Sequence& s) { return acc + s.distance; };
     const double mean_branch_length = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
+
     std::cout << "Mean branch length: " << mean_branch_length << '\n';
-    std::cout << "Final log-like: " << star_likelihood(model, sequences) << '\n';
+
+    std::cout << "Final log-like: " << star_likelihood(params.buildModel(), sequences) << '\n';
+
+    std::cout << "x=" << params.params.transpose() << '\n';
+    std::cout << "Q=" << params.buildQMatrix() << '\n';
+    std::cout << "P(0.01)=" << params.buildModel().buildPMatrix(0.01) << '\n';
 
     return 0;
 }

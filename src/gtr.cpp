@@ -112,4 +112,53 @@ void empirical_model(const std::vector<Sequence>& sequences,
     model.params /= model.params[5];
 }
 
+double optimize_parameter(const std::vector<Sequence>& sequences,
+                        const size_t index,
+                        gtr::GTRParameters& params)
+{
+    auto f = [&sequences, &index, &params] (const double d) {
+        params.params[index] = d;
+        const GTRModel model = params.buildModel();
+        return -star_likelihood(model, sequences);
+    };
+
+    boost::uintmax_t max_iter = 50;
+    std::pair<double, double> result = boost::math::tools::brent_find_minima(f, 1e-9, 20.0, 50, max_iter);
+
+    params.params[index] = result.first;
+    params.params /= params.params[5];
+
+    return -result.second;
+}
+
+// TODO: tolerance, no magic numbers, no printing.
+void optimize(gtr::GTRParameters& params,
+              std::vector<Sequence>& sequences)
+{
+    double last_log_like = star_likelihood(params.buildModel(), sequences);
+
+    for(size_t iter = 0; iter < 20; iter++) {
+        bool any_improved = false;
+        for(size_t param_index = 0; param_index < 7; param_index++) {
+            if(param_index == 6)
+                estimate_branch_lengths(params.buildModel(),
+                                        sequences);
+            else
+                optimize_parameter(sequences, param_index, params);
+
+            const double log_like = star_likelihood(params.buildModel(), sequences);
+
+            std::cerr << "p=" << params.params.transpose() << '\n';
+            std::cerr << "iteration " << iter << " parameter " << param_index << ": " << last_log_like << " ->\t" << log_like << '\t' << log_like - last_log_like << '\n';
+            std::cerr.flush();
+
+            if(std::abs(log_like - last_log_like) > 1e-4)
+                any_improved = true;
+            last_log_like = log_like;
+        }
+        if(!any_improved)
+            break;
+    }
+}
+
 }

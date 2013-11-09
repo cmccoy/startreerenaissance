@@ -2,7 +2,7 @@ CXXFLAGS = -I../lib/eigen_3.2.0 -std=c++0x -Wall -Wextra -g
 
 PROTOBUF_OUT = mutationlist.pb.cc mutationlist.pb.h
 
-EXE = eigen_test build_mutation_matrices
+EXE = fit_gtr build_mutation_matrices
 
 ALL = $(EXE) $(PROTOBUF_OUT)
 
@@ -13,9 +13,9 @@ clean:
 
 gtr.o: gtr.hpp
 
-eigen_test: gtr.o mutationlist.pb.o
-eigen_test: LDLIBS += -lprotobuf -lz
-eigen_test: CXXFLAGS += -fopenmp
+fit_gtr: gtr.o mutationlist.pb.o
+fit_gtr: LDLIBS += -lprotobuf -lz
+fit_gtr: CXXFLAGS += -fopenmp
 
 # Protobuf stuff
 %.pb.h %.pb.cc: %.proto
