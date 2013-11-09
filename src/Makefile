@@ -2,9 +2,14 @@ CXXFLAGS = -I../lib/eigen_3.2.0 -std=c++0x -Wall -Wextra -g
 
 PROTOBUF_OUT = mutationlist.pb.cc mutationlist.pb.h
 
-ALL = eigen_test build_mutation_matrices $(PROTOBUF_OUT)
+EXE = eigen_test build_mutation_matrices
+
+ALL = $(EXE) $(PROTOBUF_OUT)
 
 all: $(ALL)
+
+clean:
+	rm -f $(EXE) *.o
 
 gtr.cpp: gtr.hpp
 
@@ -26,7 +31,9 @@ build_mutation_matrices: mutationlist.pb.o $(LIBBAM)
 build_mutation_matrices: LDLIBS += -lz -lpthread -lprotobuf
 build_mutation_matrices: CXXFLAGS += -I../lib/samtools
 
-.PHONY: all
+.PHONY: all clean
+
+
 
 # Gross auto-dependencies
 #%.o : %.cc
