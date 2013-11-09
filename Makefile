@@ -4,4 +4,7 @@ ALL = src
 $(ALL):
 	+$(MAKE) -C $@
 
-.PHONY: $(ALL)
+clean:
+	+$(MAKE) -C src clean
+
+.PHONY: $(ALL) clean
