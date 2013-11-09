@@ -3,7 +3,6 @@
 
 #include <string>
 #include <vector>
-#include <iostream>
 
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
@@ -41,6 +40,17 @@ struct GTRParameters
     Eigen::Vector4d pi;
 };
 
-}
+/// \brief calculate the star-tree likelihood
+double star_likelihood(const GTRModel&,
+                       const std::vector<Sequence>&);
 
+/// \brief estimate branch lengths
+void estimate_branch_lengths(const GTRModel&,
+                             std::vector<Sequence>&);
+
+/// \brief Guess a model by counting
+void empirical_model(const std::vector<Sequence>& sequences,
+                     gtr::GTRParameters& model);
+
+}
 #endif

@@ -2,7 +2,6 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
-#include <boost/math/tools/minima.hpp>
 #include "mutationlist.pb.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -14,69 +13,7 @@
 #include "sequence.hpp"
 
 using namespace gtr;
-using boost::math::tools::brent_find_minima;
 using Eigen::Matrix4d;
-
-double star_likelihood(const GTRModel& model,
-                       const std::vector<Sequence>& sequences)
-{
-    double result = 0.0;
-
-#pragma omp parallel for reduction(+:result)
-    for(size_t i = 0; i < sequences.size(); i++) {
-        result += model.logLikelihood(sequences[i]);
-    }
-    return result;
-}
-
-void estimate_branch_lengths(const GTRModel& model,
-                             std::vector<Sequence>& sequences)
-{
-#pragma omp parallel for
-    for(size_t i = 0; i < sequences.size(); i++) {
-        Sequence& s = sequences[i];
-        auto f = [&model, &s](const double d) {
-            s.distance = d;
-            const double result = -model.logLikelihood(s);
-            return result;
-        };
-        boost::uintmax_t max_iter = 100;
-        std::pair<double, double> res =  brent_find_minima(f, 1e-9, 1.0, 50, max_iter);
-        s.distance = res.first;
-    }
-}
-
-Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
-{
-    Eigen::Vector4d result;
-    result.fill(1);
-
-    for(const Sequence& s : sequences)
-        result += s.transitions.colwise().sum();
-
-    result /= result.sum();
-    return result;
-}
-
-void empirical_model(const std::vector<Sequence>& sequences,
-                     gtr::GTRParameters& model)
-{
-    model.pi = count_base_frequences(sequences);
-
-    Matrix4d result;
-    result.fill(0);
-
-    for(const Sequence& s : sequences) {
-        result += s.transitions;
-    }
-
-    model.params << result(0, 1), result(0, 2), result(0, 3),
-                    result(1, 2), result(1, 3), result(2, 3);
-    model.params /= model.params[5];
-
-    std::cout << model.params.transpose() << '\n'
-              << model.pi.transpose()  << '\n' << result << '\n';
-}
 
 std::vector<Sequence> load_sequences_from_file(const std::string& path)
 {
