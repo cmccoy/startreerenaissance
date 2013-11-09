@@ -45,6 +45,7 @@ void estimate_branch_lengths(const GTRModel& model,
 Eigen::Vector4d count_base_frequences(const std::vector<gtr::Sequence>& sequences)
 {
     Eigen::Vector4d result;
+    result.fill(1);
 
     for(const gtr::Sequence& s : sequences)
         result += s.transitions.colwise().sum();
@@ -58,19 +59,22 @@ int main()
     GOOGLE_PROTOBUF_VERIFY_VERSION;
     std::vector<gtr::Sequence> sequences;
 
-    std::fstream in("test.bin.gz", std::ios::in | std::ios::binary);
+    std::fstream in("test.muts.pb.gz", std::ios::in | std::ios::binary);
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
     google::protobuf::io::CodedInputStream coded_in(&zip_in);
 
-    while(in.good()) {
-        uint32_t size;
+    while(true) {
+        uint32_t size = 0;
         bool success = false;
         success = coded_in.ReadVarint32(&size);
         if(!success) break;
         mutationio::MutationCount m;
-        m.ParseFromBoundedZeroCopyStream(&raw_in, size);
+        success = m.ParseFromBoundedZeroCopyStream(&zip_in, size);
 
+        std::cout << size << ' ' << m.DebugString() << '\n';
+        std::cout << m.mutations_size() << '\n';
+        assert(success && "Failed to parse");
         assert(m.mutations_size() == 16 && "Unexpected mutations count");
         gtr::Sequence sequence;
         sequence.distance = m.has_distance() ? m.distance() : 0.1;
@@ -81,6 +85,8 @@ int main()
                 sequence.transitions(i, j) = m.mutations(4*i + j);
         sequences.push_back(std::move(sequence));
     }
+
+    std::cout << count_base_frequences(sequences) << '\n';
 
     return 0;
 }
