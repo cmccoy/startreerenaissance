@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <cstdio>
+#include <iostream>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -18,6 +19,17 @@ int usage()
     fprintf(stderr, "Usage: build_mutation_matrices [options] <ref.fasta> <in.bam> <out.bin>\n\n");
     fprintf(stderr, "Options: -n INT    Maximum number number of records\n");
     return 1;
+}
+
+inline int nt16_to_idx(const int b) {
+    switch(b) {
+        case 1: return 0; // A
+        case 2: return 1; // C
+        case 4: return 2; // G
+        case 8: return 3; // T
+        default: return 4; // N
+
+    }
 }
 
 int main(int argc, char *argv[])
@@ -78,18 +90,18 @@ int main(int argc, char *argv[])
         uint32_t qi = 0, ri = b->core.pos;
         const std::string& ref = target_bases[b->core.tid];
 
-        std::vector<int> mutations(16);
+        std::vector<int> mutations(16, 0);
 
         for(uint32_t cidx = 0; cidx < b->core.n_cigar; cidx++) {
             const uint32_t clen = bam_cigar_oplen(cigar[cidx]);
             const uint32_t consumes = bam_cigar_type(cigar[cidx]); // bit 1: consume query; bit 2: consume reference
             if ((consumes & 0x3) == 0x3) { // Reference and query
                 for(uint32_t i = 0; i < clen; i++) {
-                    const int qb = bam1_seqi(seq, qi + i),
-                              rb = bam_nt16_nt4_table[static_cast<int>(ref[ri + i])];
+                    const int qb = nt16_to_idx(bam1_seqi(seq, qi + i)),
+                              rb = nt16_to_idx(bam_nt16_table[static_cast<int>(ref[ri + i])]);
                     if(qb < 4 && rb < 4) {
-                        mutations[rb * 4 + qb] += 1;
-                    } 
+                        mutations[(rb * 4) + qb] += 1;
+                    }
                 }
             }
             if(consumes & 0x1) // Consumes query
@@ -105,6 +117,7 @@ int main(int argc, char *argv[])
 
         coded_out.WriteVarint32(count.ByteSize());
         count.SerializeToOstream(&out);
+        //std::cout << count.DebugString() << '\n';
     }
 
     bam_destroy1(b);
