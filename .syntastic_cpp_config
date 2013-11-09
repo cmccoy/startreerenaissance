@@ -4,3 +4,4 @@
 -g
 -fopenmp
 -Ilib/eigen_3.2.0
+-Ilib/samtools
