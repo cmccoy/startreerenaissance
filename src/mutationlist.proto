@@ -1,0 +1,7 @@
+package mutationio;
+
+message MutationCount {
+  optional string name = 1;
+  optional double distance = 2;
+  repeated uint32 mutations = 3;
+}
