@@ -42,11 +42,22 @@ void estimate_branch_lengths(const GTRModel& model,
     }
 }
 
+Eigen::Vector4d count_base_frequences(const std::vector<gtr::Sequence>& sequences)
+{
+    Eigen::Vector4d result;
+
+    for(const gtr::Sequence& s : sequences)
+        result += s.transitions.colwise().sum();
+
+    result /= result.sum();
+    return result;
+}
+
 int main()
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    std::vector<mutationio::MutationCount> mutations;
-    
+    std::vector<gtr::Sequence> sequences;
+
     std::fstream in("test.bin.gz", std::ios::in | std::ios::binary);
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
@@ -59,7 +70,16 @@ int main()
         if(!success) break;
         mutationio::MutationCount m;
         m.ParseFromBoundedZeroCopyStream(&raw_in, size);
-        mutations.push_back(m);
+
+        assert(m.mutations_size() == 16 && "Unexpected mutations count");
+        gtr::Sequence sequence;
+        sequence.distance = m.has_distance() ? m.distance() : 0.1;
+        if(m.has_name())
+            sequence.name = m.name();
+        for(size_t i = 0; i < 4; i++)
+            for(size_t j = 0; j < 4; j++)
+                sequence.transitions(i, j) = m.mutations(4*i + j);
+        sequences.push_back(std::move(sequence));
     }
 
     return 0;

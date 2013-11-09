@@ -1,6 +1,7 @@
 #ifndef GTR_GTR_H
 #define GTR_GTR_H
 
+#include <string>
 #include <vector>
 #include <iostream>
 
@@ -17,6 +18,7 @@ typedef Eigen::EigenSolver<Matrix4d> EigenDecomp;
 
 struct Sequence
 {
+    std::string name;
     Matrix4d transitions;
     double distance;
 };
