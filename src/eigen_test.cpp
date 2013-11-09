@@ -30,20 +30,17 @@ double star_likelihood(const GTRModel& model,
 void estimate_branch_lengths(const GTRModel& model,
                              std::vector<Sequence>& sequences)
 {
-//#pragma omp parallel for
+#pragma omp parallel for
     for(size_t i = 0; i < sequences.size(); i++) {
         Sequence& s = sequences[i];
         auto f = [&model, &s](const double d) {
             s.distance = d;
             const double result = -model.logLikelihood(s);
-            std::cout << "d=" << d << " result=" << result << '\n';
             return result;
         };
         boost::uintmax_t max_iter = 100;
         std::pair<double, double> res =  brent_find_minima(f, 1e-9, 1.0, 50, max_iter);
         s.distance = res.first;
-        std::cerr << s.distance << ' ' << res.first << ' ' << res.second << ' ' << max_iter <<  '\n';
-        assert(0);
     }
 }
 
@@ -124,13 +121,15 @@ int main()
     empirical_model(sequences, params);
 
     gtr::GTRModel model = params.buildModel();
+
+    std::cout << "Initial log-like: " << star_likelihood(model, sequences) << '\n';
+
     estimate_branch_lengths(model, sequences);
 
     auto f = [](double acc, const Sequence& s) { return acc + s.distance; };
     const double mean_branch_length = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
     std::cout << "Mean branch length: " << mean_branch_length << '\n';
-
-    std::cout << star_likelihood(model, sequences) << '\n';
+    std::cout << "Final log-like: " << star_likelihood(model, sequences) << '\n';
 
     return 0;
 }

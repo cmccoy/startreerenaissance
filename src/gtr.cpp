@@ -12,18 +12,12 @@ Matrix4d GTRModel::buildPMatrix(const double t) const
 
 double GTRModel::logLikelihood(const Sequence& s) const
 {
-    const Matrix4d r = buildPMatrix(s.distance) * s.transitions;
+    const Matrix4d p = buildPMatrix(s.distance);
 
-    // TODO: is there a better form for this?
-    double result = 0;
-    for(size_t i = 0; i < 4; i++) {
-        for(size_t j = 0; j < 4; j++) {
-            const double d = r(i, j);
-            if(d > 0)
-                result += std::log(d);
-        }
-    }
-    return result;
+    auto f = [](const double d) { return std::log(d); };
+    const Matrix4d log_p = p.unaryExpr(f);
+
+    return log_p.cwiseProduct(s.transitions).sum();
 }
 
 // GTRParameters
