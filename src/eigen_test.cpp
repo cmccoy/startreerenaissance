@@ -1,4 +1,4 @@
-#include <atomic>
+#include <algorithm>
 #include <vector>
 #include <fstream>
 #include <iostream>
@@ -30,15 +30,20 @@ double star_likelihood(const GTRModel& model,
 void estimate_branch_lengths(const GTRModel& model,
                              std::vector<Sequence>& sequences)
 {
-#pragma omp parallel for
+//#pragma omp parallel for
     for(size_t i = 0; i < sequences.size(); i++) {
         Sequence& s = sequences[i];
         auto f = [&model, &s](const double d) {
             s.distance = d;
-            return - model.logLikelihood(s);
+            const double result = -model.logLikelihood(s);
+            std::cout << "d=" << d << " result=" << result << '\n';
+            return result;
         };
-        boost::uintmax_t max_iter = 50;
-        s.distance = brent_find_minima(f, 1e-7, 1.0, 8, max_iter).second;
+        boost::uintmax_t max_iter = 100;
+        std::pair<double, double> res =  brent_find_minima(f, 1e-9, 1.0, 50, max_iter);
+        s.distance = res.first;
+        std::cerr << s.distance << ' ' << res.first << ' ' << res.second << ' ' << max_iter <<  '\n';
+        assert(0);
     }
 }
 
@@ -70,7 +75,8 @@ void empirical_model(const std::vector<gtr::Sequence>& sequences,
                     result(1, 2), result(1, 3), result(2, 3);
     model.params /= model.params[5];
 
-    std::cout << model.params.transpose() << '\n' << model.pi.transpose() << '\n' << result << '\n';
+    std::cout << model.params.transpose() << '\n'
+              << model.pi.transpose()  << '\n' << result << '\n';
 }
 
 std::vector<gtr::Sequence> load_sequences_from_file(const std::string& path)
@@ -114,7 +120,17 @@ int main()
 
     google::protobuf::ShutdownProtobufLibrary();
 
-    gtr::GTRParameters m;
-    empirical_model(sequences, m);
+    gtr::GTRParameters params;
+    empirical_model(sequences, params);
+
+    gtr::GTRModel model = params.buildModel();
+    estimate_branch_lengths(model, sequences);
+
+    auto f = [](double acc, const Sequence& s) { return acc + s.distance; };
+    const double mean_branch_length = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
+    std::cout << "Mean branch length: " << mean_branch_length << '\n';
+
+    std::cout << star_likelihood(model, sequences) << '\n';
+
     return 0;
 }
