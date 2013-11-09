@@ -11,6 +11,7 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/io/gzip_stream.h>
 
 #include "mutationlist.pb.h"
 
@@ -71,7 +72,8 @@ int main(int argc, char *argv[])
 
     std::fstream out(argv[2], std::ios::out | std::ios::trunc | std::ios::binary);
     google::protobuf::io::OstreamOutputStream raw_out(&out);
-    google::protobuf::io::CodedOutputStream coded_out(&raw_out);
+    google::protobuf::io::GzipOutputStream zip_out(&raw_out);
+    google::protobuf::io::CodedOutputStream coded_out(&zip_out);
 
     while(samread(in, b) >= 0) {
         if(n > 0 && processed > n)

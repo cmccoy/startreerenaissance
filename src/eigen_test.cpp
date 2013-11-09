@@ -1,7 +1,14 @@
 #include <atomic>
 #include <vector>
+#include <fstream>
 #include <iostream>
 #include <boost/math/tools/minima.hpp>
+#include "mutationlist.pb.h"
+
+#include <google/protobuf/io/coded_stream.h>
+#include <google/protobuf/io/zero_copy_stream.h>
+#include <google/protobuf/io/zero_copy_stream_impl.h>
+#include <google/protobuf/io/gzip_stream.h>
 
 #include "gtr.hpp"
 
@@ -37,15 +44,23 @@ void estimate_branch_lengths(const GTRModel& model,
 
 int main()
 {
-    GTRParameters m;
-    GTRModel model = m.buildModel();
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+    std::vector<mutationio::MutationCount> mutations;
+    
+    std::fstream in("test.bin.gz", std::ios::in | std::ios::binary);
+    google::protobuf::io::IstreamInputStream raw_in(&in);
+    google::protobuf::io::GzipInputStream zip_in(&raw_in);
+    google::protobuf::io::CodedInputStream coded_in(&zip_in);
 
-    std::cout << "eigenvalues:\n";
-    std::cout << model.decomp.eigenvalues() << '\n';
+    while(in.good()) {
+        uint32_t size;
+        bool success = false;
+        success = coded_in.ReadVarint32(&size);
+        if(!success) break;
+        mutationio::MutationCount m;
+        m.ParseFromBoundedZeroCopyStream(&raw_in, size);
+        mutations.push_back(m);
+    }
 
-    std::cout << m.params << '\n';
-    std::cout << m.pi << '\n';
-    std::cout << m.buildQMatrix() << '\n';
-    std::cout << "Distance = .1\n" << model.buildPMatrix(0.1) << '\n';
     return 0;
 }
