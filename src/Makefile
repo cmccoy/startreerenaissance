@@ -14,7 +14,7 @@ clean:
 gtr.cpp: gtr.hpp
 
 eigen_test: gtr.o mutationlist.pb.o
-eigen_test: LDLIBS += -lprotobuf
+eigen_test: LDLIBS += -lprotobuf -lz
 eigen_test: CXXFLAGS += -fopenmp
 
 # Protobuf stuff

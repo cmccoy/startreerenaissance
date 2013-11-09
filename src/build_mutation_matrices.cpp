@@ -117,10 +117,8 @@ int main(int argc, char *argv[])
         for(const int i : mutations)
             count.add_mutations(i);
 
-
         coded_out.WriteVarint32(count.ByteSize());
-        count.SerializeToCodedStream(&coded_out);
-        //std::cout << count.DebugString() << '\n';
+        count.SerializeWithCachedSizes(&coded_out);
     }
 
     bam_destroy1(b);

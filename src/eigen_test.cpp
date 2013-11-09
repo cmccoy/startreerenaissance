@@ -54,15 +54,33 @@ Eigen::Vector4d count_base_frequences(const std::vector<gtr::Sequence>& sequence
     return result;
 }
 
-int main()
+void empirical_model(const std::vector<gtr::Sequence>& sequences,
+                     gtr::GTRParameters& model)
 {
-    GOOGLE_PROTOBUF_VERIFY_VERSION;
-    std::vector<gtr::Sequence> sequences;
+    model.pi = count_base_frequences(sequences);
 
-    std::fstream in("test.muts.pb.gz", std::ios::in | std::ios::binary);
+    Matrix4d result;
+    result.fill(0);
+
+    for(const gtr::Sequence& s : sequences) {
+        result += s.transitions;
+    }
+
+    model.params << result(0, 1), result(0, 2), result(0, 3),
+                    result(1, 2), result(1, 3), result(2, 3);
+    model.params /= model.params[5];
+
+    std::cout << model.params.transpose() << '\n' << model.pi.transpose() << '\n' << result << '\n';
+}
+
+std::vector<gtr::Sequence> load_sequences_from_file(const std::string& path)
+{
+    std::fstream in(path, std::ios::in | std::ios::binary);
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
     google::protobuf::io::CodedInputStream coded_in(&zip_in);
+
+    std::vector<gtr::Sequence> sequences;
 
     while(true) {
         uint32_t size = 0;
@@ -70,10 +88,9 @@ int main()
         success = coded_in.ReadVarint32(&size);
         if(!success) break;
         mutationio::MutationCount m;
-        success = m.ParseFromBoundedZeroCopyStream(&zip_in, size);
-
-        std::cout << size << ' ' << m.DebugString() << '\n';
-        std::cout << m.mutations_size() << '\n';
+        std::string s;
+        coded_in.ReadString(&s, size);
+        success = m.ParseFromString(s);
         assert(success && "Failed to parse");
         assert(m.mutations_size() == 16 && "Unexpected mutations count");
         gtr::Sequence sequence;
@@ -85,8 +102,19 @@ int main()
                 sequence.transitions(i, j) = m.mutations(4*i + j);
         sequences.push_back(std::move(sequence));
     }
+    return sequences;
+}
 
-    std::cout << count_base_frequences(sequences) << '\n';
+int main()
+{
+    GOOGLE_PROTOBUF_VERIFY_VERSION;
+    std::vector<gtr::Sequence> sequences = load_sequences_from_file("test.muts.pb.gz");
 
+    std::cout << sequences.size() << " sequences." << '\n';
+
+    google::protobuf::ShutdownProtobufLibrary();
+
+    gtr::GTRParameters m;
+    empirical_model(sequences, m);
     return 0;
 }
