@@ -11,7 +11,7 @@ all: $(ALL)
 clean:
 	rm -f $(EXE) *.o
 
-gtr.cpp: gtr.hpp
+gtr.o: gtr.hpp
 
 eigen_test: gtr.o mutationlist.pb.o
 eigen_test: LDLIBS += -lprotobuf -lz

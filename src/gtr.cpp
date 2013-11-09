@@ -1,4 +1,9 @@
 #include "gtr.hpp"
+#include "sequence.hpp"
+
+using Eigen::Array4d;
+using Eigen::Matrix4d;
+using Eigen::Vector4d;
 
 namespace gtr {
 

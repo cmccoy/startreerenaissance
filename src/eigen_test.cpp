@@ -11,9 +11,11 @@
 #include <google/protobuf/io/gzip_stream.h>
 
 #include "gtr.hpp"
+#include "sequence.hpp"
 
 using namespace gtr;
 using boost::math::tools::brent_find_minima;
+using Eigen::Matrix4d;
 
 double star_likelihood(const GTRModel& model,
                        const std::vector<Sequence>& sequences)
@@ -44,19 +46,19 @@ void estimate_branch_lengths(const GTRModel& model,
     }
 }
 
-Eigen::Vector4d count_base_frequences(const std::vector<gtr::Sequence>& sequences)
+Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
 {
     Eigen::Vector4d result;
     result.fill(1);
 
-    for(const gtr::Sequence& s : sequences)
+    for(const Sequence& s : sequences)
         result += s.transitions.colwise().sum();
 
     result /= result.sum();
     return result;
 }
 
-void empirical_model(const std::vector<gtr::Sequence>& sequences,
+void empirical_model(const std::vector<Sequence>& sequences,
                      gtr::GTRParameters& model)
 {
     model.pi = count_base_frequences(sequences);
@@ -64,7 +66,7 @@ void empirical_model(const std::vector<gtr::Sequence>& sequences,
     Matrix4d result;
     result.fill(0);
 
-    for(const gtr::Sequence& s : sequences) {
+    for(const Sequence& s : sequences) {
         result += s.transitions;
     }
 
@@ -76,14 +78,14 @@ void empirical_model(const std::vector<gtr::Sequence>& sequences,
               << model.pi.transpose()  << '\n' << result << '\n';
 }
 
-std::vector<gtr::Sequence> load_sequences_from_file(const std::string& path)
+std::vector<Sequence> load_sequences_from_file(const std::string& path)
 {
     std::fstream in(path, std::ios::in | std::ios::binary);
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
     google::protobuf::io::CodedInputStream coded_in(&zip_in);
 
-    std::vector<gtr::Sequence> sequences;
+    std::vector<Sequence> sequences;
 
     while(true) {
         uint32_t size = 0;
@@ -96,7 +98,7 @@ std::vector<gtr::Sequence> load_sequences_from_file(const std::string& path)
         success = m.ParseFromString(s);
         assert(success && "Failed to parse");
         assert(m.mutations_size() == 16 && "Unexpected mutations count");
-        gtr::Sequence sequence;
+        Sequence sequence;
         sequence.distance = m.has_distance() ? m.distance() : 0.1;
         if(m.has_name())
             sequence.name = m.name();
@@ -111,7 +113,7 @@ std::vector<gtr::Sequence> load_sequences_from_file(const std::string& path)
 int main()
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    std::vector<gtr::Sequence> sequences = load_sequences_from_file("test.muts.pb.gz");
+    std::vector<Sequence> sequences = load_sequences_from_file("test.muts.pb.gz");
 
     std::cout << sequences.size() << " sequences." << '\n';
 
