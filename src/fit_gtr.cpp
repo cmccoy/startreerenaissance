@@ -9,11 +9,14 @@
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/io/gzip_stream.h>
 
+#include <boost/program_options.hpp>
+
 #include "gtr.hpp"
 #include "sequence.hpp"
 
 using namespace gtr;
 using Eigen::Matrix4d;
+namespace po = boost::program_options;
 
 std::vector<Sequence> load_sequences_from_file(const std::string& path)
 {
@@ -47,10 +50,42 @@ std::vector<Sequence> load_sequences_from_file(const std::string& path)
     return sequences;
 }
 
-int main()
+int main(const int argc, const char** argv)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    std::vector<Sequence> sequences = load_sequences_from_file("test.muts.pb.gz");
+
+    // command-line parsing
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h", "Produce help message")
+        ("input-file,i", "input file [required]")
+        ("output-file,o", "output file [required]");
+
+    po::positional_options_description p;
+    p.add("input-file", 1);
+    p.add("output-file", 1);
+
+    po::variables_map vm;
+    po::store(po::command_line_parser(argc, argv).
+              options(desc).positional(p).run(), vm);
+    po::notify(vm);
+
+    if(vm.count("help") || vm.count("h")) {
+        std::cerr << desc << '\n';
+        return 1;
+    }
+    if (!vm.count("input-file")) {
+        std::cerr << "missing input.\n";
+        return 1;
+    }
+
+    if (!vm.count("output-file")) {
+        std::cerr << "missing input.\n";
+        return 1;
+    }
+
+    std::vector<Sequence> sequences = load_sequences_from_file(vm["input-file"].as<std::string>());
+
 
     std::cout << sequences.size() << " sequences." << '\n';
 
