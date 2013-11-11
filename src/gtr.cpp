@@ -140,13 +140,20 @@ void optimize(gtr::GTRParameters& params,
     for(size_t iter = 0; iter < 20; iter++) {
         bool any_improved = false;
         for(size_t param_index = 0; param_index < 7; param_index++) {
-            if(param_index == 6)
+            double log_like;
+            if(param_index == 6) {
                 estimate_branch_lengths(params.buildModel(),
                                         sequences);
-            else
-                optimize_parameter(sequences, param_index, params);
-
-            const double log_like = star_likelihood(params.buildModel(), sequences);
+                const double log_like = star_likelihood(params.buildModel(), sequences);
+            }
+            else {
+                const double orig = params.params[param_index];
+                log_like = optimize_parameter(sequences, param_index, params);
+                if(log_like < last_log_like) {
+                    // Revert
+                    params.params[param_index] = orig;
+                }
+            }
 
             std::cerr << "p=" << params.params.transpose() << '\n';
             std::cerr << "iteration " << iter << " parameter " << param_index << ": " << last_log_like << " ->\t" << log_like << '\t' << log_like - last_log_like << '\n';
