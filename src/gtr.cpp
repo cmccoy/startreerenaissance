@@ -122,8 +122,8 @@ double optimize_parameter(const std::vector<Sequence>& sequences,
         return -star_likelihood(model, sequences);
     };
 
-    boost::uintmax_t max_iter = 50;
-    std::pair<double, double> result = boost::math::tools::brent_find_minima(f, 1e-9, 20.0, 50, max_iter);
+    boost::uintmax_t max_iter = 100;
+    std::pair<double, double> result = boost::math::tools::brent_find_minima(f, 1e-9, 20.0, 40, max_iter);
 
     params.params[index] = result.first;
     params.params /= params.params[5];
