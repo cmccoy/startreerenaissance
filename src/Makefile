@@ -1,4 +1,7 @@
-CXXFLAGS = -I../lib/eigen_3.2.0 -std=c++0x -Wall -Wextra -g
+BOOST := ../lib/boost_1.54.0
+EIGEN := ../lib/eigen_3.2.0
+
+CXXFLAGS = -I$(BOOST) -I$(EIGEN) -std=c++0x -Wall -Wextra -g
 
 PROTOBUF_OUT = mutationlist.pb.cc mutationlist.pb.h
 
@@ -14,6 +17,7 @@ clean:
 gtr.o: gtr.hpp
 
 fit_gtr: gtr.o mutationlist.pb.o
+fit_gtr: $(BOOST)/libs/program_options/libboost-programoptions.a
 fit_gtr: LDLIBS += -lprotobuf -lz
 fit_gtr: CXXFLAGS += -fopenmp
 
