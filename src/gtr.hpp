@@ -1,7 +1,6 @@
 #ifndef GTR_GTR_H
 #define GTR_GTR_H
 
-#include <string>
 #include <vector>
 
 #include <Eigen/Dense>

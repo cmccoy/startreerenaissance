@@ -3,7 +3,7 @@ EIGEN := ../lib/eigen_3.2.0
 
 CXXFLAGS = -I$(BOOST) -I$(EIGEN) -std=c++0x -Wall -Wextra -g
 
-PROTOBUF_OUT = mutationlist.pb.cc mutationlist.pb.h
+PROTOBUF_OUT = mutationio.pb.cc mutationio.pb.h
 
 EXE = fit_gtr build_mutation_matrices
 
@@ -16,14 +16,14 @@ clean:
 
 gtr.o: gtr.hpp
 
-fit_gtr: gtr.o mutationlist.pb.o
+fit_gtr: gtr.o mutationio.pb.o
 fit_gtr: $(BOOST)/libs/program_options/libboost-programoptions.a
 fit_gtr: LDLIBS += -lprotobuf -lz
 fit_gtr: CXXFLAGS += -fopenmp
 
 # Protobuf stuff
 %.pb.h %.pb.cc: %.proto
-	protoc --cpp_out=. ../python $<
+	protoc --cpp_out=.  $<
 
 # BAM
 LIBBAM = ../lib/samtools/libbam.a
@@ -31,7 +31,7 @@ $(LIBBAM):
 	make -C ../lib/samtools libbam.a
 
 # Mutation matrices
-build_mutation_matrices: mutationlist.pb.o $(LIBBAM)
+build_mutation_matrices: mutationio.pb.o $(LIBBAM)
 build_mutation_matrices: LDLIBS += -lz -lpthread -lprotobuf
 build_mutation_matrices: CXXFLAGS += -I../lib/samtools
 

@@ -5,3 +5,8 @@ message MutationCount {
   optional double distance = 2;
   repeated uint32 mutations = 3;
 }
+
+message SubstitutionModel {
+  repeated string parameter_names = 1;
+  repeated double values = 2;
+}

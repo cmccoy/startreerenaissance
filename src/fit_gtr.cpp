@@ -2,7 +2,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
-#include "mutationlist.pb.h"
+#include "mutationio.pb.h"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream.h>
@@ -44,7 +44,7 @@ std::vector<Sequence> load_sequences_from_file(const std::string& path)
             sequence.name = m.name();
         for(size_t i = 0; i < 4; i++)
             for(size_t j = 0; j < 4; j++)
-                sequence.transitions(i, j) = m.mutations(4*i + j);
+                sequence.substitutions(i, j) = m.mutations(4*i + j);
         sequences.push_back(std::move(sequence));
     }
     return sequences;
@@ -86,7 +86,6 @@ int main(const int argc, const char** argv)
 
     std::vector<Sequence> sequences = load_sequences_from_file(vm["input-file"].as<std::string>());
 
-
     std::cout << sequences.size() << " sequences." << '\n';
 
     google::protobuf::ShutdownProtobufLibrary();
@@ -107,7 +106,7 @@ int main(const int argc, const char** argv)
 
     std::cout << "Final log-like: " << star_likelihood(params.buildModel(), sequences) << '\n';
 
-    std::cout << "x=" << params.params.transpose() << '\n';
+    std::cout << "ac ag at cg ct gt = " << params.params.transpose() << '\n';
     std::cout << "Q=" << params.buildQMatrix() << '\n';
     std::cout << "P(0.01)=" << params.buildModel().buildPMatrix(0.01) << '\n';
 

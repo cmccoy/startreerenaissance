@@ -23,7 +23,7 @@ double GTRModel::logLikelihood(const Sequence& s) const
     auto f = [](const double d) { return std::log(d); };
     const Matrix4d log_p = p.unaryExpr(f);
 
-    return log_p.cwiseProduct(s.transitions).sum();
+    return log_p.cwiseProduct(s.substitutions).sum();
 }
 
 // GTRParameters
@@ -89,7 +89,7 @@ Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
     result.fill(1);
 
     for(const Sequence& s : sequences)
-        result += s.transitions.colwise().sum();
+        result += s.substitutions.colwise().sum();
 
     result /= result.sum();
     return result;
@@ -104,7 +104,7 @@ void empirical_model(const std::vector<Sequence>& sequences,
     result.fill(0);
 
     for(const Sequence& s : sequences) {
-        result += s.transitions;
+        result += s.substitutions;
     }
 
     model.params << result(0, 1), result(0, 2), result(0, 3),
