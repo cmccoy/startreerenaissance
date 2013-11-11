@@ -79,10 +79,10 @@ int main(const int argc, const char** argv)
         return 1;
     }
 
-    if (!vm.count("output-file")) {
-        std::cerr << "missing input.\n";
-        return 1;
-    }
+    //if (!vm.count("output-file")) {
+        //std::cerr << "missing output.\n";
+        //return 1;
+    //}
 
     std::vector<Sequence> sequences = load_sequences_from_file(vm["input-file"].as<std::string>());
 
@@ -108,7 +108,7 @@ int main(const int argc, const char** argv)
 
     std::cout << "ac ag at cg ct gt = " << params.params.transpose() << '\n';
     std::cout << "Q=" << params.buildQMatrix() << '\n';
-    std::cout << "P(0.01)=" << params.buildModel().buildPMatrix(0.01) << '\n';
+    std::cout << "P(" << mean_branch_length << ")=" << params.buildModel().buildPMatrix(mean_branch_length) << '\n';
 
     return 0;
 }
