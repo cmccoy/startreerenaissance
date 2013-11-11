@@ -1,7 +1,7 @@
 BOOST := ../lib/boost_1.54.0
 EIGEN := ../lib/eigen_3.2.0
 
-CXXFLAGS = -I$(BOOST) -I$(EIGEN) -std=c++0x -Wall -Wextra -g
+CXXFLAGS = -I$(BOOST) -I$(EIGEN) -std=c++0x -Wall -Wextra -g -O2
 
 PROTOBUF_OUT = mutationio.pb.cc mutationio.pb.h
 

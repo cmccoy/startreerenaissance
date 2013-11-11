@@ -21,13 +21,15 @@ namespace po = boost::program_options;
 std::vector<Sequence> load_sequences_from_file(const std::string& path)
 {
     std::fstream in(path, std::ios::in | std::ios::binary);
+    std::cerr << "Loading from " << path << '\n';
+    assert(in.good() && "Input stream is not good.");
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
-    google::protobuf::io::CodedInputStream coded_in(&zip_in);
 
     std::vector<Sequence> sequences;
 
     while(true) {
+        google::protobuf::io::CodedInputStream coded_in(&zip_in);
         uint32_t size = 0;
         bool success = false;
         success = coded_in.ReadVarint32(&size);
@@ -58,16 +60,12 @@ int main(const int argc, const char** argv)
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h", "Produce help message")
-        ("input-file,i", "input file [required]")
-        ("output-file,o", "output file [required]");
-
-    po::positional_options_description p;
-    p.add("input-file", 1);
-    p.add("output-file", 1);
+        ("input-file,i", po::value<std::string>(), "input file [required]")
+        ("output-file,o", po::value<std::string>(), "output file [required]");
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
-              options(desc).positional(p).run(), vm);
+              options(desc).run(), vm);
     po::notify(vm);
 
     if(vm.count("help") || vm.count("h")) {
