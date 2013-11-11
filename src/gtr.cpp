@@ -6,7 +6,14 @@ using Eigen::Array4d;
 using Eigen::Matrix4d;
 using Eigen::Vector4d;
 
+
 namespace gtr {
+
+const size_t MAX_ROUNDS = 20;
+const size_t MAX_ITER = 200;
+const double MIN_SUBS_PARAM = 1e-5,
+             MAX_SUBS_PARAM = 20.0;
+const size_t BIT_TOL = 50;
 
 // GTRModel
 Matrix4d GTRModel::buildPMatrix(const double t) const
@@ -122,8 +129,9 @@ double optimize_parameter(const std::vector<Sequence>& sequences,
         return -star_likelihood(model, sequences);
     };
 
-    boost::uintmax_t max_iter = 100;
-    std::pair<double, double> result = boost::math::tools::brent_find_minima(f, 1e-9, 20.0, 40, max_iter);
+    boost::uintmax_t max_iter = MAX_ITER;
+    std::pair<double, double> result =
+        boost::math::tools::brent_find_minima(f, MIN_SUBS_PARAM, MAX_SUBS_PARAM, BIT_TOL, max_iter);
 
     params.params[index] = result.first;
     params.params /= params.params[5];
@@ -137,14 +145,14 @@ void optimize(gtr::GTRParameters& params,
 {
     double last_log_like = star_likelihood(params.buildModel(), sequences);
 
-    for(size_t iter = 0; iter < 20; iter++) {
+    for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
         bool any_improved = false;
         for(size_t param_index = 0; param_index < 7; param_index++) {
             double log_like;
             if(param_index == 6) {
                 estimate_branch_lengths(params.buildModel(),
                                         sequences);
-                const double log_like = star_likelihood(params.buildModel(), sequences);
+                log_like = star_likelihood(params.buildModel(), sequences);
             }
             else {
                 const double orig = params.params[param_index];
