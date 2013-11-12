@@ -41,12 +41,19 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
         assert(success && "Failed to parse");
         assert(m.mutations_size() == 16 && "Unexpected mutations count");
         Sequence sequence;
-        sequence.distance = m.has_distance() ? m.distance() : 0.1;
         if(m.has_name())
             sequence.name = m.name();
         for(size_t i = 0; i < 4; i++)
             for(size_t j = 0; j < 4; j++)
                 sequence.substitutions(i, j) = m.mutations(4*i + j);
+        if(m.has_distance())
+            sequence.distance = m.distance();
+        else {
+            double d = 1 - sequence.substitutions.diagonal().sum() / sequence.substitutions.sum();
+            if(d == 0)
+                d = 1e-3;
+            sequence.distance = d;
+        }
         sequences.push_back(std::move(sequence));
     }
     return sequences;

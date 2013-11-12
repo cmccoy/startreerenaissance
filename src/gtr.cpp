@@ -26,6 +26,7 @@ Matrix4d GTRModel::buildPMatrix(const double t) const
 double GTRModel::logLikelihood(const Sequence& s) const
 {
     const Matrix4d p = buildPMatrix(s.distance);
+    //std::cout << "P(" << s.distance << ") = " << p << "\n\n";
 
     auto f = [](const double d) { return std::log(d); };
     const Matrix4d logP = p.unaryExpr(f);
@@ -48,11 +49,12 @@ Matrix4d GTRParameters::buildQMatrix() const
           x4 = params[3], x5 = params[4], x6 = params[5];
     Matrix4d result;
 
+    // Parameterized as: http://en.wikipedia.org/wiki/Substitution_model
     result << 0, x1, x2, x3,
               pi1 * x1 / pi2, 0, x4, x5,
               pi1 * x2 / pi3, pi2 * x4 / pi3, 0, x6,
               pi1 * x3 / pi4, pi2 * x5 / pi4, pi3 * x6 / pi4, 0;
-    result.diagonal() = result.rowwise().sum();
+    result.diagonal() = - result.rowwise().sum();
     return result;
 };
 

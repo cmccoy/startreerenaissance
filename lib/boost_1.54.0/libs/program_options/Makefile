@@ -1,4 +1,4 @@
-CXXFLAGS = -I ../../ -Wall
+CXXFLAGS = -I ../../ -Wall -std=c++11
 
 CPP = $(wildcard src/*.cpp)
 OBJ = $(CPP:.cpp=.o)
@@ -9,4 +9,8 @@ all: $(STATICLIB)
 $(STATICLIB): $(OBJ)
 	ar -cvq $@ $^
 
-.PHONY: all
+clean:
+	rm -f $(STATICLIB)
+	rm -f $(OBJ)
+
+.PHONY: all clean

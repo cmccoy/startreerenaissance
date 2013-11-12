@@ -10,8 +10,8 @@ struct Sequence;
 
 namespace gtr {
 
-typedef Eigen::Matrix<double, 6, 1> Vector6d;
-typedef Eigen::EigenSolver<Eigen::Matrix4d> EigenDecomp;
+using Vector6d = Eigen::Matrix<double, 6, 1>;
+using EigenDecomp = Eigen::EigenSolver<Eigen::Matrix4d>;
 
 struct GTRModel
 {
