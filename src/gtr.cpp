@@ -28,9 +28,9 @@ double GTRModel::logLikelihood(const Sequence& s) const
     const Matrix4d p = buildPMatrix(s.distance);
 
     auto f = [](const double d) { return std::log(d); };
-    const Matrix4d log_p = p.unaryExpr(f);
+    const Matrix4d logP = p.unaryExpr(f);
 
-    return log_p.cwiseProduct(s.substitutions).sum();
+    return logP.cwiseProduct(s.substitutions).sum();
 }
 
 // GTRParameters
@@ -60,7 +60,7 @@ GTRModel GTRParameters::buildModel() const
 }
 
 // Functions
-double star_likelihood(const GTRModel& model,
+double starLikelihood(const GTRModel& model,
                        const std::vector<Sequence>& sequences)
 {
     double result = 0.0;
@@ -72,7 +72,7 @@ double star_likelihood(const GTRModel& model,
     return result;
 }
 
-void estimate_branch_lengths(const GTRModel& model,
+void estimateBranchLengths(const GTRModel& model,
                              std::vector<Sequence>& sequences)
 {
 #pragma omp parallel for
@@ -102,7 +102,7 @@ Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
     return result;
 }
 
-void empirical_model(const std::vector<Sequence>& sequences,
+void empiricalModel(const std::vector<Sequence>& sequences,
                      gtr::GTRParameters& model)
 {
     model.pi = count_base_frequences(sequences);
@@ -119,14 +119,14 @@ void empirical_model(const std::vector<Sequence>& sequences,
     model.params /= model.params[5];
 }
 
-double optimize_parameter(const std::vector<Sequence>& sequences,
+double optimizeParameter(const std::vector<Sequence>& sequences,
                         const size_t index,
                         gtr::GTRParameters& params)
 {
     auto f = [&sequences, &index, &params] (const double d) {
         params.params[index] = d;
         const GTRModel model = params.buildModel();
-        return -star_likelihood(model, sequences);
+        return -starLikelihood(model, sequences);
     };
 
     boost::uintmax_t max_iter = MAX_ITER;
@@ -143,35 +143,35 @@ double optimize_parameter(const std::vector<Sequence>& sequences,
 void optimize(gtr::GTRParameters& params,
               std::vector<Sequence>& sequences)
 {
-    double last_log_like = star_likelihood(params.buildModel(), sequences);
+    double lastLogLike = starLikelihood(params.buildModel(), sequences);
 
     for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
-        bool any_improved = false;
+        bool anyImproved = false;
         for(size_t param_index = 0; param_index < 7; param_index++) {
-            double log_like;
+            double logLke;
             if(param_index == 6) {
-                estimate_branch_lengths(params.buildModel(),
+                estimateBranchLengths(params.buildModel(),
                                         sequences);
-                log_like = star_likelihood(params.buildModel(), sequences);
+                logLke = starLikelihood(params.buildModel(), sequences);
             }
             else {
                 const double orig = params.params[param_index];
-                log_like = optimize_parameter(sequences, param_index, params);
-                if(log_like < last_log_like) {
+                logLke = optimizeParameter(sequences, param_index, params);
+                if(logLke < lastLogLike) {
                     // Revert
                     params.params[param_index] = orig;
                 }
             }
 
             std::cerr << "p=" << params.params.transpose() << '\n';
-            std::cerr << "iteration " << iter << " parameter " << param_index << ": " << last_log_like << " ->\t" << log_like << '\t' << log_like - last_log_like << '\n';
+            std::cerr << "iteration " << iter << " parameter " << param_index << ": " << lastLogLike << " ->\t" << logLke << '\t' << logLke - lastLogLike << '\n';
             std::cerr.flush();
 
-            if(std::abs(log_like - last_log_like) > 1e-4)
-                any_improved = true;
-            last_log_like = log_like;
+            if(std::abs(logLke - lastLogLike) > 1e-4)
+                anyImproved = true;
+            lastLogLike = logLke;
         }
-        if(!any_improved)
+        if(!anyImproved)
             break;
     }
 }

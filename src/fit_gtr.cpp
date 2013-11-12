@@ -18,7 +18,7 @@ using namespace gtr;
 using Eigen::Matrix4d;
 namespace po = boost::program_options;
 
-std::vector<Sequence> load_sequences_from_file(const std::string& path)
+std::vector<Sequence> loadSequencesFromFile(const std::string& path)
 {
     std::fstream in(path, std::ios::in | std::ios::binary);
     std::cerr << "Loading from " << path << '\n';
@@ -82,31 +82,31 @@ int main(const int argc, const char** argv)
         //return 1;
     //}
 
-    std::vector<Sequence> sequences = load_sequences_from_file(vm["input-file"].as<std::string>());
+    std::vector<Sequence> sequences = loadSequencesFromFile(vm["input-file"].as<std::string>());
 
     std::cout << sequences.size() << " sequences." << '\n';
 
     google::protobuf::ShutdownProtobufLibrary();
 
     gtr::GTRParameters params;
-    empirical_model(sequences, params);
+    empiricalModel(sequences, params);
 
     gtr::GTRModel model = params.buildModel();
 
-    std::cout << "Initial log-like: " << star_likelihood(model, sequences) << '\n';
+    std::cout << "Initial log-like: " << starLikelihood(model, sequences) << '\n';
 
     optimize(params, sequences);
 
     auto f = [](double acc, const Sequence& s) { return acc + s.distance; };
-    const double mean_branch_length = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
+    const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
 
-    std::cout << "Mean branch length: " << mean_branch_length << '\n';
+    std::cout << "Mean branch length: " << meanBranchLength << '\n';
 
-    std::cout << "Final log-like: " << star_likelihood(params.buildModel(), sequences) << '\n';
+    std::cout << "Final log-like: " << starLikelihood(params.buildModel(), sequences) << '\n';
 
     std::cout << "ac ag at cg ct gt = " << params.params.transpose() << '\n';
     std::cout << "Q=" << params.buildQMatrix() << '\n';
-    std::cout << "P(" << mean_branch_length << ")=" << params.buildModel().buildPMatrix(mean_branch_length) << '\n';
+    std::cout << "P(" << meanBranchLength << ")=" << params.buildModel().buildPMatrix(meanBranchLength) << '\n';
 
     return 0;
 }

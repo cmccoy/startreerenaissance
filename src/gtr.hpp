@@ -40,15 +40,15 @@ struct GTRParameters
 };
 
 /// \brief calculate the star-tree likelihood
-double star_likelihood(const GTRModel&,
+double starLikelihood(const GTRModel&,
                        const std::vector<Sequence>&);
 
 /// \brief estimate branch lengths
-void estimate_branch_lengths(const GTRModel&,
+void estimateBranchLengths(const GTRModel&,
                              std::vector<Sequence>&);
 
 /// \brief Guess a model by counting
-void empirical_model(const std::vector<Sequence>&,
+void empiricalModel(const std::vector<Sequence>&,
                      gtr::GTRParameters&);
 
 /// \brief Optimize the GTR model & branch lengths for a collection of sequences
