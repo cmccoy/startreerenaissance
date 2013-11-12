@@ -152,28 +152,30 @@ void optimize(gtr::GTRParameters& params,
     for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
         for(size_t param_index = 0; param_index < 7; param_index++) {
-            double logLke;
-            if(param_index == 6) {
+            double logLike;
+            if(param_index == 5) {
+                // Don't optimize gt parameter
+                continue;
+            } else if(param_index == 6) {
                 estimateBranchLengths(params.buildModel(),
                                         sequences);
-                logLke = starLikelihood(params.buildModel(), sequences);
-            }
-            else {
+                logLike = starLikelihood(params.buildModel(), sequences);
+            } else {
                 const double orig = params.params[param_index];
-                logLke = optimizeParameter(sequences, param_index, params);
-                if(logLke < lastLogLike) {
+                logLike = optimizeParameter(sequences, param_index, params);
+                if(logLike < lastLogLike) {
                     // Revert
                     params.params[param_index] = orig;
                 }
             }
 
             std::cerr << "p=" << params.params.transpose() << '\n';
-            std::cerr << "iteration " << iter << " parameter " << param_index << ": " << lastLogLike << " ->\t" << logLke << '\t' << logLke - lastLogLike << '\n';
+            std::cerr << "iteration " << iter << " parameter " << param_index << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
             std::cerr.flush();
 
-            if(std::abs(logLke - lastLogLike) > 1e-4)
+            if(std::abs(logLike - lastLogLike) > 1e-4)
                 anyImproved = true;
-            lastLogLike = logLke;
+            lastLogLike = logLike;
         }
         if(!anyImproved)
             break;
