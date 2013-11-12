@@ -47,10 +47,12 @@ Matrix4d GTRParameters::buildQMatrix() const
     const double x1 = params[0], x2 = params[1], x3 = params[2],
           x4 = params[3], x5 = params[4], x6 = params[5];
     Matrix4d result;
-    result << - (x1 + x2 + x3), (pi1 * x1 / pi2), (pi1 * x2 / pi3), pi1 * x3 / pi4,
-           x1, -(pi1 * x1 / pi2 + x4 + x5), (pi2 * x4 / pi3), (pi2 * x5 / pi4),
-           x2, x4, -(pi1 * x2 / pi3 + pi2 * x4 / pi3 + x6), pi3 * x6 / pi4,
-           x3, x5, x6, -(pi1 * x3 / pi4 + pi2 * x5 / pi4 + pi3 * x6 / pi4);
+
+    result << 0, x1, x2, x3,
+              pi1 * x1 / pi2, 0, x4, x5,
+              pi1 * x2 / pi3, pi2 * x4 / pi3, 0, x6,
+              pi1 * x3 / pi4, pi2 * x5 / pi4, pi3 * x6 / pi4, 0;
+    result.diagonal() = result.rowwise().sum();
     return result;
 };
 
