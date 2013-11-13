@@ -4,8 +4,7 @@
 #include <string>
 #include <Eigen/Dense>
 
-struct Sequence
-{
+struct Sequence {
     std::string name;
     Eigen::Matrix4d substitutions;
     double distance;

@@ -45,7 +45,7 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
             sequence.name = m.name();
         for(size_t i = 0; i < 4; i++)
             for(size_t j = 0; j < 4; j++)
-                sequence.substitutions(i, j) = m.mutations(4*i + j);
+                sequence.substitutions(i, j) = m.mutations(4 * i + j);
         if(m.has_distance())
             sequence.distance = m.distance();
         else {
@@ -66,9 +66,9 @@ int main(const int argc, const char** argv)
     // command-line parsing
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("help,h", "Produce help message")
-        ("input-file,i", po::value<std::string>(), "input file [required]")
-        ("output-file,o", po::value<std::string>(), "output file [required]");
+    ("help,h", "Produce help message")
+    ("input-file,i", po::value<std::string>(), "input file [required]")
+    ("output-file,o", po::value<std::string>(), "output file [required]");
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
@@ -79,14 +79,14 @@ int main(const int argc, const char** argv)
         std::cerr << desc << '\n';
         return 1;
     }
-    if (!vm.count("input-file")) {
+    if(!vm.count("input-file")) {
         std::cerr << "missing input.\n";
         return 1;
     }
 
     //if (!vm.count("output-file")) {
-        //std::cerr << "missing output.\n";
-        //return 1;
+    //std::cerr << "missing output.\n";
+    //return 1;
     //}
 
     std::vector<Sequence> sequences = loadSequencesFromFile(vm["input-file"].as<std::string>());
@@ -104,7 +104,7 @@ int main(const int argc, const char** argv)
 
     optimize(params, sequences);
 
-    auto f = [](double acc, const Sequence& s) { return acc + s.distance; };
+    auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
     const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
 
     std::cout << "Mean branch length: " << meanBranchLength << '\n';

@@ -7,7 +7,8 @@ using Eigen::Matrix4d;
 using Eigen::Vector4d;
 
 
-namespace gtr {
+namespace gtr
+{
 
 const size_t MAX_ROUNDS = 20;
 const size_t MAX_ITER = 200;
@@ -46,14 +47,14 @@ Matrix4d GTRParameters::buildQMatrix() const
 {
     const double pi1 = pi[0], pi2 = pi[1], pi3 = pi[2], pi4 = pi[3];
     const double x1 = params[0], x2 = params[1], x3 = params[2],
-          x4 = params[3], x5 = params[4], x6 = params[5];
+                 x4 = params[3], x5 = params[4], x6 = params[5];
     Matrix4d result;
 
     // Parameterized as: http://en.wikipedia.org/wiki/Substitution_model
     result << 0, x1, x2, x3,
-              pi1 * x1 / pi2, 0, x4, x5,
-              pi1 * x2 / pi3, pi2 * x4 / pi3, 0, x6,
-              pi1 * x3 / pi4, pi2 * x5 / pi4, pi3 * x6 / pi4, 0;
+           pi1* x1 / pi2, 0, x4, x5,
+           pi1* x2 / pi3, pi2* x4 / pi3, 0, x6,
+           pi1* x3 / pi4, pi2* x5 / pi4, pi3* x6 / pi4, 0;
     result.diagonal() = - result.rowwise().sum();
     return result;
 };
@@ -65,11 +66,11 @@ GTRModel GTRParameters::buildModel() const
 
 // Functions
 double starLikelihood(const GTRModel& model,
-                       const std::vector<Sequence>& sequences)
+                      const std::vector<Sequence>& sequences)
 {
     double result = 0.0;
 
-#pragma omp parallel for reduction(+:result)
+    #pragma omp parallel for reduction(+:result)
     for(size_t i = 0; i < sequences.size(); i++) {
         result += model.logLikelihood(sequences[i]);
     }
@@ -77,9 +78,9 @@ double starLikelihood(const GTRModel& model,
 }
 
 void estimateBranchLengths(const GTRModel& model,
-                             std::vector<Sequence>& sequences)
+                           std::vector<Sequence>& sequences)
 {
-#pragma omp parallel for
+    #pragma omp parallel for
     for(size_t i = 0; i < sequences.size(); i++) {
         Sequence& s = sequences[i];
         auto f = [&model, &s](const double d) {
@@ -99,7 +100,7 @@ Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
     Eigen::Vector4d result;
     result.fill(1);
 
-    for(const Sequence& s : sequences)
+    for(const Sequence & s : sequences)
         result += s.substitutions.colwise().sum();
 
     result /= result.sum();
@@ -107,27 +108,27 @@ Eigen::Vector4d count_base_frequences(const std::vector<Sequence>& sequences)
 }
 
 void empiricalModel(const std::vector<Sequence>& sequences,
-                     gtr::GTRParameters& model)
+                    gtr::GTRParameters& model)
 {
     model.pi = count_base_frequences(sequences);
 
     Matrix4d result;
     result.fill(0);
 
-    for(const Sequence& s : sequences) {
+    for(const Sequence & s : sequences) {
         result += s.substitutions;
     }
 
     model.params << result(0, 1), result(0, 2), result(0, 3),
-                    result(1, 2), result(1, 3), result(2, 3);
+                 result(1, 2), result(1, 3), result(2, 3);
     model.params /= model.params[5];
 }
 
 double optimizeParameter(const std::vector<Sequence>& sequences,
-                        const size_t index,
-                        gtr::GTRParameters& params)
+                         const size_t index,
+                         gtr::GTRParameters& params)
 {
-    auto f = [&sequences, &index, &params] (const double d) {
+    auto f = [&sequences, &index, &params](const double d) {
         params.params[index] = d;
         const GTRModel model = params.buildModel();
         return -starLikelihood(model, sequences);
@@ -158,7 +159,7 @@ void optimize(gtr::GTRParameters& params,
                 continue;
             } else if(param_index == 6) {
                 estimateBranchLengths(params.buildModel(),
-                                        sequences);
+                                      sequences);
                 logLike = starLikelihood(params.buildModel(), sequences);
             } else {
                 const double orig = params.params[param_index];

@@ -8,13 +8,13 @@
 
 struct Sequence;
 
-namespace gtr {
+namespace gtr
+{
 
 using Vector6d = Eigen::Matrix<double, 6, 1>;
 using EigenDecomp = Eigen::EigenSolver<Eigen::Matrix4d>;
 
-struct GTRModel
-{
+struct GTRModel {
     Eigen::Matrix4d model;
     EigenDecomp decomp;
 
@@ -26,8 +26,7 @@ struct GTRModel
     double logLikelihood(const Sequence& s) const;
 };
 
-struct GTRParameters
-{
+struct GTRParameters {
     GTRParameters();
 
     Eigen::Matrix4d buildQMatrix() const;
@@ -41,15 +40,15 @@ struct GTRParameters
 
 /// \brief calculate the star-tree likelihood
 double starLikelihood(const GTRModel&,
-                       const std::vector<Sequence>&);
+                      const std::vector<Sequence>&);
 
 /// \brief estimate branch lengths
 void estimateBranchLengths(const GTRModel&,
-                             std::vector<Sequence>&);
+                           std::vector<Sequence>&);
 
 /// \brief Guess a model by counting
 void empiricalModel(const std::vector<Sequence>&,
-                     gtr::GTRParameters&);
+                    gtr::GTRParameters&);
 
 /// \brief Optimize the GTR model & branch lengths for a collection of sequences
 void optimize(gtr::GTRParameters&, std::vector<Sequence>&);
