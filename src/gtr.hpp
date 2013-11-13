@@ -11,7 +11,7 @@ struct Sequence;
 namespace gtr
 {
 
-using Vector6d = Eigen::Matrix<double, 6, 1>;
+using Vector5d = Eigen::Matrix<double, 5, 1>;
 using EigenDecomp = Eigen::EigenSolver<Eigen::Matrix4d>;
 
 struct GTRModel {
@@ -22,20 +22,26 @@ struct GTRModel {
     { };
 
     /// \brief Get the P matrix for time t
-    Eigen::Matrix4d buildPMatrix(const double t) const;
+    Eigen::Matrix4d createPMatrix(const double t) const;
     double logLikelihood(const Sequence& s) const;
 };
 
 struct GTRParameters {
     GTRParameters();
 
-    Eigen::Matrix4d buildQMatrix() const;
-    GTRModel buildModel() const;
+    Eigen::Matrix4d createQMatrix() const;
+    Eigen::Vector4d createBaseFrequencies() const;
+    GTRModel createModel() const;
 
-    // 6 parameters of the GTR
-    Vector6d params;
-    // base frequencies
-    Eigen::Vector4d pi;
+    // 5 parameters of the GTR
+    Vector5d params;
+    // Length-3 base-frequency vector
+    // as http://biopp.univ-montp2.fr/apidoc/bpp-phyl/html/classbpp_1_1GTR.html
+    Eigen::Vector3d theta;
+
+    inline size_t numberOfParameters() const { return 8; }
+    double& parameter(size_t index);
+    double parameter(size_t index) const;
 };
 
 /// \brief calculate the star-tree likelihood

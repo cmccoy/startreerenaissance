@@ -98,7 +98,7 @@ int main(const int argc, const char** argv)
     gtr::GTRParameters params;
     empiricalModel(sequences, params);
 
-    gtr::GTRModel model = params.buildModel();
+    gtr::GTRModel model = params.createModel();
 
     std::cout << "Initial log-like: " << starLikelihood(model, sequences) << '\n';
 
@@ -109,11 +109,12 @@ int main(const int argc, const char** argv)
 
     std::cout << "Mean branch length: " << meanBranchLength << '\n';
 
-    std::cout << "Final log-like: " << starLikelihood(params.buildModel(), sequences) << '\n';
+    std::cout << "Final log-like: " << starLikelihood(params.createModel(), sequences) << '\n';
 
-    std::cout << "ac ag at cg ct gt = " << params.params.transpose() << '\n';
-    std::cout << "Q=" << params.buildQMatrix() << '\n';
-    std::cout << "P(" << meanBranchLength << ")=" << params.buildModel().buildPMatrix(meanBranchLength) << '\n';
+    std::cout << "ct at gt ac cg ag = " << params.params.transpose() << '\t' << 1 << '\n';
+    std::cout << "pi = " << params.createBaseFrequencies() << '\n';
+    std::cout << "Q=\n" << params.createQMatrix() << '\n';
+    std::cout << "P(" << meanBranchLength << ")=\n" << params.createModel().createPMatrix(meanBranchLength) << '\n';
 
     return 0;
 }
