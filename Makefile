@@ -1,10 +1,10 @@
+BUILD := build
 
-ALL = src
-
-$(ALL):
-	+$(MAKE) -C $@
+all:
+	mkdir -p $(BUILD) && (cd $(BUILD) && cmake ..)
+	+make -C$(BUILD)
 
 clean:
-	+$(MAKE) -C src clean
+	rm -rf $(BUILD)
 
-.PHONY: $(ALL) clean
+.PHONY: all clean
