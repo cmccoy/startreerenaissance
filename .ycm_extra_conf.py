@@ -58,6 +58,7 @@ flags = [
 '-I', 'lib/eigen_3.2.0',
 '-I', 'lib/samtools',
 '-I', 'lib/boost_1.54.0',
+'-I', 'lib/gtest-1.7.0/include',
 ]
 
 # Set this to the absolute path to the folder (NOT the file!) containing the

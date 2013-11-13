@@ -22,6 +22,16 @@ include_directories("lib/samtools")
 include_directories("lib/boost_1.54.0")
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -O2 ${CXX11_COMPILER_FLAGS}")
 
+enable_testing()
 add_subdirectory(lib/samtools)
 add_subdirectory(lib/boost_1.54.0/libs/program_options)
 add_subdirectory(src)
+
+# Testing
+add_subdirectory(lib/gtest-1.7.0)
+add_subdirectory(test)
+
+#get_cmake_property(_variableNames VARIABLES)
+#foreach (_variableName ${_variableNames})
+    #message(STATUS "${_variableName}=${${_variableName}}")
+#endforeach()

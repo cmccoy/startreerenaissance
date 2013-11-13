@@ -6,3 +6,4 @@
 -Ilib/eigen_3.2.0
 -Ilib/samtools
 -Ilib/boost_1.54.0
+-Ilib/gtest-1.7.0/include
