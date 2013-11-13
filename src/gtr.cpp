@@ -65,6 +65,7 @@ Matrix4d GTRParameters::createQMatrix() const
     const double p = 2 * (a * pi[1] * pi[3] + b * pi[0] * pi[3] + c * pi[2] * pi[3] + d * pi[0] * pi[1] + e * pi[1] * pi[2] + f * pi[0] * pi[2]);
     S /= p;
 
+
     assert(S.rowwise().sum().isZero());
     const Matrix4d Q = S * pi.asDiagonal();
     // Sanity check: this is just scaling, can be approximate.

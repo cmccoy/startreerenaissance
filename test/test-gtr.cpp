@@ -7,16 +7,15 @@
 
 TEST(simple_jc, simple_jc) {
     gtr::GTRParameters params;
-    params.params.fill(1.0);
     Sequence s;
     Eigen::Matrix4d& m = s.substitutions;
     m.fill(0.0);
     m.diagonal() = Eigen::Vector4d::Constant(1.0);
 
-    s.distance = 0.01;
+    s.distance = 0.02;
 
-    const double ll = params.buildModel().logLikelihood(s);
-    const double expll = std::log(0.9705921) * 4;
+    const double ll = params.createModel().logLikelihood(s);
+    const double expll = -0.07973215; // From by hand calculation in R
     EXPECT_NEAR(expll, ll, 1e-5);
 }
 
@@ -29,11 +28,7 @@ TEST(known_distance, known_distance) {
         1, 3, 2, 94;
     s.distance = 0.02;
 
-    std::vector<Sequence> v{s};
-
     gtr::GTRParameters parameters;
-    gtr::optimize(parameters, v);
-
-    ASSERT_EQ(1000, v[0].distance);
+    const double initLl = parameters.createModel().logLikelihood(s);
+    ASSERT_NEAR(-148.0854, initLl, 0.5); // From by-hand calculation in R - see test-calcs.R
 }
-
