@@ -8,3 +8,4 @@ set(CMAKE_C_FLAGS "-g -O2 ${CMAKE_C_FLAGS}")
 add_library(bam STATIC ${SAM_FILES})
 set_property(TARGET bam PROPERTY COMPILE_DEFINITIONS
              _FILE_OFFSET_BITS=64 _LARGEFILE64_SOURCE _USE_KNETFILE)
+target_link_libraries(bam pthread z c)
