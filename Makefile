@@ -4,6 +4,11 @@ all:
 	mkdir -p $(BUILD) && (cd $(BUILD) && cmake ..)
 	+make -C$(BUILD)
 
+test:
+	mkdir -p $(BUILD) && (cd $(BUILD) && cmake ..)
+	+make -C$(BUILD) fit_gtr_test
+	$(BUILD)/test/fit_gtr_test
+
 clean:
 	rm -rf $(BUILD)
 
@@ -21,4 +26,4 @@ style:
 					--indent-switches \
 	        `find src -regextype posix-extended -regex ".*\.[ch]pp$$"`
 
-.PHONY: all clean style
+.PHONY: all clean style test
