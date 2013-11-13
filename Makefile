@@ -16,6 +16,9 @@ style:
 	        --suffix=none \
 	        --formatted \
 	        --lineend=linux \
-	        `find src examples -regextype posix-extended -regex ".*\.[ch]pp$$"`
+					--align-reference=type \
+					--align-pointer=type \
+					--indent-switches \
+	        `find src -regextype posix-extended -regex ".*\.[ch]pp$$"`
 
 .PHONY: all clean style
