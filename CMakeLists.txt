@@ -20,7 +20,7 @@ include_directories("src")
 include_directories("lib/eigen_3.2.0")
 include_directories("lib/samtools")
 include_directories("lib/boost_1.54.0")
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra ${CXX11_COMPILER_FLAGS}")
+set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -O2 ${CXX11_COMPILER_FLAGS}")
 
 add_subdirectory(lib/samtools)
 add_subdirectory(lib/boost_1.54.0/libs/program_options)
