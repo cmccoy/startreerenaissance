@@ -141,4 +141,17 @@ TEST_F(BppCompare, distance_estimation) {
     est.computeMatrix();
 
     EXPECT_NEAR(seqs[0].distance, est.getMatrix()->operator()("ref", "query"), 1e-3);
+
+    // Estimate all parameters
+    //est.setAdditionalParameters(g.getParameters());
+    //est.computeMatrix();
+    //gtr::optimize(p, seqs, false);
+
+    //const std::vector<std::string> names { "a", "b", "c", "d", "e", "theta", "theta1", "theta2" };
+    //const std::vector<double> gtr { p.params[0], p.params[1], p.params[2], p.params[3],
+                                    //p.params[4], p.theta[0], p.theta[1], p.theta[2] };
+    //for(size_t i = 0; i < names.size(); i++) {
+        //EXPECT_NEAR(g.getParameterValue(names[i]), gtr[i], 0.05) << names[i];
+    //}
+    //EXPECT_NEAR(seqs[0].distance, est.getMatrix()->operator()("ref", "query"), 1e-3);
 }

@@ -49,7 +49,6 @@ GTRParameters::GTRParameters()
 ///
 /// This is parameterized as in Bio++: see
 /// http://biopp.univ-montp2.fr/apidoc/bpp-phyl/html/classbpp_1_1GTR.html
-/// TODO: Q does not match bpp
 Matrix4d GTRParameters::createQMatrix() const
 {
     const Vector4d pi = createBaseFrequencies();
@@ -220,7 +219,8 @@ double optimizeParameter(const std::vector<Sequence>& sequences,
 
 // TODO: tolerance, no magic numbers, no printing.
 void optimize(gtr::GTRParameters& params,
-              std::vector<Sequence>& sequences)
+              std::vector<Sequence>& sequences,
+              bool verbose)
 {
     double lastLogLike = starLikelihood(params.createModel(), sequences);
     const size_t nParam = params.numberOfParameters();
@@ -237,10 +237,10 @@ void optimize(gtr::GTRParameters& params,
             } else {
                 const double orig = params.parameter(i);
                 if(i < 5) {
-                    logLike = optimizeParameter(sequences, i, params);
+                    logLike = optimizeParameter(sequences, params.parameter(i), params);
                 }
                 else {
-                    logLike = optimizeParameter(sequences, i, params, 0.1, 0.9);
+                    logLike = optimizeParameter(sequences, params.parameter(i), params, 0.01, 0.99);
                 }
                 if(logLike < lastLogLike) {
                     // Revert
@@ -248,9 +248,11 @@ void optimize(gtr::GTRParameters& params,
                 }
             }
 
-            std::clog << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
-            std::clog << "iteration " << iter << " parameter " << i << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
-            std::clog.flush();
+            if(verbose) {
+                std::clog << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
+                std::clog << "iteration " << iter << " parameter " << i << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
+                std::clog.flush();
+            }
 
             if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
                 anyImproved = true;

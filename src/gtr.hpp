@@ -57,7 +57,7 @@ void empiricalModel(const std::vector<Sequence>&,
                     gtr::GTRParameters&);
 
 /// \brief Optimize the GTR model & branch lengths for a collection of sequences
-void optimize(gtr::GTRParameters&, std::vector<Sequence>&);
+void optimize(gtr::GTRParameters&, std::vector<Sequence>&, bool verbose=true);
 
 /// \brief Convert from three-parameter to 4-parameter
 Eigen::Vector4d thetaToPi(const Eigen::Vector3d&);
