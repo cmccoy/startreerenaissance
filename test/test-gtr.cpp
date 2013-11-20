@@ -50,6 +50,7 @@ TEST(GTR, roundtrip) {
 }
 
 TEST(GTR, matches_bpp) {
+    // TODO: Into fixture
     bpp::DNA dna;
     const Eigen::Vector4d pi(0.255068, 0.24877, 0.29809, 0.198071);
     const Eigen::Vector3d theta = gtr::piToTheta(pi);
@@ -74,5 +75,18 @@ TEST(GTR, matches_bpp) {
     auto eig_eval = m.decomp.eigenvalues().real();
     for(size_t i = 0; i < 4; i++) {
         EXPECT_NEAR(bpp_eval[i], eig_eval[i], 1e-3);
+    }
+
+    // Check p
+    const double t = 0.1;
+    Eigen::Matrix4d p_eig = m.createPMatrix(t);
+    const bpp::Matrix<double>& p_bpp = g.getPij_t(t);
+    ASSERT_EQ(4, p_bpp.getNumberOfRows());
+    ASSERT_EQ(4, p_bpp.getNumberOfColumns());
+    for(size_t i = 0; i < 4; i++) {
+        const std::vector<double> r = p_bpp.row(i);
+        for(size_t j = 0; j < 4; j++) {
+            EXPECT_NEAR(r[j], p_eig(i, j), 1e-3);
+        }
     }
 }
