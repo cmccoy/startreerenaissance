@@ -60,14 +60,19 @@ Matrix4d GTRParameters::createQMatrix() const
          d, 0, e, a,
          f, e, 0, c,
          b, a, c, 0;
-    S.diagonal() = - S.rowwise().sum();
+
+    const Vector4d diag((-b * pi[3] - pi[2] - d * pi[1]) / pi[0],
+                        (-a * pi[3] - e * pi[2] - d * pi[0]) / pi[1],
+                        (-c * pi[3] - e * pi[1] - pi[0]) / pi[2],
+                        (-c * pi[2] - a * pi[1] - b * pi[0]) / pi[3]);
+    S.diagonal() = diag;
 
     // Normalization
     const double p = 2 * (a * pi[1] * pi[3] + b * pi[0] * pi[3] + c * pi[2] * pi[3] + d * pi[0] * pi[1] + e * pi[1] * pi[2] + f * pi[0] * pi[2]);
     S /= p;
 
 
-    assert(S.rowwise().sum().isZero());
+    //assert(S.rowwise().sum().isZero());
     const Matrix4d Q = S * pi.asDiagonal();
     // Sanity check: this is just scaling, can be approximate.
     //if(std::abs(Q.diagonal().cwiseProduct(pi).sum() + 1) > 0.1) {
