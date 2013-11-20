@@ -49,6 +49,7 @@ GTRParameters::GTRParameters()
 ///
 /// This is parameterized as in Bio++: see
 /// http://biopp.univ-montp2.fr/apidoc/bpp-phyl/html/classbpp_1_1GTR.html
+/// TODO: Q does not match bpp
 Matrix4d GTRParameters::createQMatrix() const
 {
     const Vector4d pi = createBaseFrequencies();
