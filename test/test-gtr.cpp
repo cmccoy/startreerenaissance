@@ -5,8 +5,12 @@
 
 #include "Eigen/Core"
 
+#include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Phyl/Distance/DistanceEstimation.h>
 #include <Bpp/Phyl/Model.all>
 #include <Bpp/Seq/Alphabet/DNA.h>
+#include <Bpp/Seq/Container/VectorSiteContainer.h>
+#include <Bpp/Seq/Sequence.h>
 
 TEST(GTR, simple_jc) {
     gtr::GTRParameters params;
@@ -49,18 +53,30 @@ TEST(GTR, roundtrip) {
     }
 }
 
-TEST(GTR, matches_bpp) {
-    // TODO: Into fixture
-    bpp::DNA dna;
-    const Eigen::Vector4d pi(0.255068, 0.24877, 0.29809, 0.198071);
-    const Eigen::Vector3d theta = gtr::piToTheta(pi);
-    const std::vector<double> v{0.988033, 0.471959, 0.30081, 0.385086, 0.666584};
-    bpp::GTR g(&dna, v[0], v[1], v[2], v[3], v[4], pi[0], pi[1], pi[2], pi[3]);
-    gtr::GTRParameters p;
-    p.theta = theta;
-    for(size_t i = 0; i < v.size(); i++) {
-        p.params[i] = v[i];
+class BppCompare : public ::testing::Test 
+{
+protected:
+    BppCompare() :
+        g(&dna) {};
+    virtual void SetUp() {
+        const Eigen::Vector4d pi(0.255068, 0.24877, 0.29809, 0.198071);
+        const Eigen::Vector3d theta = gtr::piToTheta(pi);
+        const std::vector<double> v{0.988033, 0.471959, 0.30081, 0.385086, 0.666584};
+        g = bpp::GTR(&dna, v[0], v[1], v[2], v[3], v[4], pi[0], pi[1], pi[2], pi[3]);
+        p.theta = theta;
+        for(size_t i = 0; i < v.size(); i++) {
+            p.params[i] = v[i];
+        }
     }
+
+    // virtual void TearDown() {}
+
+    bpp::DNA dna;
+    bpp::GTR g;
+    gtr::GTRParameters p;
+};
+
+TEST_F(BppCompare, decomposition_matches_bpp) {
     const Eigen::Matrix4d q = p.createQMatrix();
 
     for(size_t i = 0; i < 4; i++) {
@@ -89,4 +105,40 @@ TEST(GTR, matches_bpp) {
             EXPECT_NEAR(r[j], p_eig(i, j), 1e-3);
         }
     }
+}
+
+TEST_F(BppCompare, distance_estimation) {
+    Sequence s;
+    s.substitutions << 
+        94, 3, 2, 1,
+        2, 95, 2, 1,
+        2, 4, 89, 5,
+        1, 3, 2, 94;
+    s.distance = 0.02;
+
+    std::vector<std::string> sequences(2);
+    const std::vector<char> bases {'A', 'C', 'G', 'T'};
+    for(size_t i = 0; i < 4; i++) {
+        for(size_t j = 0; j < 4; j++) {
+            const size_t n = s.substitutions(i, j);
+            for(size_t k = 0; k < n; k++) {
+                sequences[0] += bases[i];
+                sequences[1] += bases[j];
+            }
+        }
+    }
+
+    std::vector<Sequence> seqs { s };
+    const gtr::GTRModel model = p.createModel();
+    gtr::estimateBranchLengths(model, seqs);
+
+    bpp::VectorSiteContainer sites(&dna);
+    sites.addSequence(bpp::BasicSequence("ref", sequences[0], &dna));
+    sites.addSequence(bpp::BasicSequence("query", sequences[1], &dna));
+
+    bpp::ConstantDistribution rate(1.0);
+    bpp::DistanceEstimation est(&g, &rate, &sites, 0);
+    est.computeMatrix();
+
+    EXPECT_NEAR(seqs[0].distance, est.getMatrix()->operator()("ref", "query"), 1e-3);
 }
