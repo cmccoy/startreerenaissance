@@ -76,35 +76,60 @@ protected:
     gtr::GTRParameters p;
 };
 
-TEST_F(BppCompare, decomposition_matches_bpp) {
+void check_against_bpp(double a, double b, double c, double d, double e, double p1, double p2, double p3, double p4, double time)
+{
+
+    const double tol = 1e-4;
+    bpp::DNA dna;
+    const Eigen::Vector4d pi(p1, p2, p3, p4);
+    const Eigen::Vector3d theta = gtr::piToTheta(pi);
+    bpp::GTR g(&dna, a, b, c, d, e, p1, p2, p3, p4);
+    gtr::GTRParameters p;
+
+    p.params << a, b, c, d, e;
+    p.theta = theta;
+
+    std::vector<std::string> names {"a", "b", "c", "d", "e", "theta", "theta1", "theta2"};
+
+    for(size_t i = 0; i < names.size(); i++) {
+        EXPECT_NEAR(g.getParameterValue(names[i]), p.parameter(i), tol) << "Parameter " << names[i] << " not equal";
+    }
+
     const Eigen::Matrix4d q = p.createQMatrix();
 
-    for(size_t i = 0; i < 4; i++) {
-        for(size_t j = 0; j < 4; j++) {
-            EXPECT_NEAR(g.Qij(i, j), q(i, j), 1e-3);
+    const size_t dim = 4;
+    for(size_t i = 0; i < dim; i++) {
+        for(size_t j = 0; j < dim; j++) {
+            ASSERT_NEAR(g.Qij(i, j), q(i, j), tol) << "Q(" << i << ", " << j << ")";
         }
     }
 
+    const auto bpp_eval = g.getEigenValues();
     const gtr::GTRModel m = p.createModel();
+    const auto eig_eval = m.decomp.eigenvalues().real();
 
-    auto bpp_eval = g.getEigenValues();
-    auto eig_eval = m.decomp.eigenvalues().real();
-    for(size_t i = 0; i < 4; i++) {
-        EXPECT_NEAR(bpp_eval[i], eig_eval[i], 1e-3);
+    for(int i = 0; i < eig_eval.size(); i++) {
+        ASSERT_NEAR(bpp_eval[i], eig_eval[i], tol) << "Eigenvalue " << i;
     }
 
-    // Check p
-    const double t = 0.1;
-    Eigen::Matrix4d p_eig = m.createPMatrix(t);
-    const bpp::Matrix<double>& p_bpp = g.getPij_t(t);
-    ASSERT_EQ(4, p_bpp.getNumberOfRows());
-    ASSERT_EQ(4, p_bpp.getNumberOfColumns());
-    for(size_t i = 0; i < 4; i++) {
+    const Eigen::Matrix4d p_eig = m.createPMatrix(time);
+    const bpp::Matrix<double>& p_bpp = g.getPij_t(time);
+    ASSERT_EQ(dim, p_bpp.getNumberOfRows());
+    ASSERT_EQ(dim, p_bpp.getNumberOfColumns());
+    for(size_t i = 0; i < dim; i++) {
         const std::vector<double> r = p_bpp.row(i);
-        for(size_t j = 0; j < 4; j++) {
-            EXPECT_NEAR(r[j], p_eig(i, j), 1e-3);
+        for(size_t j = 0; j < dim; j++) {
+            ASSERT_NEAR(r[j], p_eig(i, j), tol) << "P(" << i << "," << j << ")";
         }
     }
+}
+
+TEST(BppCompareDecomp, decomposition_matches_bpp1) {
+    const Eigen::Vector4d pi(0.255068, 0.24877, 0.29809, 0.198071);
+    const std::vector<double> v{0.988033, 0.471959, 0.30081, 0.385086, 0.666584};
+
+    for(double t : {0.1, 0.01, 0.4})
+        check_against_bpp(0.988033, 0.471959, 0.30081, 0.385086, 0.666584, 0.255068, 0.24877, 0.29809, 0.198071, t);
 }
 
 TEST_F(BppCompare, distance_estimation) {
@@ -143,9 +168,10 @@ TEST_F(BppCompare, distance_estimation) {
     EXPECT_NEAR(seqs[0].distance, est.getMatrix()->operator()("ref", "query"), 1e-3);
 
     // Estimate all parameters
+    //gtr::optimize(p, seqs, false);
+    //std::cerr << "log(L) = " << gtr::starLikelihood(p.createModel(), seqs) << '\n';
     //est.setAdditionalParameters(g.getParameters());
     //est.computeMatrix();
-    //gtr::optimize(p, seqs, false);
 
     //const std::vector<std::string> names { "a", "b", "c", "d", "e", "theta", "theta1", "theta2" };
     //const std::vector<double> gtr { p.params[0], p.params[1], p.params[2], p.params[3],

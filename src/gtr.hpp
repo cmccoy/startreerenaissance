@@ -39,7 +39,7 @@ struct GTRParameters {
     // as http://biopp.univ-montp2.fr/apidoc/bpp-phyl/html/classbpp_1_1GTR.html
     Eigen::Vector3d theta;
 
-    inline size_t numberOfParameters() const { return 5; }
+    inline size_t numberOfParameters() const { return 8; }
     double& parameter(size_t index);
     double parameter(size_t index) const;
 };
