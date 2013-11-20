@@ -28,7 +28,7 @@ TEST(GTR, simple_jc) {
 
 TEST(GTR, known_distance) {
     Sequence s;
-    s.substitutions << 
+    s.substitutions <<
         94, 3, 2, 1,
         2, 95, 2, 1,
         2, 4, 89, 5,
@@ -53,7 +53,7 @@ TEST(GTR, roundtrip) {
     }
 }
 
-class BppCompare : public ::testing::Test 
+class BppCompare : public ::testing::Test
 {
 protected:
     BppCompare() :
@@ -128,13 +128,15 @@ TEST(BppCompareDecomp, decomposition_matches_bpp1) {
     const Eigen::Vector4d pi(0.255068, 0.24877, 0.29809, 0.198071);
     const std::vector<double> v{0.988033, 0.471959, 0.30081, 0.385086, 0.666584};
 
-    for(double t : {0.1, 0.01, 0.4})
+    for(double t : {0.1, 0.01, 0.4}) {
         check_against_bpp(0.988033, 0.471959, 0.30081, 0.385086, 0.666584, 0.255068, 0.24877, 0.29809, 0.198071, t);
+        check_against_bpp(0.988033, 0.471959, 0.30081, 0.385086, 0.666584, 0.25, 0.15, 0.2, 0.4, t);
+    }
 }
 
 TEST_F(BppCompare, distance_estimation) {
     Sequence s;
-    s.substitutions << 
+    s.substitutions <<
         94, 3, 2, 1,
         2, 95, 2, 1,
         2, 4, 89, 5,
