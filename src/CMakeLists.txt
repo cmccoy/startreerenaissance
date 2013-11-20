@@ -19,5 +19,6 @@ target_link_libraries(build_mutation_matrices libgtrfit)
 # GTR fitting
 add_executable(fit_gtr fit_gtr.cpp)
 target_link_libraries(fit_gtr boost-programoptions libgtrfit)
+target_link_libraries(fit_gtr json)
 set_property(TARGET fit_gtr PROPERTY COMPILE_FLAGS "-fopenmp")
 set_property(TARGET fit_gtr PROPERTY LINK_FLAGS "-fopenmp")

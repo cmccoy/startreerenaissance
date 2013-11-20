@@ -10,6 +10,8 @@
 #include <google/protobuf/io/gzip_stream.h>
 
 #include <boost/program_options.hpp>
+#include <json/json.h>
+#include <json/value.h>
 
 #include "gtr.hpp"
 #include "sequence.hpp"
@@ -21,7 +23,7 @@ namespace po = boost::program_options;
 std::vector<Sequence> loadSequencesFromFile(const std::string& path)
 {
     std::fstream in(path, std::ios::in | std::ios::binary);
-    std::cerr << "Loading from " << path << '\n';
+    std::clog << "Loading from " << path << '\n';
     assert(in.good() && "Input stream is not good.");
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
@@ -59,6 +61,60 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
     return sequences;
 }
 
+void writeResults(std::ostream& out,
+                  const GTRParameters parameters,
+                  const std::vector<Sequence>& sequences)
+{
+    Json::Value root;
+    Json::Value modelNode(Json::objectValue);
+    Json::Value thetaNode(Json::arrayValue);
+    Json::Value piNode(Json::arrayValue);
+    std::vector<std::string> names {"ct", "at", "gt", "ac", "cg", "ag"};
+    for(size_t i = 0; i < parameters.params.size(); i++)
+        modelNode[names[i]] = parameters.params[i];
+    for(size_t i = 0; i < parameters.theta.size(); i++)
+        thetaNode.append(parameters.theta[i]);
+    modelNode["theta"] = thetaNode;
+
+    const Eigen::Vector4d pi = thetaToPi(parameters.theta);
+    for(size_t i = 0; i < pi.size(); i++)
+        piNode.append(pi[i]);
+    modelNode["pi"] = piNode;
+
+    // Matrices
+    Json::Value qNode(Json::arrayValue);
+    const Eigen::Matrix4d q = parameters.createQMatrix();
+    for(size_t i = 0; i < 4; i++) {
+        for(size_t j = 0; j < 4; j++) {
+            qNode.append(q(i, j));
+        }
+    }
+    modelNode["Q"] = qNode;
+
+    auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
+    const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
+    const Eigen::Matrix4d p = parameters.createModel().createPMatrix(meanBranchLength);
+    root["mean_branch_length"] = meanBranchLength;
+
+    Json::Value pNode(Json::arrayValue);
+    for(size_t i = 0; i < 4; i++) {
+        for(size_t j = 0; j < 4; j++) {
+            pNode.append(p(i, j));
+        }
+    }
+    modelNode["P_mean"] = pNode;
+
+    root["model"] = modelNode;
+
+    root["logLikelihood"] = starLikelihood(parameters.createModel(), sequences);
+    Json::Value blNode(Json::arrayValue);
+    for(const Sequence& sequence : sequences)
+        blNode.append(sequence.distance);
+    root["branch_lengths"] = blNode;
+
+    out << root << '\n';
+}
+
 int main(const int argc, const char** argv)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
@@ -76,18 +132,19 @@ int main(const int argc, const char** argv)
     po::notify(vm);
 
     if(vm.count("help") || vm.count("h")) {
-        std::cerr << desc << '\n';
-        return 1;
-    }
-    if(!vm.count("input-file")) {
-        std::cerr << "missing input.\n";
+        std::clog << desc << '\n';
         return 1;
     }
 
-    //if (!vm.count("output-file")) {
-    //std::cerr << "missing output.\n";
-    //return 1;
-    //}
+    if(!vm.count("input-file")) {
+        std::clog << "missing input.\n";
+        return 1;
+    }
+
+    if(!vm.count("output-file")) {
+        std::clog << "missing output.\n";
+        return 1;
+    }
 
     std::vector<Sequence> sequences = loadSequencesFromFile(vm["input-file"].as<std::string>());
 
@@ -118,6 +175,9 @@ int main(const int argc, const char** argv)
     std::cout << "pi = " << params.createBaseFrequencies() << '\n';
     std::cout << "Q=\n" << params.createQMatrix() << '\n';
     std::cout << "P(" << meanBranchLength << ")=\n" << params.createModel().createPMatrix(meanBranchLength) << '\n';
+
+    std::ofstream out(vm["output-file"].as<std::string>());
+    writeResults(out, params, sequences);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
