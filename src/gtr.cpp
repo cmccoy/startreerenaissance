@@ -88,6 +88,14 @@ Eigen::Vector4d thetaToPi(const Eigen::Vector3d& theta)
     return std::move(r);
 }
 
+Eigen::Vector3d piToTheta(Eigen::Vector4d pi)
+{
+    pi /= pi.sum();
+    Eigen::Vector3d result;
+    result << pi[1] + pi[2], pi[0] / (pi[0] + pi[3]), pi[2] / (pi[1] + pi[2]);
+    return result;
+}
+
 Vector4d GTRParameters::createBaseFrequencies() const
 {
     return thetaToPi(theta);
@@ -101,17 +109,21 @@ GTRModel GTRParameters::createModel() const
 double& GTRParameters::parameter(size_t index) {
     assert(index < numberOfParameters() && "Invalid index");
     const size_t offset = 5;
-    if(index < offset)
+    if(index < offset) {
         return params[index];
-    return theta[index - offset];
+    } else {
+        return theta[index - offset];
+    }
 }
 
 double GTRParameters::parameter(size_t index) const {
     assert(index < numberOfParameters() && "Invalid index");
     const size_t offset = 5;
-    if(index < offset)
+    if(index < offset) {
         return params[index];
-    return theta[index - offset];
+    } else {
+        return theta[index - offset];
+    }
 }
 
 // Functions
@@ -209,6 +221,7 @@ void optimize(gtr::GTRParameters& params,
 
     for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
+
         for(size_t i = 0; i <= nParam; i++) {
             double logLike;
             if(i == nParam) { // Branch Lengths
@@ -221,17 +234,17 @@ void optimize(gtr::GTRParameters& params,
                     logLike = optimizeParameter(sequences, i, params);
                 }
                 else {
-                    logLike = optimizeParameter(sequences, i, params, 0.01, 0.99);
+                    logLike = optimizeParameter(sequences, i, params, 0.1, 0.9);
                 }
                 if(logLike < lastLogLike) {
                     // Revert
-                    params.params[i] = orig;
+                    params.parameter(i) = orig;
                 }
             }
 
-            std::cerr << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
-            std::cerr << "iteration " << iter << " parameter " << i << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
-            std::cerr.flush();
+            std::clog << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
+            std::clog << "iteration " << iter << " parameter " << i << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
+            std::clog.flush();
 
             if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
                 anyImproved = true;

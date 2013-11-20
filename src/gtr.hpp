@@ -39,7 +39,7 @@ struct GTRParameters {
     // as http://biopp.univ-montp2.fr/apidoc/bpp-phyl/html/classbpp_1_1GTR.html
     Eigen::Vector3d theta;
 
-    inline size_t numberOfParameters() const { return 8; }
+    inline size_t numberOfParameters() const { return 5; }
     double& parameter(size_t index);
     double parameter(size_t index) const;
 };
@@ -58,6 +58,10 @@ void empiricalModel(const std::vector<Sequence>&,
 
 /// \brief Optimize the GTR model & branch lengths for a collection of sequences
 void optimize(gtr::GTRParameters&, std::vector<Sequence>&);
+
+/// \brief Convert from three-parameter to 4-parameter
+Eigen::Vector4d thetaToPi(const Eigen::Vector3d&);
+Eigen::Vector3d piToTheta(Eigen::Vector4d pi);
 
 }
 #endif

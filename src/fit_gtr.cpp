@@ -93,7 +93,10 @@ int main(const int argc, const char** argv)
 
     std::cout << sequences.size() << " sequences." << '\n';
 
-    google::protobuf::ShutdownProtobufLibrary();
+    Matrix4d m = std::accumulate(sequences.begin() + 1, sequences.end(), sequences[0].substitutions,
+                                 [](const Matrix4d& acc, const Sequence& s) { return acc + s.substitutions; });
+    std::cout << "Substitution counts[raw]:\n " << m << '\n';
+
 
     gtr::GTRParameters params;
     empiricalModel(sequences, params);
@@ -116,5 +119,6 @@ int main(const int argc, const char** argv)
     std::cout << "Q=\n" << params.createQMatrix() << '\n';
     std::cout << "P(" << meanBranchLength << ")=\n" << params.createModel().createPMatrix(meanBranchLength) << '\n';
 
+    google::protobuf::ShutdownProtobufLibrary();
     return 0;
 }
