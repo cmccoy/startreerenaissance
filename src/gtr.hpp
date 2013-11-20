@@ -42,6 +42,10 @@ struct GTRParameters {
     inline size_t numberOfParameters() const { return 8; }
     double& parameter(size_t index);
     double parameter(size_t index) const;
+
+    std::vector<double> toVector() const;
+    void ofVector(const std::vector<double>&);
+
 };
 
 /// \brief calculate the star-tree likelihood

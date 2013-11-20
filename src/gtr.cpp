@@ -1,6 +1,7 @@
 #include "gtr.hpp"
 #include "sequence.hpp"
 #include <boost/math/tools/minima.hpp>
+#include <nlopt.hpp>
 
 using Eigen::Array4d;
 using Eigen::Matrix4d;
@@ -131,6 +132,21 @@ double GTRParameters::parameter(size_t index) const {
     }
 }
 
+std::vector<double> GTRParameters::toVector() const
+{
+    std::vector<double> r(numberOfParameters());
+    for(size_t i = 0; i < numberOfParameters(); i++)
+        r[i] = parameter(i);
+    return r;
+}
+
+void GTRParameters::ofVector(const std::vector<double>& v)
+{
+    assert(v.size() == numberOfParameters() && "Parameter size mismatch");
+    for(size_t i = 0; i < numberOfParameters(); i++)
+        parameter(i) = v[i];
+}
+
 // Functions
 double starLikelihood(const GTRModel& model,
                       const std::vector<Sequence>& sequences)
@@ -217,6 +233,23 @@ double optimizeParameter(const std::vector<Sequence>& sequences,
     return -result.second;
 }
 
+struct NlOptParams
+{
+    std::vector<Sequence>* sequences;
+    GTRParameters* params;
+};
+
+double nlLogLike(const std::vector<double> &x, std::vector<double> &grad, void *data)
+{
+    assert(grad.empty());
+
+    NlOptParams* params = reinterpret_cast<NlOptParams*>(data);
+
+    params->params->ofVector(x);
+
+    return starLikelihood(params->params->createModel(), *params->sequences);
+}
+
 // TODO: tolerance, no magic numbers, no printing.
 void optimize(gtr::GTRParameters& params,
               std::vector<Sequence>& sequences,
@@ -228,36 +261,57 @@ void optimize(gtr::GTRParameters& params,
     for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
 
-        for(size_t i = 0; i <= nParam; i++) {
-            double logLike;
-            if(i == nParam) { // Branch Lengths
-                estimateBranchLengths(params.createModel(),
-                                      sequences);
-                logLike = starLikelihood(params.createModel(), sequences);
-            } else {
-                const double orig = params.parameter(i);
-                if(i < 5) {
-                    logLike = optimizeParameter(sequences, params.parameter(i), params);
-                }
-                else {
-                    logLike = optimizeParameter(sequences, params.parameter(i), params, 0.01, 0.99);
-                }
-                if(logLike < lastLogLike) {
-                    // Revert
-                    params.parameter(i) = orig;
-                }
-            }
+        // First, substitution model
+        nlopt::opt opt(nlopt::LN_BOBYQA, nParam);
+        NlOptParams optParams { &sequences, &params };
+        opt.set_max_objective(nlLogLike, &optParams);
 
-            if(verbose) {
-                std::clog << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
-                std::clog << "iteration " << iter << " parameter " << i << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
-                std::clog.flush();
-            }
-
-            if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
-                anyImproved = true;
-            lastLogLike = logLike;
+        std::vector<double> lowerBounds(nParam, MIN_SUBS_PARAM);
+        std::vector<double> upperBounds(nParam, MAX_SUBS_PARAM);
+        for(size_t i = 5; i < nParam; i++) {
+            lowerBounds[i] = 0.01;
+            upperBounds[i] = 0.99;
         }
+        opt.set_lower_bounds(lowerBounds);
+        opt.set_upper_bounds(upperBounds);
+        opt.set_ftol_abs(IMPROVE_THRESH);
+        opt.set_maxeval(MAX_ITER);
+
+        std::vector<double> x = params.toVector();
+
+        double logLike;
+        const int nlOptResult = opt.optimize(x, logLike);
+        //std::clog << "Optimization finished with " << nlOptResult << '\n';
+        //if(nlOptResult != nlopt::SUCCESS)
+
+        params.ofVector(x);
+
+        if(verbose) {
+            std::clog << "iteration " << iter << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
+            std::clog << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
+            std::clog.flush();
+        }
+
+        if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
+            anyImproved = true;
+        lastLogLike = logLike;
+
+
+        // then, branch lengths
+        estimateBranchLengths(params.createModel(),
+                              sequences);
+        logLike = starLikelihood(params.createModel(), sequences);
+
+        if(verbose) {
+            std::clog << "iteration " << iter << " (branch lengths): " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
+            std::clog.flush();
+        }
+
+        if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
+            anyImproved = true;
+        lastLogLike = logLike;
+
+
         if(!anyImproved)
             break;
     }
