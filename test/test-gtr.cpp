@@ -92,7 +92,7 @@ void check_against_bpp(double a, double b, double c, double d, double e, double 
     std::vector<std::string> names {"a", "b", "c", "d", "e", "theta", "theta1", "theta2"};
 
     for(size_t i = 0; i < names.size(); i++) {
-        EXPECT_NEAR(g.getParameterValue(names[i]), p.parameter(i), tol) << "Parameter " << names[i] << " not equal";
+        ASSERT_NEAR(g.getParameterValue(names[i]), p.parameter(i), tol) << "Parameter " << names[i] << " not equal";
     }
 
     const Eigen::Matrix4d q = p.createQMatrix();

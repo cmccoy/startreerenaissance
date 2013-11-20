@@ -258,6 +258,10 @@ void optimize(gtr::GTRParameters& params,
     double lastLogLike = starLikelihood(params.createModel(), sequences);
     const size_t nParam = params.numberOfParameters();
 
+    if(verbose) {
+        std::clog << "intial: " << lastLogLike << '\t' << "p=" << params.params.transpose() << '\t' << "theta=" << params.theta.transpose() << '\n';
+        std::clog.flush();
+    }
     for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
 
