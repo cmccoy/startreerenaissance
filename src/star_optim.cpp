@@ -21,6 +21,14 @@
 namespace star_optim
 {
 
+/// Minimum improvement in LL over a round
+const double IMPROVE_THRESH = 0.1;
+const size_t MAX_ROUNDS = 10;
+const size_t MAX_ITER = 300;
+const double MIN_SUBS_PARAM = 1e-5,
+             MAX_SUBS_PARAM = 20.0;
+const size_t BIT_TOL = 50;
+
 void beagleCheck(const int value)
 {
     std::string s;
@@ -39,13 +47,6 @@ void beagleCheck(const int value)
         throw std::runtime_error(s);
 }
 
-/// Minimum improvement in LL over a round
-const double IMPROVE_THRESH = 0.1;
-const size_t MAX_ROUNDS = 200;
-const size_t MAX_ITER = 300;
-const double MIN_SUBS_PARAM = 1e-5,
-             MAX_SUBS_PARAM = 20.0;
-const size_t BIT_TOL = 50;
 
 
 /// Copy the contents of vec into arr
