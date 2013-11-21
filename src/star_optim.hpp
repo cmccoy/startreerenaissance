@@ -7,8 +7,8 @@ struct Sequence;
 
 namespace bpp
 {
-    class SubstitutionModel;
-    class DiscreteDistribution;
+class SubstitutionModel;
+class DiscreteDistribution;
 }
 
 namespace star_optim
@@ -27,6 +27,6 @@ void estimateBranchLengths(const bpp::SubstitutionModel&,
 /// \brief Optimize the model & branch lengths distribution for a collection of sequences
 void optimize(bpp::SubstitutionModel&,
               bpp::DiscreteDistribution&,
-              std::vector<Sequence>&, bool verbose=true);
+              std::vector<Sequence>&, bool verbose = true);
 }
 #endif

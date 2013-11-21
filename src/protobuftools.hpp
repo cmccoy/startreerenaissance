@@ -11,7 +11,7 @@
 #include <vector>
 
 template<typename T>
-std::vector<T> loadDelimitedFromStream(std::istream& in, const bool isGzipped=true)
+std::vector<T> loadDelimitedFromStream(std::istream& in, const bool isGzipped = true)
 {
     google::protobuf::io::IstreamInputStream raw_in(&in);
     google::protobuf::io::GzipInputStream zip_in(&raw_in);
@@ -38,7 +38,8 @@ std::vector<T> loadDelimitedFromStream(std::istream& in, const bool isGzipped=tr
 }
 
 template<typename T>
-void writeDelimitedToStream(std::ostream& out, const std::vector<T>& items, const bool gzip=true) {
+void writeDelimitedToStream(std::ostream& out, const std::vector<T>& items, const bool gzip = true)
+{
     google::protobuf::io::OstreamOutputStream raw_out(&out);
     google::protobuf::io::GzipOutputStream zip_out(&raw_out);
     google::protobuf::io::CodedOutputStream coded_out(&zip_out);

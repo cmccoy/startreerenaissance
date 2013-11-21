@@ -21,7 +21,8 @@
 namespace star_optim
 {
 
-void beagleCheck(const int value) {
+void beagleCheck(const int value)
+{
     std::string s;
     switch(value) {
         case BEAGLE_ERROR_GENERAL: s = "BEAGLE_ERROR_GENERAL"; break;
@@ -50,7 +51,7 @@ const size_t BIT_TOL = 50;
 /// Copy the contents of vec into arr
 /// \param arr destination array, with length at least vec.size()
 /// \param vec Vector to copy from
-void blit_vector_to_array(double *arr, const std::vector<double> &vec)
+void blit_vector_to_array(double* arr, const std::vector<double>& vec)
 {
     for(std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
         *arr++ = *it;
@@ -59,7 +60,7 @@ void blit_vector_to_array(double *arr, const std::vector<double> &vec)
 /// Copy the contents of matrix into arr, in row-major order
 /// \param arr destination array, with length at least nrows x ncols in length
 /// \param matrix Vector to copy from
-void blit_matrix_to_array(double *arr, const bpp::Matrix<double> &matrix)
+void blit_matrix_to_array(double* arr, const bpp::Matrix<double>& matrix)
 {
     const int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
     for(int i = 0; i < rows; ++i) {
@@ -80,38 +81,39 @@ double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, con
 
     beagleCheck(beagleSetPatternWeights(beagleInstance, patternWeights.data()));
 
-    std::vector<int> nodeIndices{ 0, 1 };
+    std::vector<int> nodeIndices { 0, 1 };
     std::vector<double> edgeLengths { sequence.distance, 0 };
     const int rootIndex = 2;
 
     beagleCheck(beagleUpdateTransitionMatrices(beagleInstance,
-                                   0,
-                                   nodeIndices.data(),
-                                   nullptr,
-                                   nullptr,
-                                   edgeLengths.data(),
-                                   nodeIndices.size()));
+                0,
+                nodeIndices.data(),
+                nullptr,
+                nullptr,
+                edgeLengths.data(),
+                nodeIndices.size()));
 
     BeagleOperation op {rootIndex, BEAGLE_OP_NONE, BEAGLE_OP_NONE,
                         nodeIndices[0], nodeIndices[0],
-                        nodeIndices[1], nodeIndices[1] };
+                        nodeIndices[1], nodeIndices[1]
+                       };
 
     beagleCheck(beagleUpdatePartials(beagleInstance,      // instance
-                         &op,
-                         1,  // # of ops
-                         rootIndex)); // cumulative scaling index
+                                     &op,
+                                     1,  // # of ops
+                                     rootIndex)); // cumulative scaling index
 
     int scaleIndex = op.destinationPartials;
     beagleAccumulateScaleFactors(beagleInstance, &scaleIndex, 1, BEAGLE_OP_NONE);
     double logLike = 1;
     const int weightIndex = 0, freqIndex = 0;
     int returnCode = beagleCalculateRootLogLikelihoods(beagleInstance,               // instance
-                                                       &rootIndex,
-                                                       &weightIndex,
-                                                       &freqIndex,
-                                                       &rootIndex,
-                                                       1,
-                                                       &logLike);
+                     &rootIndex,
+                     &weightIndex,
+                     &freqIndex,
+                     &rootIndex,
+                     1,
+                     &logLike);
     beagleCheck(returnCode);
     return logLike;
 }
@@ -125,19 +127,19 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
     const int nBuffers = 3;
     BeagleInstanceDetails deets;
     const int instance = beagleCreateInstance(nTips,                            /**< Number of tip data elements (input) */
-                                              nBuffers,       /**< Number of partials buffers to create (input) */
-                                              nTips,                    /**< Number of compact state representation buffers to create (input) */
-                                              nStates,           /**< Number of states in the continuous-time Markov chain (input) */
-                                              nStates * nStates,            /**< Number of site patterns to be handled by the instance (input) */
-                                              1,                    /**< Number of rate matrix eigen-decomposition buffers to allocate (input) */
-                                              nBuffers,                    /**< Number of rate matrix buffers (input) */
-                                              nRates,            /**< Number of rate categories (input) */
-                                              nBuffers,                       /**< Number of scaling buffers */
-                                              nullptr,                     /**< List of potential resource on which this instance is allowed (input, NULL implies no restriction */
-                                              0,                        /**< Length of resourceList list (input) */
-                                              BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, // Bit-flags indicating
-                                              0,                /**< Bit-flags indicating required implementation characteristics, see BeagleFlags (input) */
-                                              &deets);
+                         nBuffers,       /**< Number of partials buffers to create (input) */
+                         nTips,                    /**< Number of compact state representation buffers to create (input) */
+                         nStates,           /**< Number of states in the continuous-time Markov chain (input) */
+                         nStates * nStates,            /**< Number of site patterns to be handled by the instance (input) */
+                         1,                    /**< Number of rate matrix eigen-decomposition buffers to allocate (input) */
+                         nBuffers,                    /**< Number of rate matrix buffers (input) */
+                         nRates,            /**< Number of rate categories (input) */
+                         nBuffers,                       /**< Number of scaling buffers */
+                         nullptr,                     /**< List of potential resource on which this instance is allowed (input, NULL implies no restriction */
+                         0,                        /**< Length of resourceList list (input) */
+                         BEAGLE_FLAG_VECTOR_SSE | BEAGLE_FLAG_PRECISION_DOUBLE | BEAGLE_FLAG_SCALING_AUTO, // Bit-flags indicating
+                         0,                /**< Bit-flags indicating required implementation characteristics, see BeagleFlags (input) */
+                         &deets);
 
     beagleCheck(instance);
     // Fill rates
@@ -157,8 +159,8 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
 
     // And eigen decomposition
     std::vector<double> evec(nStates * nStates),
-                        ivec(nStates * nStates),
-                        eval(nStates);
+        ivec(nStates * nStates),
+        eval(nStates);
     blit_matrix_to_array(evec.data(), model.getColumnRightEigenVectors());
     blit_matrix_to_array(ivec.data(), model.getRowLeftEigenVectors());
     blit_vector_to_array(eval.data(), model.getEigenValues());
@@ -176,7 +178,7 @@ double starLikelihood(const bpp::SubstitutionModel& model,
 {
     const bpp::ParameterList p = model.getIndependentParameters();
     //for(std::size_t i = 0; i < p.size(); i++) {
-        //std::clog << [>p[i].getName() << "=" <<<] p[i].getValue() << "\t";
+    //std::clog << [>p[i].getName() << "=" <<<] p[i].getValue() << "\t";
     //}
 
     const int nStates = model.getNumberOfStates();
@@ -227,7 +229,7 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
 #ifdef HAVE_OMP
     omp_lock_t writelock;
     omp_init_lock(&writelock);
-#pragma omp parallel for firstprivate(instance)
+    #pragma omp parallel for firstprivate(instance)
 #endif
     for(size_t i = 0; i < sequences.size(); i++) {
         if(instance <= 0) {
@@ -262,15 +264,14 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
         beagleFinalizeInstance(i);
 }
 
-struct NlOptParams
-{
+struct NlOptParams {
     std::vector<Sequence>* sequences;
     bpp::ParameterList* paramList;
     bpp::SubstitutionModel* model;
     bpp::DiscreteDistribution* rates;
 };
 
-double nlLogLike(const std::vector<double> &x, std::vector<double> &grad, void *data)
+double nlLogLike(const std::vector<double>& x, std::vector<double>& grad, void* data)
 {
     assert(grad.empty() && "Expected no derivative");
 
@@ -290,7 +291,7 @@ double nlLogLike(const std::vector<double> &x, std::vector<double> &grad, void *
 /// \brief Optimize the model & branch lengths distribution for a collection of sequences
 void optimize(bpp::SubstitutionModel& model,
               bpp::DiscreteDistribution& rates,
-              std::vector<Sequence>& sequences, 
+              std::vector<Sequence>& sequences,
               bool verbose)
 {
     bpp::ParameterList params = model.getIndependentParameters();

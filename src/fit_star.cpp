@@ -163,11 +163,11 @@ int main(const int argc, const char** argv)
 
     std::cout << sequences.size() << " sequences." << '\n';
 
-    auto sumLength = [](const Eigen::Matrix4d& acc, const Sequence& s) {
-        return acc + s.substitutions; 
+    auto sumLength = [](const Eigen::Matrix4d & acc, const Sequence & s) {
+        return acc + s.substitutions;
     };
     Eigen::Matrix4d m = std::accumulate(sequences.begin() + 1, sequences.end(), sequences[0].substitutions,
-                                 sumLength);
+                                        sumLength);
     std::cout << "Substitution counts[raw]:\n " << m << '\n';
 
     bpp::DNA dna;
