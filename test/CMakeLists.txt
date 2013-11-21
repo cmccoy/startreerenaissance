@@ -5,7 +5,7 @@ find_package(OpenMP)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
-add_executable(${PROJECT_TEST_NAME} test-main.cpp)
+add_executable(${PROJECT_TEST_NAME} test-main.cpp test-star_optim.cpp)
 target_link_libraries(${PROJECT_TEST_NAME} gtest gtest_main libstaropt)
 target_link_libraries(${PROJECT_TEST_NAME} bpp-phyl bpp-seq bpp-core)
 set_property(TARGET ${PROJECT_TEST_MAIN} PROPERTY COMPILE_FLAGS "-fopenmp")
