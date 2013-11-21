@@ -13,10 +13,30 @@
 #include <Bpp/Numeric/Prob/DiscreteDistribution.h>
 #include <Bpp/Phyl/Model/SubstitutionModel.h>
 
+#include <string>
+#include <stdexcept>
+
 #include <nlopt.hpp>
 
 namespace star_optim
 {
+
+void beagleCheck(const int value) {
+    std::string s;
+    switch(value) {
+        case BEAGLE_ERROR_GENERAL: s = "BEAGLE_ERROR_GENERAL"; break;
+        case BEAGLE_ERROR_OUT_OF_MEMORY: s = "BEAGLE_ERROR_OUT_OF_MEMORY"; break;
+        case BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION: s = "BEAGLE_ERROR_UNIDENTIFIED_EXCEPTION"; break;
+        case BEAGLE_ERROR_UNINITIALIZED_INSTANCE: s = "BEAGLE_ERROR_UNINITIALIZED_INSTANCE"; break;
+        case BEAGLE_ERROR_OUT_OF_RANGE: s = "BEAGLE_ERROR_OUT_OF_RANGE"; break;
+        case BEAGLE_ERROR_NO_RESOURCE: s = "BEAGLE_ERROR_NO_RESOURCE"; break;
+        case BEAGLE_ERROR_NO_IMPLEMENTATION: s = "BEAGLE_ERROR_NO_IMPLEMENTATION"; break;
+        case BEAGLE_ERROR_FLOATING_POINT: s = "BEAGLE_ERROR_FLOATING_POINT"; break;
+        default: break;
+    }
+    if(!s.empty())
+        throw std::runtime_error(s);
+}
 
 /// Minimum improvement in LL over a round
 const double IMPROVE_THRESH = 0.1;
@@ -58,28 +78,28 @@ double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, con
         }
     }
 
-    beagleSetPatternWeights(beagleInstance, patternWeights.data());
+    beagleCheck(beagleSetPatternWeights(beagleInstance, patternWeights.data()));
 
     std::vector<int> nodeIndices{ 0, 1 };
     std::vector<double> edgeLengths { sequence.distance, 0 };
     const int rootIndex = 2;
 
-    beagleUpdateTransitionMatrices(beagleInstance,
+    beagleCheck(beagleUpdateTransitionMatrices(beagleInstance,
                                    0,
                                    nodeIndices.data(),
                                    nullptr,
                                    nullptr,
                                    edgeLengths.data(),
-                                   nodeIndices.size());
+                                   nodeIndices.size()));
 
     BeagleOperation op {rootIndex, BEAGLE_OP_NONE, BEAGLE_OP_NONE,
                         nodeIndices[0], nodeIndices[0],
                         nodeIndices[1], nodeIndices[1] };
 
-    beagleUpdatePartials(beagleInstance,      // instance
+    beagleCheck(beagleUpdatePartials(beagleInstance,      // instance
                          &op,
                          1,  // # of ops
-                         rootIndex); // cumulative scaling index
+                         rootIndex)); // cumulative scaling index
 
     int scaleIndex = op.destinationPartials;
     beagleAccumulateScaleFactors(beagleInstance, &scaleIndex, 1, BEAGLE_OP_NONE);
@@ -92,9 +112,7 @@ double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, con
                                                        &rootIndex,
                                                        1,
                                                        &logLike);
-    if(returnCode != BEAGLE_SUCCESS)
-        std::clog << "BEAGLE: " << returnCode << '\n';
-    assert(returnCode == BEAGLE_SUCCESS);
+    beagleCheck(returnCode);
     return logLike;
 }
 
@@ -121,6 +139,7 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
                                               0,                /**< Bit-flags indicating required implementation characteristics, see BeagleFlags (input) */
                                               &deets);
 
+    beagleCheck(instance);
     // Fill rates
     beagleSetCategoryRates(instance, rates.getCategories().data());
     beagleSetCategoryWeights(instance, 0, rates.getProbabilities().data());
@@ -166,17 +185,17 @@ double starLikelihood(const bpp::SubstitutionModel& model,
     std::vector<int> beagleInstanceIds;
 #ifdef HAVE_OMP
     omp_lock_t writelock;
+    omp_init_lock(&writelock);
 #endif
 
     double result = 0.0;
     #pragma omp parallel for reduction(+:result) firstprivate(instance)
     for(size_t i = 0; i < sequences.size(); i++) {
         if(instance <= 0) {
-            instance = createBeagleInstance(model, rates);
 #ifdef HAVE_OMP
             omp_set_lock(&writelock);
 #endif
-            std::cerr << "Instance " << instance << "\n";
+            instance = createBeagleInstance(model, rates);
             beagleInstanceIds.push_back(instance);
 #ifdef HAVE_OMP
             omp_unset_lock(&writelock);
@@ -189,10 +208,8 @@ double starLikelihood(const bpp::SubstitutionModel& model,
 #endif
 
     for(const int i : beagleInstanceIds)
-        if(i != -1)
-            beagleFinalizeInstance(i);
+        beagleFinalizeInstance(i);
 
-    //std::clog << result << '\n';
     return result;
 }
 
@@ -209,15 +226,15 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
 
 #ifdef HAVE_OMP
     omp_lock_t writelock;
+    omp_init_lock(&writelock);
 #pragma omp parallel for firstprivate(instance)
 #endif
     for(size_t i = 0; i < sequences.size(); i++) {
         if(instance <= 0) {
-            instance = createBeagleInstance(model, rates);
 #ifdef HAVE_OMP
             omp_set_lock(&writelock);
 #endif
-            std::cerr << "Instance " << instance << "\n";
+            instance = createBeagleInstance(model, rates);
             beagleInstanceIds.push_back(instance);
 #ifdef HAVE_OMP
             omp_unset_lock(&writelock);
@@ -242,8 +259,7 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
 #endif
 
     for(const int i : beagleInstanceIds)
-        if(i != -1)
-            beagleFinalizeInstance(i);
+        beagleFinalizeInstance(i);
 }
 
 struct NlOptParams
