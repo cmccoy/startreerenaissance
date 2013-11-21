@@ -16,26 +16,25 @@ if (OPENMP_FOUND)
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-add_library(libgtrfit
+add_library(libstaropt
             mutationio.pb.cc
-            star_optim.cpp
-            gtr.cpp)
-set_target_properties(libgtrfit PROPERTIES OUTPUT_NAME gtrfit)
-target_link_libraries(libgtrfit protobuf z c pthread bam nlopt bpp-phyl bpp-core bpp-seq
+            star_optim.cpp)
+set_target_properties(libstaropt PROPERTIES OUTPUT_NAME staropt)
+target_link_libraries(libstaropt protobuf z c pthread bam nlopt bpp-phyl bpp-core bpp-seq
                       ${HMS_BEAGLE_LIBRARIES})
-#set_property(TARGET libgtrfit PROPERTY COMPILE_FLAGS "-fopenmp")
-#set_property(TARGET libgtrfit PROPERTY LINK_FLAGS "-fopenmp")
+#set_property(TARGET libstaropt PROPERTY COMPILE_FLAGS "-fopenmp")
+#set_property(TARGET libstaropt PROPERTY LINK_FLAGS "-fopenmp")
 
 # Build mutation matrices
 add_executable(build_mutation_matrices
   build_mutation_matrices.cpp
   mutationio.pb.cc)
-target_link_libraries(build_mutation_matrices libgtrfit)
+target_link_libraries(build_mutation_matrices libstaropt)
 
 # GTR fitting
-add_executable(fit_gtr fit_gtr.cpp)
-target_link_libraries(fit_gtr boost-programoptions libgtrfit)
-target_link_libraries(fit_gtr json)
-target_link_libraries(fit_gtr nlopt)
-set_property(TARGET fit_gtr PROPERTY COMPILE_FLAGS "-fopenmp")
-set_property(TARGET fit_gtr PROPERTY LINK_FLAGS "-fopenmp")
+add_executable(fit_star fit_star.cpp)
+target_link_libraries(fit_star boost-programoptions libstaropt)
+target_link_libraries(fit_star json)
+target_link_libraries(fit_star nlopt)
+#set_property(TARGET fit_star PROPERTY COMPILE_FLAGS "-fopenmp")
+#set_property(TARGET fit_star PROPERTY LINK_FLAGS "-fopenmp")

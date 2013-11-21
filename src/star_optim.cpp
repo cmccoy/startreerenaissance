@@ -139,7 +139,7 @@ std::vector<int> createBeagleInstances(const size_t n,
         beagleSetTipStates(instance, 0, ref.data());
         beagleSetTipStates(instance, 1, qry.data());
 
-        // And decomposition
+        // And eigen decomposition
         std::vector<double> evec(nStates * nStates),
                             ivec(nStates * nStates),
                             eval(nStates);
@@ -159,6 +159,11 @@ double starLikelihood(const bpp::SubstitutionModel& model,
                       const bpp::DiscreteDistribution& rates,
                       const std::vector<Sequence>& sequences)
 {
+    const bpp::ParameterList p = model.getIndependentParameters();
+    //for(std::size_t i = 0; i < p.size(); i++) {
+        //std::clog << [>p[i].getName() << "=" <<<] p[i].getValue() << "\t";
+    //}
+
     const int nStates = model.getNumberOfStates();
 #ifdef HAVE_OMP
     const size_t nInstances = omp_get_num_threads();
@@ -182,6 +187,7 @@ double starLikelihood(const bpp::SubstitutionModel& model,
     for(const int i : beagleInstanceIds)
         beagleFinalizeInstance(i);
 
+    //std::clog << result << '\n';
     return result;
 }
 
@@ -236,8 +242,12 @@ double nlLogLike(const std::vector<double> &x, std::vector<double> &grad, void *
     NlOptParams* params = reinterpret_cast<NlOptParams*>(data);
 
     for(size_t i = 0; i < x.size(); i++) {
-        (*params->paramList)[i].setValue(x[i]);
+        bpp::Parameter& p = params->paramList->operator[](i);
+        p.setValue(x[i]);
     }
+
+    params->model->matchParametersValues(*params->paramList);
+    params->rates->matchParametersValues(*params->paramList);
 
     return starLikelihood(*params->model, *params->rates, *params->sequences);
 }
@@ -248,9 +258,10 @@ void optimize(bpp::SubstitutionModel& model,
               std::vector<Sequence>& sequences, 
               bool verbose)
 {
-    bpp::ParameterList params;
-    params.addParameters(model.getIndependentParameters());
-    params.addParameters(rates.getIndependentParameters());
+    bpp::ParameterList params = model.getIndependentParameters();
+    // TODO: this is a crude hack to handle gamma distributed rates, only
+    if(rates.hasParameter("alpha"))
+        params.addParameter(rates.getParameter("alpha"));
 
     double lastLogLike = starLikelihood(model, rates, sequences);
     const size_t nParam = params.size();
@@ -265,16 +276,21 @@ void optimize(bpp::SubstitutionModel& model,
 
         // First, substitution model
         nlopt::opt opt(nlopt::LN_BOBYQA, nParam);
+        //nlopt::opt opt(nlopt::LN_COBYLA, nParam);
         NlOptParams optParams { &sequences, &params, &model, &rates };
         opt.set_max_objective(nlLogLike, &optParams);
 
         std::vector<double> lowerBounds(nParam, -std::numeric_limits<double>::max());
         std::vector<double> upperBounds(nParam, std::numeric_limits<double>::max());
         for(size_t i = 0; i < nParam; i++) {
-            assert(params[i].hasConstraint() && "Missing constraint?");
+            if(!params[i].hasConstraint())
+                continue;
+
             // TODO: changes in bpp 2.1
-            bpp::Interval* constraint = reinterpret_cast<bpp::Interval*>(params[i].getConstraint());
+            bpp::Interval* constraint = dynamic_cast<bpp::Interval*>(params[i].getConstraint());
+            assert(constraint != nullptr);
             lowerBounds[i] = constraint->getLowerBound();
+            if(lowerBounds[i] == 0.0) lowerBounds[i] += 1e-7;
             upperBounds[i] = constraint->getUpperBound();
         }
         opt.set_lower_bounds(lowerBounds);
@@ -288,8 +304,12 @@ void optimize(bpp::SubstitutionModel& model,
         }
 
         double logLike;
-        const int nlOptResult = opt.optimize(x, logLike);
-        std::clog << "Optimization finished with " << nlOptResult << '\n';
+        try {
+            const int nlOptResult = opt.optimize(x, logLike);
+            std::clog << "Optimization finished with " << nlOptResult << '\n';
+        } catch(std::exception& e) {
+            std::clog << "Optimization failed.\n";
+        }
         //if(nlOptResult != nlopt::SUCCESS)
 
         for(size_t i = 0; i < nParam; i++) {
@@ -322,6 +342,10 @@ void optimize(bpp::SubstitutionModel& model,
 
         if(!anyImproved)
             break;
+    }
+
+    for(std::size_t i = 0; i < params.size(); i++) {
+        std::clog << params[i].getName() << "=" << params[i].getValue() << "\n";
     }
 }
 

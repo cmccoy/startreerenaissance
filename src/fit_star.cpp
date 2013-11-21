@@ -18,6 +18,7 @@
 
 // Bio++
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
+#include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
@@ -69,54 +70,62 @@ void writeResults(std::ostream& out,
                   const bpp::DiscreteDistribution& rates,
                   const std::vector<Sequence>& sequences)
 {
-    //Json::Value root;
-    //Json::Value modelNode(Json::objectValue);
-    //Json::Value thetaNode(Json::arrayValue);
-    //Json::Value piNode(Json::arrayValue);
-    //std::vector<std::string> names {"ct", "at", "gt", "ac", "cg", "ag"};
-    //for(size_t i = 0; i < parameters.params.size(); i++)
-        //modelNode[names[i]] = parameters.params[i];
-    //for(size_t i = 0; i < parameters.theta.size(); i++)
-        //thetaNode.append(parameters.theta[i]);
-    //modelNode["theta"] = thetaNode;
+    Json::Value root;
+    Json::Value modelNode(Json::objectValue);
+    Json::Value rateNode(Json::objectValue);
+    Json::Value parameterNode(Json::objectValue);
+    Json::Value piNode(Json::arrayValue);
+    std::vector<std::string> names {"a", "b", "c", "d", "e", "ag"};
+    bpp::ParameterList p = model.getParameters();
+    for(size_t i = 0; i < p.size(); i++) {
+        parameterNode[p[i].getName()] = p[i].getValue();
+    }
+    modelNode["name"] = model.getName();
+    modelNode["parameters"] = parameterNode;
 
-    //const Eigen::Vector4d pi = thetaToPi(parameters.theta);
-    //for(size_t i = 0; i < pi.size(); i++)
-        //piNode.append(pi[i]);
-    //modelNode["pi"] = piNode;
+    //rateNode["name"] = rates.getName();
+    p = rates.getParameters();
+    for(size_t i = 0; i < p.size(); i++) {
+        rateNode[p[i].getName()] = p[i].getValue();
+    }
+    root["rate"] = rateNode;
 
-    //// Matrices
-    //Json::Value qNode(Json::arrayValue);
-    //const Eigen::Matrix4d q = parameters.createQMatrix();
-    //for(size_t i = 0; i < 4; i++) {
-        //for(size_t j = 0; j < 4; j++) {
-            //qNode.append(q(i, j));
-        //}
-    //}
-    //modelNode["Q"] = qNode;
 
-    //auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
-    //const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
-    //const Eigen::Matrix4d p = parameters.createModel().createPMatrix(meanBranchLength);
-    //root["mean_branch_length"] = meanBranchLength;
+    for(size_t i = 0; i < model.getNumberOfStates(); i++) {
+        piNode.append(model.freq(i));
+    }
+    modelNode["pi"] = piNode;
 
-    //Json::Value pNode(Json::arrayValue);
-    //for(size_t i = 0; i < 4; i++) {
-        //for(size_t j = 0; j < 4; j++) {
-            //pNode.append(p(i, j));
-        //}
-    //}
-    //modelNode["P_mean"] = pNode;
+    auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
+    const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
+    root["mean_branch_length"] = meanBranchLength;
 
-    //root["model"] = modelNode;
+    // Matrices
+    Json::Value qNode(Json::arrayValue);
+    //Json::Value sNode(Json::arrayValue);
+    Json::Value pNode(Json::arrayValue);
 
-    //root["logLikelihood"] = starLikelihood(parameters.createModel(), sequences);
-    //Json::Value blNode(Json::arrayValue);
-    //for(const Sequence& sequence : sequences)
-        //blNode.append(sequence.distance);
-    //root["branch_lengths"] = blNode;
+    const auto& pt = model.getPij_t(meanBranchLength);
+    for(size_t i = 0; i < model.getNumberOfStates(); i++) {
+        for(size_t j = 0; j < model.getNumberOfStates(); j++) {
+            qNode.append(model.Qij(i, j));
+            //sNode.append(model.Sij(i, j));
+            pNode.append(pt(static_cast<unsigned int>(i), static_cast<unsigned int>(j)));
+        }
+    }
+    modelNode["Q"] = qNode;
+    //modelNode["S"] = sNode;
+    modelNode["P_mean"] = pNode;
 
-    //out << root << '\n';
+    root["model"] = modelNode;
+
+    root["logLikelihood"] = star_optim::starLikelihood(model, rates, sequences);
+    Json::Value blNode(Json::arrayValue);
+    for(const Sequence& sequence : sequences)
+        blNode.append(sequence.distance);
+    root["branch_lengths"] = blNode;
+
+    out << root << '\n';
 }
 
 int main(const int argc, const char** argv)
@@ -163,11 +172,14 @@ int main(const int argc, const char** argv)
 
     bpp::DNA dna;
     bpp::GTR gtr(&dna);
-    bpp::ConstantDistribution rates(1.0);
+    bpp::GammaDiscreteDistribution rates(4);
+    //bpp::ConstantDistribution rates(1.0);
 
     std::cout << "Initial log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
 
-    //optimize(params, sequences);
+    star_optim::optimize(gtr, rates, sequences);
+
+    std::cout << "final log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
 
     //auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
     //const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
@@ -181,8 +193,8 @@ int main(const int argc, const char** argv)
     //std::cout << "Q=\n" << params.createQMatrix() << '\n';
     //std::cout << "P(" << meanBranchLength << ")=\n" << params.createModel().createPMatrix(meanBranchLength) << '\n';
 
-    //std::ofstream out(vm["output-file"].as<std::string>());
-    //writeResults(out, params, sequences);
+    std::ofstream out(vm["output-file"].as<std::string>());
+    writeResults(out, gtr, rates, sequences);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
