@@ -161,27 +161,32 @@ double starLikelihood(const bpp::SubstitutionModel& model,
     //}
 
     const int nStates = model.getNumberOfStates();
-#ifdef HAVE_OMP
-    const size_t nInstances = omp_get_num_threads();
-#else
-    const size_t nInstances = 1;
-#endif
-    
+    int instance = -1;
 
-    std::vector<int> beagleInstanceIds(nInstances, -1);
+    std::vector<int> beagleInstanceIds;
+#ifdef HAVE_OMP
+    omp_lock_t writelock;
+#endif
 
     double result = 0.0;
-    #pragma omp parallel for reduction(+:result) shared(beagleInstanceIds)
+    #pragma omp parallel for reduction(+:result) firstprivate(instance)
     for(size_t i = 0; i < sequences.size(); i++) {
+        if(instance <= 0) {
+            instance = createBeagleInstance(model, rates);
 #ifdef HAVE_OMP
-        int idx = omp_get_thread_num();
-#else
-        int idx = 0;
+            omp_set_lock(&writelock);
 #endif
-        if(beagleInstanceIds[idx] == -1)
-            beagleInstanceIds[idx] = createBeagleInstance(model, rates);
-        result += pairLogLikelihood(beagleInstanceIds[idx], sequences[i], nStates);
+            std::cerr << "Instance " << instance << "\n";
+            beagleInstanceIds.push_back(instance);
+#ifdef HAVE_OMP
+            omp_unset_lock(&writelock);
+#endif
+        }
+        result += pairLogLikelihood(instance, sequences[i], nStates);
     }
+#ifdef HAVE_OMP
+    omp_destroy_lock(&writelock);
+#endif
 
     for(const int i : beagleInstanceIds)
         if(i != -1)
@@ -196,26 +201,28 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
                            const bpp::DiscreteDistribution& rates,
                            std::vector<Sequence>& sequences)
 {
-#ifdef HAVE_OMP
-    const size_t nInstances = omp_get_num_threads();
-#else
-    const size_t nInstances = 1;
-#endif
+    int instance = -1;
 
-    std::vector<int> beagleInstanceIds(nInstances, -1);
+    std::vector<int> beagleInstanceIds;
+
     const size_t nStates = model.getNumberOfStates();
 
-#pragma omp parallel for shared(beagleInstanceIds)
-    for(size_t i = 0; i < sequences.size(); i++) {
 #ifdef HAVE_OMP
-        int idx = omp_get_thread_num();
-#else
-        int idx = 0;
+    omp_lock_t writelock;
+#pragma omp parallel for firstprivate(instance)
 #endif
-        if(beagleInstanceIds[idx] == -1)
-            beagleInstanceIds[idx] = createBeagleInstance(model, rates);
-
-        int instance = beagleInstanceIds[idx];
+    for(size_t i = 0; i < sequences.size(); i++) {
+        if(instance <= 0) {
+            instance = createBeagleInstance(model, rates);
+#ifdef HAVE_OMP
+            omp_set_lock(&writelock);
+#endif
+            std::cerr << "Instance " << instance << "\n";
+            beagleInstanceIds.push_back(instance);
+#ifdef HAVE_OMP
+            omp_unset_lock(&writelock);
+#endif
+        }
 
         Sequence& s = sequences[i];
 
@@ -228,7 +235,11 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
         boost::uintmax_t max_iter = 100;
         std::pair<double, double> res =
             boost::math::tools::brent_find_minima(f, 1e-9, 1.0, 50, max_iter);
+        s.distance = res.first;
     }
+#ifdef HAVE_OMP
+    omp_destroy_lock(&writelock);
+#endif
 
     for(const int i : beagleInstanceIds)
         if(i != -1)
