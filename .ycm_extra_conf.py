@@ -38,7 +38,7 @@ flags = [
 '-Wall',
 '-Wextra',
 '-Werror',
-'-Wc++98-compat',
+'-Weffc++',
 '-Wno-long-long',
 '-Wno-variadic-macros',
 '-fexceptions',

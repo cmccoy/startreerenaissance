@@ -181,18 +181,6 @@ int main(const int argc, const char** argv)
 
     std::cout << "final log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
 
-    //auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
-    //const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
-
-    //std::cout << "Mean branch length: " << meanBranchLength << '\n';
-
-    //std::cout << "Final log-like: " << starLikelihood(params.createModel(), sequences) << '\n';
-
-    //std::cout << "ct at gt ac cg ag = " << params.params.transpose() << '\t' << 1 << '\n';
-    //std::cout << "pi = " << params.createBaseFrequencies() << '\n';
-    //std::cout << "Q=\n" << params.createQMatrix() << '\n';
-    //std::cout << "P(" << meanBranchLength << ")=\n" << params.createModel().createPMatrix(meanBranchLength) << '\n';
-
     std::ofstream out(vm["output-file"].as<std::string>());
     writeResults(out, gtr, rates, sequences);
 
