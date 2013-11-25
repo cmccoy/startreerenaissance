@@ -68,7 +68,8 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
 void writeResults(std::ostream& out,
                   const bpp::SubstitutionModel& model,
                   const bpp::DiscreteDistribution& rates,
-                  const std::vector<Sequence>& sequences)
+                  const std::vector<Sequence>& sequences,
+                  const bool include_branch_lengths=true)
 {
     Json::Value root;
     Json::Value modelNode(Json::objectValue);
@@ -120,10 +121,12 @@ void writeResults(std::ostream& out,
     root["model"] = modelNode;
 
     root["logLikelihood"] = star_optim::starLikelihood(model, rates, sequences);
-    Json::Value blNode(Json::arrayValue);
-    for(const Sequence& sequence : sequences)
-        blNode.append(sequence.distance);
-    root["branch_lengths"] = blNode;
+    if(include_branch_lengths) {
+        Json::Value blNode(Json::arrayValue);
+        for(const Sequence& sequence : sequences)
+            blNode.append(sequence.distance);
+        root["branch_lengths"] = blNode;
+    }
 
     out << root << '\n';
 }
@@ -132,12 +135,16 @@ int main(const int argc, const char** argv)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
+    std::string input_path, output_path;
+    bool no_branch_lengths = false;
+
     // command-line parsing
     po::options_description desc("Allowed options");
     desc.add_options()
     ("help,h", "Produce help message")
-    ("input-file,i", po::value<std::string>(), "input file [required]")
-    ("output-file,o", po::value<std::string>(), "output file [required]");
+    ("input-file,i", po::value(&input_path), "input file [required]")
+    ("output-file,o", po::value(&output_path), "output file [required]")
+    ("no-branch-lengths", po::bool_switch(&no_branch_lengths), "*do not* include fit branch lengths in output");
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
@@ -182,7 +189,7 @@ int main(const int argc, const char** argv)
     std::cout << "final log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
 
     std::ofstream out(vm["output-file"].as<std::string>());
-    writeResults(out, gtr, rates, sequences);
+    writeResults(out, gtr, rates, sequences, !no_branch_lengths);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
