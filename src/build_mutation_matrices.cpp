@@ -19,6 +19,7 @@ int usage()
 {
     fprintf(stderr, "Usage: build_mutation_matrices [options] <ref.fasta> <in.bam> <out.bin>\n\n");
     fprintf(stderr, "Options: -n INT    Maximum number number of records\n");
+    fprintf(stderr, "Options: -m        Only include sites which map unambiguously\n");
     return 1;
 }
 
@@ -42,10 +43,12 @@ int main(int argc, char* argv[])
     }
 
     size_t n = 0;
+    int ambiguous = 1;
     char c;
-    while((c = getopt(argc, argv, "n:h?")) >= 0) {
+    while((c = getopt(argc, argv, "mn:h?")) >= 0) {
         switch(c) {
             case 'n': n = atoi(optarg); break;
+            case 'm': ambiguous = 0; break;
             default: return usage();
         }
     }
@@ -95,6 +98,10 @@ int main(int argc, char* argv[])
 
         std::vector<int> mutations(16, 0);
 
+        const int8_t* bq = reinterpret_cast<int8_t*>(bam_aux_get(b, "bq"));
+        if(!ambiguous) {
+            assert(bq != NULL && "No bq tag");
+        }
         for(uint32_t cidx = 0; cidx < b->core.n_cigar; cidx++) {
             const uint32_t clen = bam_cigar_oplen(cigar[cidx]);
             const uint32_t consumes = bam_cigar_type(cigar[cidx]); // bit 1: consume query; bit 2: consume reference
@@ -102,7 +109,7 @@ int main(int argc, char* argv[])
                 for(uint32_t i = 0; i < clen; i++) {
                     const int qb = nt16_to_idx(bam1_seqi(seq, qi + i)),
                               rb = nt16_to_idx(bam_nt16_table[static_cast<int>(ref[ri + i])]);
-                    if(qb < 4 && rb < 4) {
+                    if(qb < 4 && rb < 4 && (ambiguous || bq[qi + i] % 100 == 0)) {
                         mutations[(rb * 4) + qb] += 1;
                     }
                 }

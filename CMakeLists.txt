@@ -7,8 +7,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/lib/cmake/cxx11/Modules")
 include(GetGitRevisionDescription)
 git_describe(GIT_DESCRIPTION --always --long)
 configure_file (
-  "${PROJECT_SOURCE_DIR}/src/config.h.in"
-  "${PROJECT_SOURCE_DIR}/src/config.h")
+  "${PROJECT_SOURCE_DIR}/src/gtrfit_config.h.in"
+  "${PROJECT_SOURCE_DIR}/src/gtrfit_config.h")
 
 include(FindCXXFeatures)
 
@@ -21,12 +21,14 @@ include_directories("lib/jsoncpp-src-0.6.0-rc2/include")
 include_directories("lib/eigen_3.2.0")
 include_directories("lib/samtools")
 include_directories("lib/boost_1.54.0")
+include_directories("lib/nlopt-2.4.1/api")
 set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -O2 ${CXX11_COMPILER_FLAGS}")
 
 enable_testing()
 add_subdirectory(lib/samtools)
 add_subdirectory(lib/boost_1.54.0/libs/program_options)
 add_subdirectory(lib/jsoncpp-src-0.6.0-rc2/src/lib_json)
+add_subdirectory(lib/nlopt-2.4.1)
 add_subdirectory(src)
 
 # Testing

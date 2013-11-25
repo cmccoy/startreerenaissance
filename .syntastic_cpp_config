@@ -1,6 +1,7 @@
 -std=c++0x
 -Wall
 -Wextra
+-Weffc++
 -g
 -fopenmp
 -Ilib/eigen_3.2.0
