@@ -16,6 +16,7 @@
 #include <google/protobuf/io/gzip_stream.h>
 
 #include "mutationio.pb.h"
+#include "gtrfit_config.h"
 
 namespace po = boost::program_options;
 namespace protoio = google::protobuf::io;
@@ -76,6 +77,7 @@ int main(int argc, char* argv[])
     po::options_description desc("Allowed options");
     desc.add_options()
     ("help,h", "Produce help message")
+    ("version,v", "Print version")
     ("no-ambiguous", po::bool_switch(&no_ambiguous), "Do not include ambiguous sites")
     ("max-records,n", po::value<size_t>(&maxRecords), "Maximum number of records to parse")
     ("input-fasta,f", po::value<std::string>(&fastaPath)->required(), "Path to (indexed) FASTA file")
@@ -87,6 +89,10 @@ int main(int argc, char* argv[])
 
     if(vm.count("help")) {
         std::cout << desc << '\n';
+        return 0;
+    }
+    if(vm.count("version")) {
+        std::cout << gtr_fit::GTR_FIT_VERSION << '\n';
         return 0;
     }
 

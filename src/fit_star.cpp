@@ -13,6 +13,7 @@
 #include <json/json.h>
 #include <json/value.h>
 
+#include "gtrfit_config.h"
 #include "star_optim.hpp"
 #include "sequence.hpp"
 
@@ -21,6 +22,7 @@
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Phyl/Model/GTR.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
+
 
 namespace po = boost::program_options;
 
@@ -141,6 +143,7 @@ int main(const int argc, const char** argv)
     po::options_description desc("Allowed options");
     desc.add_options()
     ("help,h", "Produce help message")
+    ("version,v", "Show version")
     ("input-file,i", po::value(&input_path)->required(), "input file [required]")
     ("output-file,o", po::value(&output_path)->required(), "output file [required]")
     ("no-branch-lengths", po::bool_switch(&no_branch_lengths), "*do not* include fit branch lengths in output");
@@ -149,9 +152,13 @@ int main(const int argc, const char** argv)
     po::store(po::command_line_parser(argc, argv).
               options(desc).run(), vm);
 
-    if(vm.count("help") || vm.count("h")) {
-        std::clog << desc << '\n';
-        return 1;
+    if(vm.count("help")) {
+        std::cout << desc << '\n';
+        return 0;
+    }
+    if(vm.count("version")) {
+        std::cout << gtr_fit::GTR_FIT_VERSION << '\n';
+        return 0;
     }
 
     po::notify(vm);
