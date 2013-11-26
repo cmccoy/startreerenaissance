@@ -141,29 +141,20 @@ int main(const int argc, const char** argv)
     po::options_description desc("Allowed options");
     desc.add_options()
     ("help,h", "Produce help message")
-    ("input-file,i", po::value(&input_path), "input file [required]")
-    ("output-file,o", po::value(&output_path), "output file [required]")
+    ("input-file,i", po::value(&input_path)->required(), "input file [required]")
+    ("output-file,o", po::value(&output_path)->required(), "output file [required]")
     ("no-branch-lengths", po::bool_switch(&no_branch_lengths), "*do not* include fit branch lengths in output");
 
     po::variables_map vm;
     po::store(po::command_line_parser(argc, argv).
               options(desc).run(), vm);
-    po::notify(vm);
 
     if(vm.count("help") || vm.count("h")) {
         std::clog << desc << '\n';
         return 1;
     }
 
-    if(!vm.count("input-file")) {
-        std::clog << "missing input.\n";
-        return 1;
-    }
-
-    if(!vm.count("output-file")) {
-        std::clog << "missing output.\n";
-        return 1;
-    }
+    po::notify(vm);
 
     std::vector<Sequence> sequences = loadSequencesFromFile(vm["input-file"].as<std::string>());
 
