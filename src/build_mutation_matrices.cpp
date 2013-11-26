@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/program_options.hpp>
+
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
@@ -15,12 +17,16 @@
 
 #include "mutationio.pb.h"
 
-int usage()
+namespace po = boost::program_options;
+namespace protoio = google::protobuf::io;
+
+bool endsWith(const std::string& s, const std::string& suffix)
 {
-    fprintf(stderr, "Usage: build_mutation_matrices [options] <ref.fasta> <in.bam> <out.bin>\n\n");
-    fprintf(stderr, "Options: -n INT    Maximum number number of records\n");
-    fprintf(stderr, "Options: -m        Only include sites which map unambiguously\n");
-    return 1;
+    if (s.length() >= suffix.length()) {
+        return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
+    } else {
+        return false;
+    }
 }
 
 inline int nt16_to_idx(const int b)
@@ -31,59 +37,86 @@ inline int nt16_to_idx(const int b)
         case 4: return 2; // G
         case 8: return 3; // T
         default: return 4; // N
-
     }
 }
+
+int usage(po::options_description& desc)
+{
+    std::cerr << "Usage: build_mutation_matrices [options] <ref.fasta> <in.bam> <out.bin>\n";
+    std::cerr << desc << '\n';
+    return 1;
+}
+
+
+struct SamFile
+{
+    SamFile(const std::string& path, const std::string& mode="rb", void* extra=nullptr) :
+        fp(samopen(path.c_str(), mode.c_str(), extra))
+    {
+        assert(fp != nullptr && "Failed to open BAM");
+    }
+
+    ~SamFile()
+    {
+        if(fp != nullptr)
+            samclose(fp);
+    }
+
+    samfile_t *fp;
+};
 
 int main(int argc, char* argv[])
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
-    if(argc < 4) {
-        return usage();
+
+    std::string fa_path, bam_path, output_path;
+
+    bool no_ambiguous = false;
+    size_t max_records = 0;
+
+    po::options_description desc("Allowed options");
+    desc.add_options()
+        ("help,h", "Produce help message")
+        ("no-ambiguous", po::bool_switch(&no_ambiguous), "Do not include ambiguous sites")
+        ("max-records,n", po::value<size_t>(&max_records), "Maximum number of records to parse")
+        ("input-fasta,f", po::value<std::string>(&fa_path)->required(), "Path to (indexed) FASTA file")
+        ("input-bam,i", po::value<std::string>(&bam_path)->required(), "Path to BAM")
+        ("output-file,o", po::value<std::string>(&output_path)->required(), "Path to output file");
+
+    po::variables_map vm;
+    po::store(po::parse_command_line(argc, argv, desc), vm);
+
+    if(vm.count("help")) {
+        std::cout << desc << '\n';
+        return 0;
     }
 
-    size_t n = 0;
-    int ambiguous = 1;
-    char c;
-    while((c = getopt(argc, argv, "mn:h?")) >= 0) {
-        switch(c) {
-            case 'n': n = atoi(optarg); break;
-            case 'm': ambiguous = 0; break;
-            default: return usage();
-        }
-    }
+    po::notify(vm);
 
-    argv = argv + optind;
-    argc = argc - optind;
-
-    if(argc != 3)
-        return usage();
-
-    faidx_t* fidx = fai_load(argv[0]);
+    faidx_t* fidx = fai_load(fa_path.c_str());
     assert(fidx != NULL && "Failed to load FASTA index");
 
-    samfile_t* in = NULL;
-    if((in = samopen(argv[1], "rb", NULL)) == 0) {
-        fprintf(stderr, "Failed reading %s", argv[1]);
-        return 1;
-    }
+    SamFile in(bam_path);
 
     bam1_t* b = bam_init1();
     size_t processed = 0;
 
-    std::vector<std::string> target_bases(in->header->n_targets);
-    std::vector<int> target_len(in->header->n_targets);
+    std::vector<std::string> target_bases(in.fp->header->n_targets);
+    std::vector<int> target_len(in.fp->header->n_targets);
 
-    std::fstream out(argv[2], std::ios::out | std::ios::trunc | std::ios::binary);
-    google::protobuf::io::OstreamOutputStream raw_out(&out);
-    google::protobuf::io::GzipOutputStream zip_out(&raw_out);
-    google::protobuf::io::CodedOutputStream coded_out(&zip_out);
+    std::fstream out(output_path, std::ios::out | std::ios::trunc | std::ios::binary);
+    protoio::OstreamOutputStream raw_out(&out);
+    protoio::GzipOutputStream zip_out(&raw_out);
+    protoio::ZeroCopyOutputStream* outptr = &raw_out;
+    if(endsWith(output_path, ".gz"))
+        outptr = &zip_out;
+    protoio::CodedOutputStream coded_out(outptr);
 
-    while(samread(in, b) >= 0) {
-        if(n > 0 && processed > n)
+    while(samread(in.fp, b) >= 0) {
+        if(max_records > 0 && processed > max_records)
             break;
         processed++;
-        const char* target_name = in->header->target_name[b->core.tid];
+        const char* target_name = in.fp->header->target_name[b->core.tid];
         if(target_bases[b->core.tid].empty()) {
             char* ref = fai_fetch(fidx, target_name, &target_len[b->core.tid]);
             assert(ref != nullptr && "Missing reference");
@@ -99,7 +132,7 @@ int main(int argc, char* argv[])
         std::vector<int> mutations(16, 0);
 
         const int8_t* bq = reinterpret_cast<int8_t*>(bam_aux_get(b, "bq"));
-        if(!ambiguous) {
+        if(no_ambiguous) {
             assert(bq != NULL && "No bq tag");
         }
         for(uint32_t cidx = 0; cidx < b->core.n_cigar; cidx++) {
@@ -109,7 +142,7 @@ int main(int argc, char* argv[])
                 for(uint32_t i = 0; i < clen; i++) {
                     const int qb = nt16_to_idx(bam1_seqi(seq, qi + i)),
                               rb = nt16_to_idx(bam_nt16_table[static_cast<int>(ref[ri + i])]);
-                    if(qb < 4 && rb < 4 && (ambiguous || bq[qi + i] % 100 == 0)) {
+                    if(qb < 4 && rb < 4 && (!no_ambiguous || bq[qi + i] % 100 == 0)) {
                         mutations[(rb * 4) + qb] += 1;
                     }
                 }
@@ -132,7 +165,6 @@ int main(int argc, char* argv[])
     bam_destroy1(b);
     fai_destroy(fidx);
 
-    samclose(in);
     google::protobuf::ShutdownProtobufLibrary();
 
     return 0;

@@ -30,6 +30,7 @@ add_executable(build_mutation_matrices
   build_mutation_matrices.cpp
   mutationio.pb.cc)
 target_link_libraries(build_mutation_matrices libstaropt)
+target_link_libraries(build_mutation_matrices boost-programoptions)
 
 # GTR fitting
 add_executable(fit_star fit_star.cpp)
