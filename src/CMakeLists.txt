@@ -22,8 +22,6 @@ add_library(libstaropt
 set_target_properties(libstaropt PROPERTIES OUTPUT_NAME staropt)
 target_link_libraries(libstaropt protobuf z c pthread bam nlopt bpp-phyl bpp-core bpp-seq
                       ${HMS_BEAGLE_LIBRARIES})
-#set_property(TARGET libstaropt PROPERTY COMPILE_FLAGS "-fopenmp")
-#set_property(TARGET libstaropt PROPERTY LINK_FLAGS "-fopenmp")
 
 # Build mutation matrices
 add_executable(build_mutation_matrices
@@ -37,5 +35,3 @@ add_executable(fit_star fit_star.cpp)
 target_link_libraries(fit_star boost-programoptions libstaropt)
 target_link_libraries(fit_star json)
 target_link_libraries(fit_star nlopt)
-#set_property(TARGET fit_star PROPERTY COMPILE_FLAGS "-fopenmp")
-#set_property(TARGET fit_star PROPERTY LINK_FLAGS "-fopenmp")
