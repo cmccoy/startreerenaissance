@@ -22,7 +22,7 @@ namespace protoio = google::protobuf::io;
 
 bool endsWith(const std::string& s, const std::string& suffix)
 {
-    if (s.length() >= suffix.length()) {
+    if(s.length() >= suffix.length()) {
         return (0 == s.compare(s.length() - suffix.length(), suffix.length(), suffix));
     } else {
         return false;
@@ -48,9 +48,8 @@ int usage(po::options_description& desc)
 }
 
 
-struct SamFile
-{
-    SamFile(const std::string& path, const std::string& mode="rb", void* extra=nullptr) :
+struct SamFile {
+    SamFile(const std::string& path, const std::string& mode = "rb", void* extra = nullptr) :
         fp(samopen(path.c_str(), mode.c_str(), extra))
     {
         assert(fp != nullptr && "Failed to open BAM");
@@ -62,7 +61,7 @@ struct SamFile
             samclose(fp);
     }
 
-    samfile_t *fp;
+    samfile_t* fp;
 };
 
 int main(int argc, char* argv[])
@@ -76,12 +75,12 @@ int main(int argc, char* argv[])
 
     po::options_description desc("Allowed options");
     desc.add_options()
-        ("help,h", "Produce help message")
-        ("no-ambiguous", po::bool_switch(&no_ambiguous), "Do not include ambiguous sites")
-        ("max-records,n", po::value<size_t>(&maxRecords), "Maximum number of records to parse")
-        ("input-fasta,f", po::value<std::string>(&fastaPath)->required(), "Path to (indexed) FASTA file")
-        ("input-bam,i", po::value<std::string>(&bamPath)->required(), "Path to BAM")
-        ("output-file,o", po::value<std::string>(&outputPath)->required(), "Path to output file");
+    ("help,h", "Produce help message")
+    ("no-ambiguous", po::bool_switch(&no_ambiguous), "Do not include ambiguous sites")
+    ("max-records,n", po::value<size_t>(&maxRecords), "Maximum number of records to parse")
+    ("input-fasta,f", po::value<std::string>(&fastaPath)->required(), "Path to (indexed) FASTA file")
+    ("input-bam,i", po::value<std::string>(&bamPath)->required(), "Path to BAM")
+    ("output-file,o", po::value<std::string>(&outputPath)->required(), "Path to output file");
 
     po::variables_map vm;
     po::store(po::parse_command_line(argc, argv, desc), vm);
