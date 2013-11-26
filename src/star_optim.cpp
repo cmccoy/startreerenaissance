@@ -23,7 +23,7 @@ namespace star_optim
 
 /// Minimum improvement in LL over a round
 const double IMPROVE_THRESH = 0.1;
-const size_t MAX_ROUNDS = 20;
+const size_t MAX_ROUNDS = 30;
 const size_t MAX_ITER = 300;
 const double MIN_SUBS_PARAM = 1e-5,
              MAX_SUBS_PARAM = 20.0;
