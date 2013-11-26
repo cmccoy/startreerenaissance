@@ -176,8 +176,8 @@ int main(const int argc, const char** argv)
 
     bpp::DNA dna;
     bpp::GTR gtr(&dna);
-    bpp::GammaDiscreteDistribution rates(4);
-    //bpp::ConstantDistribution rates(1.0);
+    //bpp::GammaDiscreteDistribution rates(4);
+    bpp::ConstantDistribution rates(1.0);
 
     std::cout << "Initial log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
 

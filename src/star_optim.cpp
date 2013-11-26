@@ -293,10 +293,10 @@ double nlLogLike(const std::vector<double>& x, std::vector<double>& grad, void* 
 }
 
 /// \brief Optimize the model & branch lengths distribution for a collection of sequences
-void optimize(bpp::SubstitutionModel& model,
-              bpp::DiscreteDistribution& rates,
-              std::vector<Sequence>& sequences,
-              bool verbose)
+size_t optimize(bpp::SubstitutionModel& model,
+                bpp::DiscreteDistribution& rates,
+                std::vector<Sequence>& sequences,
+                const bool verbose)
 {
     bpp::ParameterList params = model.getIndependentParameters();
     // TODO: this is a crude hack to handle gamma distributed rates, only
@@ -311,7 +311,8 @@ void optimize(bpp::SubstitutionModel& model,
         std::clog.flush();
     }
 
-    for(size_t iter = 0; iter < MAX_ROUNDS; iter++) {
+    size_t iter = 0;
+    for(iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
 
         // First, substitution model
@@ -384,9 +385,13 @@ void optimize(bpp::SubstitutionModel& model,
             break;
     }
 
-    for(std::size_t i = 0; i < params.size(); i++) {
-        std::clog << params[i].getName() << "=" << params[i].getValue() << "\n";
+    if(verbose) {
+        for(std::size_t i = 0; i < params.size(); i++) {
+            std::clog << params[i].getName() << "=" << params[i].getValue() << "\n";
+        }
     }
+
+    return iter;
 }
 
 } // namespace

@@ -1,6 +1,7 @@
 #ifndef STAROPTIM_STAROPTIM_H
 #define STAROPTIM_STAROPTIM_H
 
+#include <cstdlib>
 #include <vector>
 
 struct Sequence;
@@ -25,8 +26,9 @@ void estimateBranchLengths(const bpp::SubstitutionModel&,
                            std::vector<Sequence>&);
 
 /// \brief Optimize the model & branch lengths distribution for a collection of sequences
-void optimize(bpp::SubstitutionModel&,
-              bpp::DiscreteDistribution&,
-              std::vector<Sequence>&, bool verbose = true);
+size_t optimize(bpp::SubstitutionModel&,
+                bpp::DiscreteDistribution&,
+                std::vector<Sequence>&,
+                const bool verbose = true);
 }
 #endif
