@@ -52,14 +52,13 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
         for(size_t i = 0; i < 4; i++)
             for(size_t j = 0; j < 4; j++)
                 sequence.substitutions(i, j) = m.mutations(4 * i + j);
-        if(m.has_distance())
-            sequence.distance = m.distance();
-        else {
-            double d = 1 - sequence.substitutions.diagonal().sum() / sequence.substitutions.sum();
-            if(d == 0)
-                d = 1e-3;
-            sequence.distance = d;
-        }
+
+        // TODO: use mutation count
+        //double d = 1 - sequence.substitutions.diagonal().sum() / sequence.substitutions.sum();
+        //if(d == 0)
+        //d = 1e-3;
+        sequence.distance = 0.1;
+
         sequences.push_back(std::move(sequence));
     }
     return sequences;
@@ -69,7 +68,7 @@ void writeResults(std::ostream& out,
                   const bpp::SubstitutionModel& model,
                   const bpp::DiscreteDistribution& rates,
                   const std::vector<Sequence>& sequences,
-                  const bool include_branch_lengths=true)
+                  const bool include_branch_lengths = true)
 {
     Json::Value root;
     Json::Value modelNode(Json::objectValue);

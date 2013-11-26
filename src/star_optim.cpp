@@ -23,13 +23,13 @@ namespace star_optim
 
 /// Minimum improvement in LL over a round
 const double IMPROVE_THRESH = 0.1;
-const size_t MAX_ROUNDS = 10;
+const size_t MAX_ROUNDS = 20;
 const size_t MAX_ITER = 300;
 const double MIN_SUBS_PARAM = 1e-5,
              MAX_SUBS_PARAM = 20.0;
 const size_t BIT_TOL = 50;
 
-void beagleCheck(const int value)
+void beagleCheck(const int value, const std::string& details = "")
 {
     std::string s;
     switch(value) {
@@ -44,7 +44,7 @@ void beagleCheck(const int value)
         default: break;
     }
     if(!s.empty())
-        throw std::runtime_error(s);
+        throw std::runtime_error(s + " " + details);
 }
 
 
@@ -52,7 +52,7 @@ void beagleCheck(const int value)
 /// Copy the contents of vec into arr
 /// \param arr destination array, with length at least vec.size()
 /// \param vec Vector to copy from
-void blit_vector_to_array(double* arr, const std::vector<double>& vec)
+void blitVectorToArray(double* arr, const std::vector<double>& vec)
 {
     for(std::vector<double>::const_iterator it = vec.begin(); it != vec.end(); ++it)
         *arr++ = *it;
@@ -61,11 +61,11 @@ void blit_vector_to_array(double* arr, const std::vector<double>& vec)
 /// Copy the contents of matrix into arr, in row-major order
 /// \param arr destination array, with length at least nrows x ncols in length
 /// \param matrix Vector to copy from
-void blit_matrix_to_array(double* arr, const bpp::Matrix<double>& matrix)
+void blitMatrixToArray(double* arr, const bpp::Matrix<double>& matrix)
 {
     const int cols = matrix.getNumberOfColumns(), rows = matrix.getNumberOfRows();
     for(int i = 0; i < rows; ++i) {
-        blit_vector_to_array(arr, matrix.row(i));
+        blitVectorToArray(arr, matrix.row(i));
         arr += cols;
     }
 }
@@ -102,7 +102,8 @@ double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, con
     beagleCheck(beagleUpdatePartials(beagleInstance,      // instance
                                      &op,
                                      1,  // # of ops
-                                     rootIndex)); // cumulative scaling index
+                                     rootIndex), // cumulative scaling index
+                "updatePartials");
 
     int scaleIndex = op.destinationPartials;
     beagleAccumulateScaleFactors(beagleInstance, &scaleIndex, 1, BEAGLE_OP_NONE);
@@ -115,7 +116,7 @@ double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, con
                      &rootIndex,
                      1,
                      &logLike);
-    beagleCheck(returnCode);
+    beagleCheck(returnCode, "rootLogLike");
     return logLike;
 }
 
@@ -162,9 +163,9 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
     std::vector<double> evec(nStates * nStates),
         ivec(nStates * nStates),
         eval(nStates);
-    blit_matrix_to_array(evec.data(), model.getColumnRightEigenVectors());
-    blit_matrix_to_array(ivec.data(), model.getRowLeftEigenVectors());
-    blit_vector_to_array(eval.data(), model.getEigenValues());
+    blitMatrixToArray(evec.data(), model.getColumnRightEigenVectors());
+    blitMatrixToArray(ivec.data(), model.getRowLeftEigenVectors());
+    blitVectorToArray(eval.data(), model.getEigenValues());
     beagleSetEigenDecomposition(instance, 0, evec.data(), ivec.data(), eval.data());
 
     // And state frequencies
@@ -247,6 +248,7 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
         Sequence& s = sequences[i];
 
         auto f = [instance, &s, nStates](const double d) {
+            assert(!std::isnan(d) && "NaN distance?");
             s.distance = d;
             const double result = pairLogLikelihood(instance, s, nStates);
             return -result;
@@ -254,7 +256,8 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
 
         boost::uintmax_t max_iter = 100;
         std::pair<double, double> res =
-            boost::math::tools::brent_find_minima(f, 1e-9, 1.0, 50, max_iter);
+            boost::math::tools::brent_find_minima(f, 1e-6, 0.8, 50, max_iter);
+        assert(!std::isnan(res.first) && "NaN distance?");
         s.distance = res.first;
     }
 #ifdef HAVE_OMP
