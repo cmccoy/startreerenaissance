@@ -1,7 +1,8 @@
 #include <algorithm>
-#include <vector>
 #include <fstream>
 #include <iostream>
+#include <memory>
+#include <vector>
 #include "mutationio.pb.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -21,10 +22,14 @@
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
 #include <Bpp/Phyl/Model/GTR.h>
+#include <Bpp/Phyl/Model/HKY85.h>
+#include <Bpp/Phyl/Model/TN93.h>
+#include <Bpp/Phyl/Model/JCnuc.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
 
-
 namespace po = boost::program_options;
+
+const bpp::DNA DNA;
 
 std::vector<Sequence> loadSequencesFromFile(const std::string& path)
 {
@@ -66,6 +71,35 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
     return sequences;
 }
 
+std::unique_ptr<bpp::SubstitutionModel> substitutionModelForName(const std::string& name)
+{
+    using p = std::unique_ptr<bpp::SubstitutionModel>;
+    std::string upper = name;
+    std::transform(name.begin(), name.end(), upper.begin(), ::toupper);
+    if(upper == "GTR")
+        return p(new bpp::GTR(&DNA));
+    else if(upper == "HKY85")
+        return p(new bpp::HKY85(&DNA));
+    else if(upper == "TN93")
+        return p(new bpp::TN93(&DNA));
+    else if(upper == "JC")
+        return p(new bpp::JCnuc(&DNA));
+    throw std::runtime_error("Unknown model: " + name);
+}
+
+std::unique_ptr<bpp::DiscreteDistribution> rateDistributionForName(const std::string& name)
+{
+    using p = std::unique_ptr<bpp::DiscreteDistribution>;
+    std::string lower = name;
+    std::transform(name.begin(), name.end(), lower.begin(), ::tolower);
+
+    if(lower == "gamma")
+        return p(new bpp::GammaDiscreteDistribution(4));
+    else if(lower == "constant")
+        return p(new bpp::ConstantDistribution(1.0));
+    throw std::runtime_error("Unknown model: " + name);
+}
+
 void writeResults(std::ostream& out,
                   const bpp::SubstitutionModel& model,
                   const bpp::DiscreteDistribution& rates,
@@ -87,6 +121,7 @@ void writeResults(std::ostream& out,
 
     //rateNode["name"] = rates.getName();
     p = rates.getParameters();
+    //rateNode["name"] = rates.getName();
     for(size_t i = 0; i < p.size(); i++) {
         rateNode[p[i].getName()] = p[i].getValue();
     }
@@ -136,7 +171,7 @@ int main(const int argc, const char** argv)
 {
     GOOGLE_PROTOBUF_VERIFY_VERSION;
 
-    std::string input_path, output_path;
+    std::string input_path, output_path, model_name = "GTR", rate_dist_name = "Constant";
     bool no_branch_lengths = false;
 
     // command-line parsing
@@ -146,6 +181,8 @@ int main(const int argc, const char** argv)
     ("version,v", "Show version")
     ("input-file,i", po::value(&input_path)->required(), "input file [required]")
     ("output-file,o", po::value(&output_path)->required(), "output file [required]")
+    ("model,m", po::value(&model_name), "model [default: GTR]")
+    ("rate-dist,r", po::value(&rate_dist_name), "rate distribution [default: constant]")
     ("no-branch-lengths", po::bool_switch(&no_branch_lengths), "*do not* include fit branch lengths in output");
 
     po::variables_map vm;
@@ -163,7 +200,7 @@ int main(const int argc, const char** argv)
 
     po::notify(vm);
 
-    std::vector<Sequence> sequences = loadSequencesFromFile(vm["input-file"].as<std::string>());
+    std::vector<Sequence> sequences = loadSequencesFromFile(input_path);
 
     std::cout << sequences.size() << " sequences." << '\n';
 
@@ -174,19 +211,17 @@ int main(const int argc, const char** argv)
                                         sumLength);
     std::cout << "Substitution counts[raw]:\n " << m << '\n';
 
-    bpp::DNA dna;
-    bpp::GTR gtr(&dna);
-    //bpp::GammaDiscreteDistribution rates(4);
-    bpp::ConstantDistribution rates(1.0);
+    std::unique_ptr<bpp::SubstitutionModel> model = substitutionModelForName(model_name);
+    std::unique_ptr<bpp::DiscreteDistribution> rates = rateDistributionForName(rate_dist_name);
 
-    std::cout << "Initial log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
+    std::cout << "Initial log-like: " << star_optim::starLikelihood(*model, *rates, sequences) << '\n';
 
-    star_optim::optimize(gtr, rates, sequences);
+    star_optim::optimize(*model, *rates, sequences);
 
-    std::cout << "final log-like: " << star_optim::starLikelihood(gtr, rates, sequences) << '\n';
+    std::cout << "final log-like: " << star_optim::starLikelihood(*model, *rates, sequences) << '\n';
 
-    std::ofstream out(vm["output-file"].as<std::string>());
-    writeResults(out, gtr, rates, sequences, !no_branch_lengths);
+    std::ofstream out(output_path);
+    writeResults(out, *model, *rates, sequences, !no_branch_lengths);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
