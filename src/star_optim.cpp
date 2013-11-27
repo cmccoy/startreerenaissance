@@ -7,6 +7,7 @@
 
 #include "libhmsbeagle/beagle.h"
 
+#include <boost/math/distributions/lognormal.hpp>
 #include <boost/math/tools/minima.hpp>
 
 #include <Bpp/Numeric/Constraints.h>
@@ -214,7 +215,14 @@ double starLikelihood(const bpp::SubstitutionModel& model,
     for(const int i : beagleInstanceIds)
         beagleFinalizeInstance(i);
 
-    return result;
+    double prior = 0.0;
+    assert(model.hasParameter("kappa"));
+    if(model.hasParameter("kappa")) {
+        boost::math::lognormal_distribution<double> distn(1, 1.25);
+        prior += std::log(boost::math::pdf(distn, model.getParameterValue("kappa")));
+    }
+
+    return result + prior;
 }
 
 /// \brief estimate branch lengths
