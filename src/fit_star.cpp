@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cassert>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -52,13 +53,18 @@ std::vector<Sequence> loadSequencesFromFile(const std::string& path)
         coded_in.ReadString(&s, size);
         success = m.ParseFromString(s);
         assert(success && "Failed to parse");
-        assert(m.mutations_size() == 16 && "Unexpected mutations count");
         Sequence sequence;
         if(m.has_name())
             sequence.name = m.name();
-        for(size_t i = 0; i < 4; i++)
-            for(size_t j = 0; j < 4; j++)
-                sequence.substitutions(i, j) = m.mutations(4 * i + j);
+        sequence.substitutions.resize(m.partition_size());
+        for(size_t p = 0; p < sequence.substitutions.size(); p++) {
+            sequence.substitutions[p].fill(0);
+            const mutationio::Partition& partition = m.partition(p);
+            assert(partition.substitution_size() == 16 && "Unexpected substitution count");
+            for(size_t i = 0; i < 4; i++)
+                for(size_t j = 0; j < 4; j++)
+                    sequence.substitutions[p](i, j) = partition.substitution(4 * i + j);
+        }
 
         // TODO: use mutation count
         //double d = 1 - sequence.substitutions.diagonal().sum() / sequence.substitutions.sum();
@@ -101,62 +107,69 @@ std::unique_ptr<bpp::DiscreteDistribution> rateDistributionForName(const std::st
 }
 
 void writeResults(std::ostream& out,
-                  const bpp::SubstitutionModel& model,
-                  const bpp::DiscreteDistribution& rates,
+                  const std::vector<std::unique_ptr<bpp::SubstitutionModel>>& models,
+                  const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
                   const std::vector<Sequence>& sequences,
                   const bool include_branch_lengths = true)
 {
     Json::Value root;
-    Json::Value modelNode(Json::objectValue);
-    Json::Value rateNode(Json::objectValue);
-    Json::Value parameterNode(Json::objectValue);
-    Json::Value piNode(Json::arrayValue);
-    std::vector<std::string> names {"a", "b", "c", "d", "e", "ag"};
-    bpp::ParameterList p = model.getParameters();
-    for(size_t i = 0; i < p.size(); i++) {
-        parameterNode[p[i].getName()] = p[i].getValue();
-    }
-    modelNode["name"] = model.getName();
-    modelNode["parameters"] = parameterNode;
+    Json::Value partitionsNode(Json::arrayValue);
 
-    //rateNode["name"] = rates.getName();
-    p = rates.getParameters();
-    //rateNode["name"] = rates.getName();
-    for(size_t i = 0; i < p.size(); i++) {
-        rateNode[p[i].getName()] = p[i].getValue();
-    }
-    root["rate"] = rateNode;
-
-
-    for(size_t i = 0; i < model.getNumberOfStates(); i++) {
-        piNode.append(model.freq(i));
-    }
-    modelNode["pi"] = piNode;
+    assert(models.size() == rates.size() && "Different number of rates / models");
 
     auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
     const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
     root["mean_branch_length"] = meanBranchLength;
 
-    // Matrices
-    Json::Value qNode(Json::arrayValue);
-    //Json::Value sNode(Json::arrayValue);
-    Json::Value pNode(Json::arrayValue);
-
-    const auto& pt = model.getPij_t(meanBranchLength);
-    for(size_t i = 0; i < model.getNumberOfStates(); i++) {
-        for(size_t j = 0; j < model.getNumberOfStates(); j++) {
-            qNode.append(model.Qij(i, j));
-            //sNode.append(model.Sij(i, j));
-            pNode.append(pt(static_cast<unsigned int>(i), static_cast<unsigned int>(j)));
+    for(size_t i = 0; i < models.size(); i++) {
+        Json::Value modelNode(Json::objectValue);
+        Json::Value rateNode(Json::objectValue);
+        Json::Value parameterNode(Json::objectValue);
+        Json::Value piNode(Json::arrayValue);
+        const bpp::SubstitutionModel& model = *models[i];
+        const bpp::DiscreteDistribution& r = *rates[i];
+        bpp::ParameterList p = model.getParameters();
+        for(size_t i = 0; i < p.size(); i++) {
+            parameterNode[p[i].getName()] = p[i].getValue();
         }
+
+        modelNode["name"] = model.getName();
+        modelNode["parameters"] = parameterNode;
+
+        //rateNode["name"] = rates.getName();
+        p = r.getParameters();
+        //rateNode["name"] = rates.getName();
+        for(size_t i = 0; i < p.size(); i++) {
+            rateNode[p[i].getName()] = p[i].getValue();
+        }
+        root["rate"] = rateNode;
+
+        for(size_t i = 0; i < model.getNumberOfStates(); i++) {
+            piNode.append(model.freq(i));
+        }
+        modelNode["pi"] = piNode;
+        // Matrices
+        Json::Value qNode(Json::arrayValue);
+        //Json::Value sNode(Json::arrayValue);
+        Json::Value pNode(Json::arrayValue);
+
+        const auto& pt = model.getPij_t(meanBranchLength);
+        for(size_t i = 0; i < model.getNumberOfStates(); i++) {
+            for(size_t j = 0; j < model.getNumberOfStates(); j++) {
+                qNode.append(model.Qij(i, j));
+                //sNode.append(model.Sij(i, j));
+                pNode.append(pt(static_cast<unsigned int>(i), static_cast<unsigned int>(j)));
+            }
+        }
+        modelNode["Q"] = qNode;
+        //modelNode["S"] = sNode;
+        modelNode["P_mean"] = pNode;
+        partitionsNode.append(modelNode);
     }
-    modelNode["Q"] = qNode;
-    //modelNode["S"] = sNode;
-    modelNode["P_mean"] = pNode;
 
-    root["model"] = modelNode;
+    root["partitions"] = partitionsNode;
 
-    root["logLikelihood"] = star_optim::starLikelihood(model, rates, sequences);
+    root["logLikelihood"] = star_optim::starLikelihood(models, rates, sequences);
     if(include_branch_lengths) {
         Json::Value blNode(Json::arrayValue);
         for(const Sequence& sequence : sequences)
@@ -202,26 +215,28 @@ int main(const int argc, const char** argv)
 
     std::vector<Sequence> sequences = loadSequencesFromFile(input_path);
 
-    std::cout << sequences.size() << " sequences." << '\n';
+    const size_t nPartitions = sequences[0].substitutions.size();
+    for(const Sequence& sequence : sequences) {
+        assert(nPartitions == sequence.substitutions.size() && "Varying number of partitions");
+    }
 
-    auto sumLength = [](const Eigen::Matrix4d & acc, const Sequence & s) {
-        return acc + s.substitutions;
-    };
-    Eigen::Matrix4d m = std::accumulate(sequences.begin() + 1, sequences.end(), sequences[0].substitutions,
-                                        sumLength);
-    std::cout << "Substitution counts[raw]:\n " << m << '\n';
+    std::clog << sequences.size() << " sequences." << '\n';
 
-    std::unique_ptr<bpp::SubstitutionModel> model = substitutionModelForName(model_name);
-    std::unique_ptr<bpp::DiscreteDistribution> rates = rateDistributionForName(rate_dist_name);
+    std::vector<std::unique_ptr<bpp::SubstitutionModel>> models;
+    std::vector<std::unique_ptr<bpp::DiscreteDistribution>> rates;
+    for(size_t i = 0; i < nPartitions; i++) {
+        models.emplace_back(substitutionModelForName(model_name));
+        rates.emplace_back(rateDistributionForName(rate_dist_name));
+    }
 
-    std::cout << "Initial log-like: " << star_optim::starLikelihood(*model, *rates, sequences) << '\n';
+    std::cout << "Initial log-like: " << star_optim::starLikelihood(models, rates, sequences) << '\n';
 
-    star_optim::optimize(*model, *rates, sequences);
+    star_optim::optimize(models, rates, sequences);
 
-    std::cout << "final log-like: " << star_optim::starLikelihood(*model, *rates, sequences) << '\n';
+    std::cout << "final log-like: " << star_optim::starLikelihood(models, rates, sequences) << '\n';
 
     std::ofstream out(output_path);
-    writeResults(out, *model, *rates, sequences, !no_branch_lengths);
+    writeResults(out, models, rates, sequences, !no_branch_lengths);
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;

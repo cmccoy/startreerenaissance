@@ -6,7 +6,7 @@
 
 struct Sequence {
     std::string name;
-    Eigen::Matrix4d substitutions;
+    std::vector<Eigen::Matrix4d> substitutions;
     double distance;
 };
 

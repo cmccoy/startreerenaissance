@@ -71,20 +71,21 @@ void blitMatrixToArray(double* arr, const bpp::Matrix<double>& matrix)
     }
 }
 
-double pairLogLikelihood(const int beagleInstance, const Sequence& sequence, const int nStates)
+double pairLogLikelihood(const int beagleInstance, const Eigen::Matrix4d& substitutions, const double distance)
 {
+    const size_t nStates = 4;
     std::vector<double> patternWeights;
     patternWeights.reserve(nStates * nStates);
     for(int i = 0; i < nStates; i++) {
         for(int j = 0; j < nStates; j++) {
-            patternWeights.push_back(sequence.substitutions(i, j));
+            patternWeights.push_back(substitutions(i, j));
         }
     }
 
     beagleCheck(beagleSetPatternWeights(beagleInstance, patternWeights.data()));
 
     std::vector<int> nodeIndices { 0, 1 };
-    std::vector<double> edgeLengths { sequence.distance, 0 };
+    std::vector<double> edgeLengths { distance, 0 };
     const int rootIndex = 2;
 
     beagleCheck(beagleUpdateTransitionMatrices(beagleInstance,
@@ -175,16 +176,26 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
     return instance;
 }
 
+double starLikelihood(const std::vector<std::unique_ptr<bpp::SubstitutionModel>>& model,
+                      const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
+                      const std::vector<Sequence>& sequences)
+{
+    double result = 0.0;
+    for(size_t i = 0; i < model.size(); i++)
+        result += starLikelihood(*model[i], *rates[i], sequences, i);
+    return result;
+}
+
 double starLikelihood(const bpp::SubstitutionModel& model,
                       const bpp::DiscreteDistribution& rates,
-                      const std::vector<Sequence>& sequences)
+                      const std::vector<Sequence>& sequences,
+                      const size_t partition)
 {
     const bpp::ParameterList p = model.getIndependentParameters();
     //for(std::size_t i = 0; i < p.size(); i++) {
     //std::clog << [>p[i].getName() << "=" <<<] p[i].getValue() << "\t";
     //}
 
-    const int nStates = model.getNumberOfStates();
     int instance = -1;
 
     std::vector<int> beagleInstanceIds;
@@ -206,7 +217,7 @@ double starLikelihood(const bpp::SubstitutionModel& model,
             omp_unset_lock(&writelock);
 #endif
         }
-        result += pairLogLikelihood(instance, sequences[i], nStates);
+        result += pairLogLikelihood(instance, sequences[i].substitutions[partition], sequences[i].distance);
     }
 #ifdef HAVE_OMP
     omp_destroy_lock(&writelock);
@@ -226,28 +237,28 @@ double starLikelihood(const bpp::SubstitutionModel& model,
 }
 
 /// \brief estimate branch lengths
-void estimateBranchLengths(const bpp::SubstitutionModel& model,
-                           const bpp::DiscreteDistribution& rates,
+void estimateBranchLengths(const std::vector<std::unique_ptr<bpp::SubstitutionModel>>& model,
+                           const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
                            std::vector<Sequence>& sequences)
 {
-    int instance = -1;
+    std::vector<int> threadInstances;
 
     std::vector<int> beagleInstanceIds;
-
-    const size_t nStates = model.getNumberOfStates();
 
 #ifdef HAVE_OMP
     omp_lock_t writelock;
     omp_init_lock(&writelock);
-    #pragma omp parallel for firstprivate(instance)
+    #pragma omp parallel for firstprivate(instance) local(instances)
 #endif
     for(size_t i = 0; i < sequences.size(); i++) {
-        if(instance <= 0) {
+        if(!threadInstances.size()) {
 #ifdef HAVE_OMP
             omp_set_lock(&writelock);
 #endif
-            instance = createBeagleInstance(model, rates);
-            beagleInstanceIds.push_back(instance);
+            for(size_t i = 0; i < model.size(); i++) {
+                threadInstances.push_back(createBeagleInstance(*model[i], *rates[i]));
+                beagleInstanceIds.push_back(threadInstances.back());
+            }
 #ifdef HAVE_OMP
             omp_unset_lock(&writelock);
 #endif
@@ -255,10 +266,12 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
 
         Sequence& s = sequences[i];
 
-        auto f = [instance, &s, nStates](const double d) {
+        auto f = [&threadInstances, &s](const double d) {
             assert(!std::isnan(d) && "NaN distance?");
             s.distance = d;
-            const double result = pairLogLikelihood(instance, s, nStates);
+            double result = 0.0;
+            for(size_t i = 0; i < threadInstances.size(); i++)
+                result += pairLogLikelihood(threadInstances[i], s.substitutions[i], s.distance);
             return -result;
         };
 
@@ -276,11 +289,28 @@ void estimateBranchLengths(const bpp::SubstitutionModel& model,
         beagleFinalizeInstance(i);
 }
 
+struct Parameter
+{
+    bpp::Parametrizable* source;
+    std::string parameterName;
+
+    void setValue(const double value)
+    {
+        source->setParameterValue(parameterName, value);
+    }
+
+    double getValue() const
+    {
+        return source->getParameterValue(parameterName);
+    }
+};
+
+
 struct NlOptParams {
     std::vector<Sequence>* sequences;
-    bpp::ParameterList* paramList;
-    bpp::SubstitutionModel* model;
-    bpp::DiscreteDistribution* rates;
+    std::vector<Parameter>* paramList;
+    std::vector<std::unique_ptr<bpp::SubstitutionModel>>* model;
+    std::vector<std::unique_ptr<bpp::DiscreteDistribution>>* rates;
 };
 
 double nlLogLike(const std::vector<double>& x, std::vector<double>& grad, void* data)
@@ -290,28 +320,33 @@ double nlLogLike(const std::vector<double>& x, std::vector<double>& grad, void* 
     NlOptParams* params = reinterpret_cast<NlOptParams*>(data);
 
     for(size_t i = 0; i < x.size(); i++) {
-        bpp::Parameter& p = params->paramList->operator[](i);
-        p.setValue(x[i]);
+        params->paramList->operator[](i).setValue(x[i]);
     }
-
-    params->model->matchParametersValues(*params->paramList);
-    params->rates->matchParametersValues(*params->paramList);
 
     return starLikelihood(*params->model, *params->rates, *params->sequences);
 }
 
 /// \brief Optimize the model & branch lengths distribution for a collection of sequences
-size_t optimize(bpp::SubstitutionModel& model,
-                bpp::DiscreteDistribution& rates,
+size_t optimize(std::vector<std::unique_ptr<bpp::SubstitutionModel>>& models,
+                std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
                 std::vector<Sequence>& sequences,
                 const bool verbose)
 {
-    bpp::ParameterList params = model.getIndependentParameters();
-    // TODO: this is a crude hack to handle gamma distributed rates, only
-    if(rates.hasParameter("alpha"))
-        params.addParameter(rates.getParameter("alpha"));
+    std::vector<Parameter> params;
+    assert(models.size() == rates.size());
+    for(size_t i = 0; i < models.size(); i++) {
+        bpp::SubstitutionModel* model = models[i].get();
+        bpp::DiscreteDistribution* r = rates[i].get();
+        for(const std::string& s : model->getParameters().getParameterNames()) {
+            params.push_back(Parameter { static_cast<bpp::Parametrizable*>(model), s });
+        }
+        for(const std::string& s : r->getParameters().getParameterNames()) {
+            if(i == 0 || s != "rate")
+                params.push_back(Parameter { static_cast<bpp::Parametrizable*>(r), s });
+        }
+    }
 
-    double lastLogLike = starLikelihood(model, rates, sequences);
+    double lastLogLike = starLikelihood(models, rates, sequences);
     const size_t nParam = params.size();
 
     if(verbose) {
@@ -326,17 +361,18 @@ size_t optimize(bpp::SubstitutionModel& model,
         // First, substitution model
         nlopt::opt opt(nlopt::LN_BOBYQA, nParam);
         //nlopt::opt opt(nlopt::LN_COBYLA, nParam);
-        NlOptParams optParams { &sequences, &params, &model, &rates };
+        NlOptParams optParams { &sequences, &params, &models, &rates };
         opt.set_max_objective(nlLogLike, &optParams);
 
         std::vector<double> lowerBounds(nParam, -std::numeric_limits<double>::max());
         std::vector<double> upperBounds(nParam, std::numeric_limits<double>::max());
-        for(size_t i = 0; i < nParam; i++) {
-            if(!params[i].hasConstraint())
+        for(size_t i = 0; i < params.size(); i++) {
+            bpp::Parameter bp = params[i].source->getParameter(params[i].parameterName);
+            if(!bp.hasConstraint())
                 continue;
 
             // TODO: changes in bpp 2.1
-            bpp::Interval* constraint = dynamic_cast<bpp::Interval*>(params[i].getConstraint());
+            bpp::Interval* constraint = dynamic_cast<bpp::Interval*>(bp.getConstraint());
             assert(constraint != nullptr);
             lowerBounds[i] = constraint->getLowerBound();
             if(lowerBounds[i] == 0.0) lowerBounds[i] += 1e-7;
@@ -375,10 +411,10 @@ size_t optimize(bpp::SubstitutionModel& model,
         lastLogLike = logLike;
 
         // then, branch lengths
-        estimateBranchLengths(model,
+        estimateBranchLengths(models,
                               rates,
                               sequences);
-        logLike = starLikelihood(model, rates, sequences);
+        logLike = starLikelihood(models, rates, sequences);
 
         if(verbose) {
             std::clog << "iteration " << iter << " (branch lengths): " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
@@ -391,12 +427,6 @@ size_t optimize(bpp::SubstitutionModel& model,
 
         if(!anyImproved)
             break;
-    }
-
-    if(verbose) {
-        for(std::size_t i = 0; i < params.size(); i++) {
-            std::clog << params[i].getName() << "=" << params[i].getValue() << "\n";
-        }
     }
 
     return iter;

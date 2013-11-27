@@ -41,6 +41,48 @@ inline int nt16ToIdx(const int b)
     }
 }
 
+mutationio::MutationCount mutationCountOfSequence(const bam1_t* b, const std::string& ref, const bool no_ambiguous, const bool by_codon = false)
+{
+    mutationio::MutationCount count;
+    count.set_name(bam1_qname(b));
+    std::vector<std::vector<int>> partitions(by_codon ? 3 : 1);
+    for(std::vector<int>& v : partitions)
+        v.resize(16);
+
+    const uint32_t* cigar = bam1_cigar(b);
+    const uint8_t* seq = bam1_seq(b);
+    uint32_t qi = 0, ri = b->core.pos;
+    const int8_t* bq = reinterpret_cast<int8_t*>(bam_aux_get(b, "bq"));
+    if(no_ambiguous) {
+        assert(bq != NULL && "No bq tag");
+    }
+    for(uint32_t cidx = 0; cidx < b->core.n_cigar; cidx++) {
+        const uint32_t clen = bam_cigar_oplen(cigar[cidx]);
+        const uint32_t consumes = bam_cigar_type(cigar[cidx]); // bit 1: consume query; bit 2: consume reference
+        if((consumes & 0x3) == 0x3) {  // Reference and query
+            for(uint32_t i = 0; i < clen; i++) {
+                const int qb = nt16ToIdx(bam1_seqi(seq, qi + i)),
+                      rb = nt16ToIdx(bam_nt16_table[static_cast<int>(ref[ri + i])]);
+                if(qb < 4 && rb < 4 && (!no_ambiguous || bq[qi + i] % 100 == 0)) {
+                    partitions[by_codon ? (ri + i) % 3 : 0][(rb * 4) + qb] += 1;
+                }
+            }
+        }
+        if(consumes & 0x1) // Consumes query
+            qi += clen;
+        else if(consumes & 0x2) // Consumes reference
+            ri += clen;
+    }
+
+    for(const std::vector<int>& v : partitions) {
+        mutationio::Partition* partition = count.add_partition();
+        for(const int i : v)
+            partition->add_substitution(i);
+    }
+
+    return count;
+}
+
 int usage(po::options_description& desc)
 {
     std::cerr << "Usage: build_mutation_matrices [options] <ref.fasta> <in.bam> <out.bin>\n";
@@ -72,6 +114,7 @@ int main(int argc, char* argv[])
     std::string fastaPath, bamPath, outputPath;
 
     bool no_ambiguous = false;
+    bool by_codon = false;
     size_t maxRecords = 0;
 
     po::options_description desc("Allowed options");
@@ -79,6 +122,7 @@ int main(int argc, char* argv[])
     ("help,h", "Produce help message")
     ("version,v", "Print version")
     ("no-ambiguous", po::bool_switch(&no_ambiguous), "Do not include ambiguous sites")
+    ("by-codon", po::bool_switch(&by_codon), "Partition by codon")
     ("max-records,n", po::value<size_t>(&maxRecords), "Maximum number of records to parse")
     ("input-fasta,f", po::value<std::string>(&fastaPath)->required(), "Path to (indexed) FASTA file")
     ("input-bam,i", po::value<std::string>(&bamPath)->required(), "Path to BAM")
@@ -129,42 +173,13 @@ int main(int argc, char* argv[])
             free(ref);
         }
 
-        const uint32_t* cigar = bam1_cigar(b);
-        const uint8_t* seq = bam1_seq(b);
-        uint32_t qi = 0, ri = b->core.pos;
         const std::string& ref = targetBases[b->core.tid];
 
-        std::vector<int> mutations(16, 0);
-
-        const int8_t* bq = reinterpret_cast<int8_t*>(bam_aux_get(b, "bq"));
-        if(no_ambiguous) {
-            assert(bq != NULL && "No bq tag");
-        }
-        for(uint32_t cidx = 0; cidx < b->core.n_cigar; cidx++) {
-            const uint32_t clen = bam_cigar_oplen(cigar[cidx]);
-            const uint32_t consumes = bam_cigar_type(cigar[cidx]); // bit 1: consume query; bit 2: consume reference
-            if((consumes & 0x3) == 0x3) {  // Reference and query
-                for(uint32_t i = 0; i < clen; i++) {
-                    const int qb = nt16ToIdx(bam1_seqi(seq, qi + i)),
-                              rb = nt16ToIdx(bam_nt16_table[static_cast<int>(ref[ri + i])]);
-                    if(qb < 4 && rb < 4 && (!no_ambiguous || bq[qi + i] % 100 == 0)) {
-                        mutations[(rb * 4) + qb] += 1;
-                    }
-                }
-            }
-            if(consumes & 0x1) // Consumes query
-                qi += clen;
-            else if(consumes & 0x2) // Consumes reference
-                ri += clen;
-        }
-
-        mutationio::MutationCount count;
-        count.set_name(bam1_qname(b));
-        for(const int i : mutations)
-            count.add_mutations(i);
+        mutationio::MutationCount count = mutationCountOfSequence(b, ref, no_ambiguous, by_codon);
 
         codedOut.WriteVarint32(count.ByteSize());
         count.SerializeWithCachedSizes(&codedOut);
+
     }
 
     bam_destroy1(b);
