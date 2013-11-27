@@ -223,8 +223,9 @@ double starLikelihood(const bpp::SubstitutionModel& model,
     omp_destroy_lock(&writelock);
 #endif
 
-    for(const int i : beagleInstanceIds)
+    for(const int i : beagleInstanceIds) {
         beagleFinalizeInstance(i);
+    }
 
     double prior = 0.0;
     assert(model.hasParameter("kappa"));
@@ -241,17 +242,19 @@ void estimateBranchLengths(const std::vector<std::unique_ptr<bpp::SubstitutionMo
                            const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
                            std::vector<Sequence>& sequences)
 {
-    std::vector<int> threadInstances;
-
     std::vector<int> beagleInstanceIds;
-
 #ifdef HAVE_OMP
     omp_lock_t writelock;
     omp_init_lock(&writelock);
-    #pragma omp parallel for firstprivate(instance) local(instances)
+    #pragma omp parallel
+    {
+#endif
+    std::vector<int> threadInstances;
+#ifdef HAVE_OMP
+    #pragma omp parallel for
 #endif
     for(size_t i = 0; i < sequences.size(); i++) {
-        if(!threadInstances.size()) {
+        if(threadInstances.size() == 0) {
 #ifdef HAVE_OMP
             omp_set_lock(&writelock);
 #endif
@@ -282,11 +285,13 @@ void estimateBranchLengths(const std::vector<std::unique_ptr<bpp::SubstitutionMo
         s.distance = res.first;
     }
 #ifdef HAVE_OMP
+    } // pragma omp parallel
     omp_destroy_lock(&writelock);
 #endif
 
-    for(const int i : beagleInstanceIds)
+    for(const int i : beagleInstanceIds) {
         beagleFinalizeInstance(i);
+    }
 }
 
 struct Parameter
@@ -332,83 +337,90 @@ size_t optimize(std::vector<std::unique_ptr<bpp::SubstitutionModel>>& models,
                 std::vector<Sequence>& sequences,
                 const bool verbose)
 {
-    std::vector<Parameter> params;
-    assert(models.size() == rates.size());
-    for(size_t i = 0; i < models.size(); i++) {
-        bpp::SubstitutionModel* model = models[i].get();
-        bpp::DiscreteDistribution* r = rates[i].get();
-        for(const std::string& s : model->getParameters().getParameterNames()) {
-            params.push_back(Parameter { static_cast<bpp::Parametrizable*>(model), s });
-        }
-        for(const std::string& s : r->getParameters().getParameterNames()) {
-            if(i == 0 || s != "rate")
-                params.push_back(Parameter { static_cast<bpp::Parametrizable*>(r), s });
-        }
-    }
 
     double lastLogLike = starLikelihood(models, rates, sequences);
-    const size_t nParam = params.size();
 
     if(verbose) {
-        std::clog << "intial: " << lastLogLike << '\n';
+        std::clog << "intial: " << lastLogLike << "\n";
         std::clog.flush();
     }
 
     size_t iter = 0;
     for(iter = 0; iter < MAX_ROUNDS; iter++) {
         bool anyImproved = false;
-
-        // First, substitution model
-        nlopt::opt opt(nlopt::LN_BOBYQA, nParam);
-        //nlopt::opt opt(nlopt::LN_COBYLA, nParam);
-        NlOptParams optParams { &sequences, &params, &models, &rates };
-        opt.set_max_objective(nlLogLike, &optParams);
-
-        std::vector<double> lowerBounds(nParam, -std::numeric_limits<double>::max());
-        std::vector<double> upperBounds(nParam, std::numeric_limits<double>::max());
-        for(size_t i = 0; i < params.size(); i++) {
-            bpp::Parameter bp = params[i].source->getParameter(params[i].parameterName);
-            if(!bp.hasConstraint())
-                continue;
-
-            // TODO: changes in bpp 2.1
-            bpp::Interval* constraint = dynamic_cast<bpp::Interval*>(bp.getConstraint());
-            assert(constraint != nullptr);
-            lowerBounds[i] = constraint->getLowerBound();
-            if(lowerBounds[i] == 0.0) lowerBounds[i] += 1e-7;
-            upperBounds[i] = constraint->getUpperBound();
-        }
-        opt.set_lower_bounds(lowerBounds);
-        opt.set_upper_bounds(upperBounds);
-        opt.set_ftol_abs(IMPROVE_THRESH);
-        opt.set_maxeval(MAX_ITER);
-
-        std::vector<double> x(nParam);
-        for(size_t i = 0; i < nParam; i++) {
-            x[i] = params[i].getValue();
-        }
-
         double logLike;
-        try {
-            const int nlOptResult = opt.optimize(x, logLike);
-            std::clog << "Optimization finished with " << nlOptResult << '\n';
-        } catch(std::exception& e) {
-            std::clog << "Optimization failed.\n";
-        }
-        //if(nlOptResult != nlopt::SUCCESS)
 
-        for(size_t i = 0; i < nParam; i++) {
-            params[i].setValue(x[i]);
+        for(size_t idx = 0; idx < models.size(); idx++) {
+            std::vector<Parameter> params;
+            bpp::SubstitutionModel* model = models[idx].get();
+            bpp::DiscreteDistribution* r = rates[idx].get();
+            for(const std::string& s : model->getParameters().getParameterNames()) {
+                params.push_back(Parameter { static_cast<bpp::Parametrizable*>(model), model->getParameterNameWithoutNamespace(s) });
+            }
+            for(const std::string& s : r->getParameters().getParameterNames()) {
+                // fix the rate in position 1 at 1.0
+                if(idx != 0 || s != "Constant.value")
+                    params.push_back(Parameter { static_cast<bpp::Parametrizable*>(r), r->getParameterNameWithoutNamespace(s) });
+            }
+            const size_t nParam = params.size();
+
+            // First, substitution model
+            nlopt::opt opt(nlopt::LN_BOBYQA, nParam);
+            //nlopt::opt opt(nlopt::LN_COBYLA, nParam);
+            NlOptParams optParams { &sequences, &params, &models, &rates };
+            opt.set_max_objective(nlLogLike, &optParams);
+
+            std::vector<double> lowerBounds(nParam, -std::numeric_limits<double>::max());
+            std::vector<double> upperBounds(nParam, std::numeric_limits<double>::max());
+            for(size_t i = 0; i < params.size(); i++) {
+                bpp::Parameter bp = params[i].source->getParameter(params[i].parameterName);
+                // Rate-related hack
+                if(params[i].parameterName == "value") {
+                    lowerBounds[i] = 1e-6;
+                    upperBounds[i] = 20;
+                } else if(!bp.hasConstraint())
+                    continue;
+                else {
+                    // TODO: changes in bpp 2.1
+                    bpp::Interval* constraint = dynamic_cast<bpp::Interval*>(bp.getConstraint());
+                    assert(constraint != nullptr);
+                    lowerBounds[i] = constraint->getLowerBound();
+                    if(lowerBounds[i] == 0.0) lowerBounds[i] += 1e-6;
+                    upperBounds[i] = std::min(constraint->getUpperBound(), 20.0);
+                }
+            }
+            opt.set_lower_bounds(lowerBounds);
+            opt.set_upper_bounds(upperBounds);
+            opt.set_ftol_abs(IMPROVE_THRESH);
+            opt.set_maxeval(MAX_ITER);
+
+            std::vector<double> x(nParam);
+            for(size_t i = 0; i < nParam; i++) {
+                x[i] = params[i].getValue();
+            }
+
+            try {
+                const int nlOptResult = opt.optimize(x, logLike);
+                std::clog << "Optimization finished with " << nlOptResult << '\n';
+            } catch(std::exception& e) {
+                std::clog << "Optimization failed: " << e.what()<< "\n";
+            }
+            //if(nlOptResult != nlopt::SUCCESS)
+
+            for(size_t i = 0; i < nParam; i++) {
+                params[i].setValue(x[i]);
+            }
+
+            if(verbose) {
+                std::clog << "iteration " << iter << "." << idx << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
+                std::clog.flush();
+            }
+
+            if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
+                anyImproved = true;
+            lastLogLike = logLike;
         }
 
-        if(verbose) {
-            std::clog << "iteration " << iter << ": " << lastLogLike << " ->\t" << logLike << '\t' << logLike - lastLogLike << '\n';
-            std::clog.flush();
-        }
-
-        if(std::abs(logLike - lastLogLike) > IMPROVE_THRESH)
-            anyImproved = true;
-        lastLogLike = logLike;
 
         // then, branch lengths
         estimateBranchLengths(models,

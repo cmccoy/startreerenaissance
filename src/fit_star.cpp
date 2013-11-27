@@ -142,7 +142,7 @@ void writeResults(std::ostream& out,
         for(size_t i = 0; i < p.size(); i++) {
             rateNode[p[i].getName()] = p[i].getValue();
         }
-        root["rate"] = rateNode;
+        modelNode["rate"] = rateNode;
 
         for(size_t i = 0; i < model.getNumberOfStates(); i++) {
             piNode.append(model.freq(i));
