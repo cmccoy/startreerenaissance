@@ -71,6 +71,7 @@ void blitMatrixToArray(double* arr, const bpp::Matrix<double>& matrix)
     }
 }
 
+/// \brief calculate the likelihood of a collection of substitutions using an initialized BEAGLE instance.
 double pairLogLikelihood(const int beagleInstance, const Eigen::Matrix4d& substitutions, const double distance)
 {
     const size_t nStates = 4;
@@ -124,6 +125,7 @@ double pairLogLikelihood(const int beagleInstance, const Eigen::Matrix4d& substi
     return logLike;
 }
 
+/// \brief Update a BEAGLE instance
 void updateBeagleInstance(const int instance,
                           const bpp::SubstitutionModel& model,
                           const bpp::DiscreteDistribution& rates)
@@ -157,6 +159,7 @@ void updateBeagleInstance(const int instance,
     beagleSetStateFrequencies(instance, 0, model.getFrequencies().data());
 }
 
+/// \brief Create a BEAGLE instance
 int createBeagleInstance(const bpp::SubstitutionModel& model,
                          const bpp::DiscreteDistribution& rates)
 {
@@ -185,6 +188,10 @@ int createBeagleInstance(const bpp::SubstitutionModel& model,
     return instance;
 }
 
+/// \brief Calculate the likelihood of a collection of sequences under the star tree model
+///
+/// \param instances - a vector, with one entry per thread, with a vector containing a BEAGLE instance ID for each
+/// partition.
 double starLikelihood(const std::vector<std::vector<int>>& instances,
                       const std::vector<std::unique_ptr<bpp::SubstitutionModel>>& model,
                       const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
@@ -203,6 +210,10 @@ double starLikelihood(const std::vector<std::vector<int>>& instances,
     return result;
 }
 
+/// \brief Calculate the likelihood of a collection of sequences under the star tree model
+///
+/// \param instances - a vector, with one entry per thread, with a vector containing a BEAGLE instance ID for each
+/// partition.
 double starLikelihood(const std::vector<std::vector<int>>& instances,
                       const std::vector<Sequence>& sequences,
                       const size_t partition)
@@ -234,7 +245,6 @@ double starLikelihood(const std::vector<std::vector<int>>& instances,
 void estimateBranchLengths(const std::vector<std::vector<int>>& instances,
                            std::vector<Sequence>& sequences)
 {
-    std::vector<int> beagleInstanceIds;
 #ifdef _OPENMP
     #pragma omp parallel for
 #endif
@@ -260,10 +270,6 @@ void estimateBranchLengths(const std::vector<std::vector<int>>& instances,
             boost::math::tools::brent_find_minima(f, 1e-6, 0.8, 50, max_iter);
         assert(!std::isnan(res.first) && "NaN distance?");
         s.distance = res.first;
-    }
-
-    for(const int i : beagleInstanceIds) {
-        beagleFinalizeInstance(i);
     }
 }
 
@@ -411,11 +417,6 @@ size_t optimize(const std::vector<std::vector<int>>& beagleInstances,
 
         if(!anyImproved)
             break;
-    }
-
-    for(const std::vector<int>& v : beagleInstances) {
-        for(const int i : v)
-            beagleFinalizeInstance(i);
     }
 
     return iter;
