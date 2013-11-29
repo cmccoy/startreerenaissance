@@ -19,6 +19,9 @@
 #include "star_optim.hpp"
 #include "sequence.hpp"
 
+// Beagle
+#include "libhmsbeagle/beagle.h"
+
 // Bio++
 #include <Bpp/Numeric/Prob/ConstantDistribution.h>
 #include <Bpp/Numeric/Prob/GammaDiscreteDistribution.h>
@@ -27,6 +30,10 @@
 #include <Bpp/Phyl/Model/TN93.h>
 #include <Bpp/Phyl/Model/JCnuc.h>
 #include <Bpp/Seq/Alphabet/DNA.h>
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
 
 namespace po = boost::program_options;
 
@@ -110,6 +117,7 @@ void writeResults(std::ostream& out,
                   const std::vector<std::unique_ptr<bpp::SubstitutionModel>>& models,
                   const std::vector<std::unique_ptr<bpp::DiscreteDistribution>>& rates,
                   const std::vector<Sequence>& sequences,
+                  const double logLikelihood,
                   const bool include_branch_lengths = true)
 {
     Json::Value root;
@@ -169,7 +177,7 @@ void writeResults(std::ostream& out,
 
     root["partitions"] = partitionsNode;
 
-    root["logLikelihood"] = star_optim::starLikelihood(models, rates, sequences);
+    root["logLikelihood"] = logLikelihood;
     if(include_branch_lengths) {
         Json::Value blNode(Json::arrayValue);
         for(const Sequence& sequence : sequences)
@@ -228,15 +236,33 @@ int main(const int argc, const char** argv)
         models.emplace_back(substitutionModelForName(model_name));
         rates.emplace_back(rateDistributionForName(rate_dist_name));
     }
+    std::vector<std::vector<int>> beagleInstances(1);
 
-    std::cout << "Initial log-like: " << star_optim::starLikelihood(models, rates, sequences) << '\n';
+#ifdef _OPENMP
+    beagleInstances.resize(omp_get_max_threads());
+#endif
+    for(std::vector<int>& v : beagleInstances) {
+        for(size_t i = 0; i < models.size(); i++) {
+            v.push_back(star_optim::createBeagleInstance(*models[i], *rates[i]));
+            std::clog << v.back() << '\t';
+        }
+        std::clog << '\n';
+    }
 
-    star_optim::optimize(models, rates, sequences);
+    std::cout << "Initial log-like: " << star_optim::starLikelihood(beagleInstances, models, rates, sequences) << '\n';
 
-    std::cout << "final log-like: " << star_optim::starLikelihood(models, rates, sequences) << '\n';
+    star_optim::optimize(beagleInstances, models, rates, sequences);
+
+    const double finalLike = star_optim::starLikelihood(beagleInstances, models, rates, sequences);
+    std::cout << "final log-like: " << finalLike << '\n';
 
     std::ofstream out(output_path);
-    writeResults(out, models, rates, sequences, !no_branch_lengths);
+    writeResults(out, models, rates, sequences, finalLike, !no_branch_lengths);
+
+    for(const std::vector<int>& v : beagleInstances) {
+        for(const int i : v)
+            beagleFinalizeInstance(i);
+    }
 
     google::protobuf::ShutdownProtobufLibrary();
     return 0;
