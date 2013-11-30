@@ -205,9 +205,17 @@ double starLikelihood(const std::vector<std::vector<int>>& instances,
         }
     }
 
-    for(size_t i = 0; i < model.size(); i++)
+    double prior = 0.0;
+    for(size_t i = 0; i < model.size(); i++) {
         result += starLikelihood(instances, sequences, i);
-    return result;
+        assert(model[i]->hasParameter("kappa"));
+        if(model[i]->hasParameter("kappa")) {
+            boost::math::lognormal_distribution<double> distn(1, 1.25);
+            prior += std::log(boost::math::pdf(distn, model[i]->getParameterValue("kappa")));
+        }
+    }
+
+    return result + prior;
 }
 
 /// \brief Calculate the likelihood of a collection of sequences under the star tree model
@@ -230,15 +238,7 @@ double starLikelihood(const std::vector<std::vector<int>>& instances,
         const int instance = instances[instance_idx][partition];
         result += pairLogLikelihood(instance, sequences[i].substitutions[partition], sequences[i].distance);
     }
-
-    double prior = 0.0;
-    //assert(model.hasParameter("kappa"));
-    //if(model.hasParameter("kappa")) {
-        //boost::math::lognormal_distribution<double> distn(1, 1.25);
-        //prior += std::log(boost::math::pdf(distn, model.getParameterValue("kappa")));
-    //}
-
-    return result + prior;
+    return result;
 }
 
 /// \brief estimate branch lengths
