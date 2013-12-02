@@ -248,8 +248,6 @@ int main(const int argc, const char** argv)
         }
     }
 
-    std::cout << "Initial log-like: " << star_optim::starLikelihood(beagleInstances, models, rates, sequences) << '\n';
-
     star_optim::optimize(beagleInstances, models, rates, sequences);
 
     const double finalLike = star_optim::starLikelihood(beagleInstances, models, rates, sequences);
