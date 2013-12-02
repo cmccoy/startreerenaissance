@@ -244,9 +244,7 @@ int main(const int argc, const char** argv)
     for(std::vector<int>& v : beagleInstances) {
         for(size_t i = 0; i < models.size(); i++) {
             v.push_back(star_optim::createBeagleInstance(*models[i], *rates[i]));
-            std::clog << v.back() << '\t';
         }
-        std::clog << '\n';
     }
 
     std::cout << "Initial log-like: " << star_optim::starLikelihood(beagleInstances, models, rates, sequences) << '\n';
