@@ -127,10 +127,11 @@ void writeResults(std::ostream& out,
 
     auto f = [](double acc, const Sequence & s) { return acc + s.distance; };
     const double meanBranchLength = std::accumulate(sequences.begin(), sequences.end(), 0.0, f) / sequences.size();
-    root["mean_branch_length"] = meanBranchLength;
+    root["meanBranchLength"] = meanBranchLength;
 
     for(size_t i = 0; i < models.size(); i++) {
         Json::Value modelNode(Json::objectValue);
+        modelNode["partitionIndex"] = static_cast<int>(i);
         Json::Value rateNode(Json::objectValue);
         Json::Value parameterNode(Json::objectValue);
         Json::Value piNode(Json::arrayValue);
@@ -182,7 +183,7 @@ void writeResults(std::ostream& out,
         Json::Value blNode(Json::arrayValue);
         for(const Sequence& sequence : sequences)
             blNode.append(sequence.distance);
-        root["branch_lengths"] = blNode;
+        root["branchLengths"] = blNode;
     }
 
     out << root << '\n';
