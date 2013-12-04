@@ -16,8 +16,9 @@ import org.junit.Test;
  * To change this template use File | Settings | File Templates.
  */
 public class SAMBEASTUtilsTest {
-    private byte[] reference = "ACCGTACTA".getBytes();
-    private String referenceName = "Ref1";
+    private final byte[] reference = "ACCGTACTA".getBytes();
+    private final String referenceName = "Ref1";
+    private final String queryName = "QSEQ1";
     private SAMFileHeader header;
 
     @Before
@@ -30,7 +31,7 @@ public class SAMBEASTUtilsTest {
     public void testAlignmentOfRecord() throws Exception {
         SAMRecord record = new SAMRecord(this.header);
         record.setReadBases("TCCGTTAGTC".getBytes());
-        record.setReadName("Query");
+        record.setReadName(queryName);
         record.setCigarString("1S3M1I4M1S");
         record.setReferenceIndex(0);
         record.setReferenceName(this.referenceName);
@@ -43,7 +44,7 @@ public class SAMBEASTUtilsTest {
         assertEquals(new String(reference), result.getAlignedSequenceString(0));
         assertEquals("-CCGTAGT-", result.getAlignedSequenceString(1));
         assertEquals(referenceName, result.getTaxonId(0));
-        assertEquals("Query", result.getTaxonId(1));
+        assertEquals(queryName, result.getTaxonId(1));
     }
 }
 
