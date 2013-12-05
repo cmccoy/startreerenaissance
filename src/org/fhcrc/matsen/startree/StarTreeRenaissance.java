@@ -6,11 +6,9 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
+import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.CodonLabeling;
-import dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting;
-import dr.app.beagle.evomodel.substmodel.StratifiedTraitOutputFormat;
-import dr.app.beagle.evomodel.substmodel.SubstitutionModel;
+import dr.app.beagle.evomodel.substmodel.*;
 import dr.app.beagle.evomodel.treelikelihood.AncestralStateBeagleTreeLikelihood;
 import dr.app.beagle.evomodel.treelikelihood.PartialsRescalingScheme;
 import dr.app.beagle.evomodel.utilities.DnDsLogger;
@@ -40,7 +38,9 @@ import dr.inference.trace.Trace;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,8 +72,8 @@ public class StarTreeRenaissance {
      * @throws Tree.MissingTaxonException
      */
     public static TwoTaxonResult calculate(final Alignment alignment,
-                                           final List<SubstitutionModel> subsModels,
-                                           final List<SiteRateModel> siteModels) throws Tree.MissingTaxonException {
+                                           final List<? extends SubstitutionModel> subsModels,
+                                           final List<? extends SiteRateModel> siteModels) throws Tree.MissingTaxonException {
         assert(subsModels.size() == 3);
         assert(siteModels.size() == 3);
 
@@ -193,7 +193,9 @@ public class StarTreeRenaissance {
         return robustCounts;
     }
 
-    private static AncestralStateBeagleTreeLikelihood[] getAncestralStateBeagleTreeLikelihoods(List<SubstitutionModel> subsModels, List<SiteRateModel> siteModels, Patterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
+    private static AncestralStateBeagleTreeLikelihood[] getAncestralStateBeagleTreeLikelihoods(List<? extends SubstitutionModel> subsModels,
+                                                                                               List<? extends SiteRateModel> siteModels,
+                                                                                               Patterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
         for(int i = 0; i < 3; i++) {
             treeLikelihoods[i] = new AncestralStateBeagleTreeLikelihood(p[i],
@@ -228,9 +230,21 @@ public class StarTreeRenaissance {
         logger.add(dndsSLogger);
     }
 
-    public static void main(String... args) {
+    public static void main(String... args) throws Exception {
         SAMFileReader reader = new SAMFileReader(new File("test.bam"));
         File fasta = new File("ighvdj.fasta");
+
+        BufferedReader jsonReader = new BufferedReader(new FileReader("test.json"));
+        List<HKYModelParser.HKYAndRate> mrates = HKYModelParser.substitutionModel(jsonReader);
+
+        final List<SubstitutionModel> models = new ArrayList<SubstitutionModel>();
+        final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
+        for(int i = 0; i < mrates.size(); i++) {
+            models.add(mrates.get(i).getModel());
+            GammaSiteRateModel r = new GammaSiteRateModel(String.format("rate%d", i));
+            r.setMu(mrates.get(i).getRate());
+            rates.add(r);
+        }
 
         final Map<String, byte[]> references = SAMUtils.readAllFasta(fasta);
 
@@ -240,6 +254,17 @@ public class StarTreeRenaissance {
                 final byte[] ref = references.get(samRecord.getReferenceName());
                 Preconditions.checkNotNull(ref, "no reference for %s", samRecord.getReferenceName());
                 return SAMBEASTUtils.alignmentOfRecord(samRecord, ref);
+            }
+        });
+
+        Iterable<TwoTaxonResult> results = Iterables.transform(alignments, new Function<Alignment, TwoTaxonResult>() {
+            @Override
+            public TwoTaxonResult apply(Alignment a) {
+                try {
+                    return calculate(a, models, rates);
+                } catch(Tree.MissingTaxonException exception) {
+                    throw new RuntimeException(exception);
+                }
             }
         });
     }
