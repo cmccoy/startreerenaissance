@@ -1,5 +1,6 @@
 package org.fhcrc.matsen.startree;
 
+import com.google.common.base.Preconditions;
 import dr.evolution.alignment.Alignment;
 import dr.evolution.alignment.SimpleAlignment;
 import dr.evolution.sequence.Sequence;
@@ -63,41 +64,47 @@ public class SAMBEASTUtils {
 
     /**
      * Create a BEAST-compatible alignment from a SAM record and reference bases.
-     * @param record
-     * @param rseq All reference sequence bases
-     * @return
+     * @param record Aligned read
+     * @param rSeq All reference sequence bases
+     * @return An alignment, covering all bases of rSeq
      */
-    public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rseq) {
-        StringBuilder raln = new StringBuilder(), qaln = new StringBuilder();
+    public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rSeq) {
+        StringBuilder rAln = new StringBuilder(), qAln = new StringBuilder();
         SimpleAlignment alignment = new SimpleAlignment();
 
-        final byte[] qseq = record.getReadBases();
+        final byte[] qSeq = record.getReadBases();
 
         for(int i = 0; i < record.getAlignmentStart() - 1; i++) {
-            raln.append((char)rseq[i]);
-            qaln.append('-');
+            rAln.append((char) rSeq[i]);
+            qAln.append('-');
         }
         for(AlignedPair p : getAlignedPairs(record)) {
             if(p.consumesReference()) {
-                raln.append((char)rseq[p.getReferencePosition()]);
+                rAln.append((char) rSeq[p.getReferencePosition()]);
                 if(p.consumesQuery())
-                    qaln.append((char)qseq[p.getQueryPosition()]);
+                    qAln.append((char)qSeq[p.getQueryPosition()]);
                 else
-                    qaln.append('-');
+                    qAln.append('-');
             }
         }
-        for(int i = qaln.length(); i < rseq.length; i++) {
-            raln.append((char)rseq[i]);
-            qaln.append('-');
+        for(int i = qAln.length(); i < rSeq.length; i++) {
+            rAln.append((char) rSeq[i]);
+            qAln.append('-');
         }
 
-        alignment.addSequence(new Sequence(new Taxon(record.getReferenceName()), raln.toString()));
-        alignment.addSequence(new Sequence(new Taxon(record.getReadName()), qaln.toString()));
+        alignment.addSequence(new Sequence(new Taxon(record.getReferenceName()), rAln.toString()));
+        alignment.addSequence(new Sequence(new Taxon(record.getReadName()), qAln.toString()));
 
         return alignment;
     }
 
+    /**
+     * Read all sequences from a FASTA file, returning a map from name to sequence
+     * @param path Path to FASTA file
+     * @return Map from name to sequence
+     */
     public static Map<String, byte[]> readAllFasta(final File path) {
+        Preconditions.checkNotNull(path);
         final Map<String, byte[]> result = new HashMap<String, byte[]>();
 
         final FastaSequenceFile file = new FastaSequenceFile(path, true);
