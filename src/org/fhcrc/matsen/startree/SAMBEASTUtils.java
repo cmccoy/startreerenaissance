@@ -1,22 +1,15 @@
 package org.fhcrc.matsen.startree;
 
-import com.google.common.base.Preconditions;
 import dr.evolution.alignment.Alignment;
 import dr.evolution.alignment.SimpleAlignment;
 import dr.evolution.sequence.Sequence;
 import dr.evolution.util.Taxon;
-import net.sf.picard.reference.FastaSequenceFile;
-import net.sf.picard.reference.ReferenceSequence;
-import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 
-import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -27,27 +20,6 @@ import java.util.Map;
  */
 public class SAMBEASTUtils {
     private SAMBEASTUtils() { throw new UnsupportedOperationException(); }
-
-    private static class AlignedPair {
-        private final int queryPosition;
-        private final int referencePosition;
-
-        private AlignedPair(int queryPosition, int referencePosition) {
-            this.queryPosition = queryPosition;
-            this.referencePosition = referencePosition;
-        }
-
-        private int getQueryPosition() {
-            return queryPosition;
-        }
-
-        private int getReferencePosition() {
-            return referencePosition;
-        }
-
-        public boolean consumesQuery() { return queryPosition >= 0; }
-        public boolean consumesReference() { return referencePosition >= 0; }
-    }
 
     private static List<AlignedPair> getAlignedPairs(final SAMRecord record) {
         int q = 0, r = record.getAlignmentStart() - 1;
@@ -96,24 +68,5 @@ public class SAMBEASTUtils {
         alignment.addSequence(new Sequence(new Taxon(record.getReadName()), qAln.toString()));
 
         return alignment;
-    }
-
-    /**
-     * Read all sequences from a FASTA file, returning a map from name to sequence
-     * @param path Path to FASTA file
-     * @return Map from name to sequence
-     */
-    public static Map<String, byte[]> readAllFasta(final File path) {
-        Preconditions.checkNotNull(path);
-        final Map<String, byte[]> result = new HashMap<String, byte[]>();
-
-        final FastaSequenceFile file = new FastaSequenceFile(path, true);
-        ReferenceSequence sequence = file.nextSequence();
-        while(sequence != null) {
-            result.put(sequence.getName(), sequence.getBases());
-            sequence = file.nextSequence();
-        }
-
-        return result;
     }
 }

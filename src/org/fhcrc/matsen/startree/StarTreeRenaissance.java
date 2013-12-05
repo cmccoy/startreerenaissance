@@ -2,6 +2,9 @@ package org.fhcrc.matsen.startree;
 
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
 import dr.app.beagle.evomodel.substmodel.CodonLabeling;
@@ -34,10 +37,14 @@ import dr.inference.model.Parameter;
 import dr.inference.operators.ScaleOperator;
 import dr.inference.operators.SimpleOperatorSchedule;
 import dr.inference.trace.Trace;
+import net.sf.samtools.SAMFileReader;
+import net.sf.samtools.SAMRecord;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 /**
@@ -170,7 +177,10 @@ public class StarTreeRenaissance {
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         for(int i = 0; i < 4; i++) {
             final String label = String.format("%s_%s", i / 2 == 0 ? "C" : "U", type[i % 2]);
-            robustCounts[i] = new CodonPartitionedRobustCounting(label, treeModel, treeLikelihoods, Codons.UNIVERSAL,
+            robustCounts[i] = new CodonPartitionedRobustCounting(label,
+                    treeModel,
+                    treeLikelihoods,
+                    Codons.UNIVERSAL,
                     CodonLabeling.parseFromString(type[i % 2]),
                     true,  // uniformization
                     true,  // external branches
@@ -218,4 +228,19 @@ public class StarTreeRenaissance {
         logger.add(dndsSLogger);
     }
 
+    public static void main(String... args) {
+        SAMFileReader reader = new SAMFileReader(new File("test.bam"));
+        File fasta = new File("ighvdj.fasta");
+
+        final Map<String, byte[]> references = SAMUtils.readAllFasta(fasta);
+
+        Iterable<Alignment> alignments = Iterables.transform(reader, new Function<SAMRecord, Alignment>() {
+            @Override
+            public Alignment apply(SAMRecord samRecord) {
+                final byte[] ref = references.get(samRecord.getReferenceName());
+                Preconditions.checkNotNull(ref, "no reference for %s", samRecord.getReferenceName());
+                return SAMBEASTUtils.alignmentOfRecord(samRecord, ref);
+            }
+        });
+    }
 }
