@@ -272,12 +272,12 @@
     <!-- START Ancestral state reconstruction                                    -->
     <!-- Robust counting for: input1                                             -->
     <log id="fileLog_dNdS" logEvery="20" fileName="A-4-0.dNdS.log">
-      <dNdSLogger id="dNdS1_N" counts="true" smooth="true" synonymous="false">
+      <dNdSLogger id="dNdS1_N" counts="true" smooth="false" synonymous="false">
         <treeModel idref="treeModel.0"/>
         <codonPartitionedRobustCounting idref="robustCounting0.S"/>
         <codonPartitionedRobustCounting idref="robustCounting0.N"/>
       </dNdSLogger>
-      <dNdSLogger id="dNdS_S" counts="true" synonymous="true" smooth="true">
+      <dNdSLogger id="dNdS_S" counts="true" synonymous="true" smooth="false">
         <treeModel idref="treeModel.0"/>
         <codonPartitionedRobustCounting idref="robustCounting0.S"/>
         <codonPartitionedRobustCounting idref="robustCounting0.N"/>

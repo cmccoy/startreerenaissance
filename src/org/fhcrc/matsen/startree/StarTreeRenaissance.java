@@ -208,7 +208,7 @@ public class StarTreeRenaissance {
                     treeLikelihoods,
                     Codons.UNIVERSAL,
                     CodonLabeling.parseFromString(type[i]),
-                    false,  // uniformization
+                    true,  // uniformization
                     true,  // external branches
                     true,  // internal branches
                     false, // unconditional per branch
