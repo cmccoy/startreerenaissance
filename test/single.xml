@@ -191,7 +191,7 @@
     <parameter idref="treeModel.0.rootHeight"/>
 
   </report>
-  <mcmc id="mcmc" chainLength="20000" autoOptimize="true" operatorAnalysis="A-4-0.ops">
+  <mcmc id="mcmc" chainLength="10000" autoOptimize="true" operatorAnalysis="A-4-0.ops">
     <posterior id="posterior">
       <prior id="prior">
         <logNormalPrior mean="1.0" stdev="1.25" offset="0.0" meanInRealSpace="false">
