@@ -263,14 +263,14 @@ public class StarTreeRenaissance {
         File fasta = new File("ighvdj.fasta");
 
         BufferedReader jsonReader = new BufferedReader(new FileReader("test.json"));
-        List<HKYModelParser.HKYAndRate> mrates = HKYModelParser.substitutionModel(jsonReader);
+        List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
 
         final List<SubstitutionModel> models = new ArrayList<SubstitutionModel>();
         final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
-        for (int i = 0; i < mrates.size(); i++) {
-            models.add(mrates.get(i).getModel());
+        for (int i = 0; i < mRates.size(); i++) {
+            models.add(mRates.get(i).getModel());
             GammaSiteRateModel r = new GammaSiteRateModel(String.format("rate%d", i));
-            r.setMu(mrates.get(i).getRate());
+            r.setMu(mRates.get(i).getRate());
             rates.add(r);
         }
 
