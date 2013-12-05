@@ -4,7 +4,6 @@ import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
 import dr.app.beagle.evomodel.substmodel.FrequencyModel;
 import dr.app.beagle.evomodel.substmodel.HKY;
-import dr.evolution.alignment.Alignment;
 import dr.evolution.alignment.SimpleAlignment;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.sequence.Sequence;
@@ -30,6 +29,7 @@ public class StarTreeRenaissanceTest {
 
     }
 
+    @org.junit.Ignore("Just runs a sampler")
     @Test
     public void testCalculate() throws Exception {
         List<HKY> hkys = new ArrayList<HKY>();
@@ -42,10 +42,10 @@ public class StarTreeRenaissanceTest {
         }
 
         SimpleAlignment alignment = new SimpleAlignment();
-        alignment.addSequence(new Sequence(new Taxon("ref"), "AAAAAA"));
-        alignment.addSequence(new Sequence(new Taxon("qry"), "AAAAAC"));
+        alignment.addSequence(new Sequence(new Taxon("ref"), "GTCACCATGACCACAGACACATCCACGAGCACAGCCTACATGGAGCTGAGGAGCCTGAGATCTGACGACACGGCCGTGTATTACTGTGCGAGA"));
+        alignment.addSequence(new Sequence(new Taxon("qry"), "GTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
 
-        TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 40000, 6000);
+        TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 200);
         System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
                 r.getUnconditionalNonsynonymous(),
                 r.getUnconditionalSynonymous(),

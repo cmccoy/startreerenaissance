@@ -8,23 +8,24 @@ import com.google.common.collect.Iterables;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
 import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.*;
+import dr.app.beagle.evomodel.substmodel.CodonLabeling;
+import dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting;
+import dr.app.beagle.evomodel.substmodel.StratifiedTraitOutputFormat;
+import dr.app.beagle.evomodel.substmodel.SubstitutionModel;
 import dr.app.beagle.evomodel.treelikelihood.AncestralStateBeagleTreeLikelihood;
 import dr.app.beagle.evomodel.treelikelihood.PartialsRescalingScheme;
 import dr.app.beagle.evomodel.utilities.DnDsLogger;
 import dr.evolution.alignment.Alignment;
-import dr.evolution.alignment.Patterns;
 import dr.evolution.alignment.SitePatterns;
 import dr.evolution.datatype.Codons;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.tree.Tree;
 import dr.evolution.tree.TreeTrait;
-import dr.evolution.util.TaxonList;
 import dr.evomodel.branchratemodel.StrictClockBranchRates;
-import dr.evomodel.coalescent.CoalescentLikelihood;
 import dr.evomodel.coalescent.CoalescentSimulator;
 import dr.evomodel.coalescent.ConstantPopulationModel;
 import dr.evomodel.tree.TreeModel;
+import dr.inference.distribution.DistributionLikelihood;
 import dr.inference.loggers.ArrayLogFormatter;
 import dr.inference.loggers.Logger;
 import dr.inference.loggers.MCLogger;
@@ -32,11 +33,11 @@ import dr.inference.mcmc.MCMC;
 import dr.inference.mcmc.MCMCOptions;
 import dr.inference.model.CompoundLikelihood;
 import dr.inference.model.Likelihood;
-import dr.inference.model.OneOnXPrior;
 import dr.inference.model.Parameter;
 import dr.inference.operators.ScaleOperator;
 import dr.inference.operators.SimpleOperatorSchedule;
 import dr.inference.trace.Trace;
+import dr.math.distributions.ExponentialDistribution;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 
@@ -108,8 +109,8 @@ public class StarTreeRenaissance {
         }
 
         // Coalescent model
-        final Parameter populationSize = new Parameter.Default("constant.popSize", 10.0, 0.0, Double.POSITIVE_INFINITY);
-        final ConstantPopulationModel coalModel = new ConstantPopulationModel(populationSize, dr.evolution.util.Units.Type.SUBSTITUTIONS);
+        final ConstantPopulationModel coalModel = new ConstantPopulationModel(new Parameter.Default(1.0),
+                dr.evolution.util.Units.Type.SUBSTITUTIONS);
 
         // Branch rates - fixed at 1.0 subs/site
         final StrictClockBranchRates branchRates = new StrictClockBranchRates(new Parameter.Default(1.0));
@@ -117,6 +118,7 @@ public class StarTreeRenaissance {
         // Tree model
         CoalescentSimulator coalSim = new CoalescentSimulator();
         final TreeModel treeModel = new TreeModel("treeModel", coalSim.simulateTree(alignment, coalModel));
+        treeModel.getRootHeightParameter().setParameterValueQuietly(0, 0.05);
 
         // Tree likelihoods
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = getAncestralStateBeagleTreeLikelihoods(subsModels, siteModels, p, branchRates, treeModel);
@@ -125,12 +127,10 @@ public class StarTreeRenaissance {
         CodonPartitionedRobustCounting[] robustCounts = getCodonPartitionedRobustCountings(treeModel, treeLikelihoods);
 
         // Priors
-        List<Likelihood> priors = new ArrayList<Likelihood>(2);
-        priors.add(new CoalescentLikelihood(treeModel, alignment, null, coalModel));
-        // 1 / x on population size
-        OneOnXPrior popPrior = new OneOnXPrior();
-        popPrior.addData(populationSize);
-        priors.add(popPrior);
+        List<Likelihood> priors = new ArrayList<Likelihood>(1);
+        DistributionLikelihood rootHeightPrior = new DistributionLikelihood(new ExponentialDistribution(10.0));
+        rootHeightPrior.addData(treeModel.getRootHeightParameter());
+        priors.add(rootHeightPrior);
 
         // Likelihood
         List<Likelihood> likelihoods = new ArrayList<Likelihood>(3);
@@ -142,7 +142,6 @@ public class StarTreeRenaissance {
         // Operators
         SimpleOperatorSchedule operatorSchedule = new SimpleOperatorSchedule();
         operatorSchedule.addOperator(new ScaleOperator(treeModel.getRootHeightParameter(), 0.75));
-        operatorSchedule.addOperator(new ScaleOperator(populationSize, 0.75));
 
         // log
         ArrayLogFormatter formatter = new ArrayLogFormatter(false);
