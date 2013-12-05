@@ -14,10 +14,12 @@ import dr.app.beagle.evomodel.treelikelihood.PartialsRescalingScheme;
 import dr.app.beagle.evomodel.utilities.DnDsLogger;
 import dr.evolution.alignment.Alignment;
 import dr.evolution.alignment.Patterns;
+import dr.evolution.alignment.SitePatterns;
 import dr.evolution.datatype.Codons;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.tree.Tree;
 import dr.evolution.tree.TreeTrait;
+import dr.evolution.util.TaxonList;
 import dr.evomodel.branchratemodel.StrictClockBranchRates;
 import dr.evomodel.coalescent.CoalescentLikelihood;
 import dr.evomodel.coalescent.CoalescentSimulator;
@@ -75,13 +77,34 @@ public class StarTreeRenaissance {
     public static TwoTaxonResult calculate(final Alignment alignment,
                                            final List<? extends SubstitutionModel> subsModels,
                                            final List<? extends SiteRateModel> siteModels) throws Tree.MissingTaxonException {
-        Preconditions.checkArgument(subsModels.size() == 3);
-        Preconditions.checkArgument(siteModels.size() == 3);
+        return calculate(alignment, subsModels, siteModels, CHAIN_LENGTH, SAMPLE_FREQ);
+    }
+
+    /**
+     * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
+     *
+     * @param alignment  An alignment with two taxa - no tree moves are performed!
+     * @param subsModels One substitution model for each site.
+     * @param siteModels One site model for each site.
+     * @return A TwoTaxonResult, with counts by iteration.
+     * @throws Tree.MissingTaxonException
+     */
+    public static TwoTaxonResult calculate(final Alignment alignment,
+                                           final List<? extends SubstitutionModel> subsModels,
+                                           final List<? extends SiteRateModel> siteModels,
+                                           final int chainLength,
+                                           final int sampleEvery) throws Tree.MissingTaxonException {
+        Preconditions.checkArgument(subsModels.size() == 3,
+                "invalid number of substitution models: %d", subsModels.size());
+        Preconditions.checkArgument(siteModels.size() == 3,
+                "Invalid number of site models: %d", siteModels.size());
 
         // Patterns
-        Patterns[] p = new Patterns[3];
+        int maxIndex = alignment.getPatternCount();
+        maxIndex -= maxIndex % 3;
+        SitePatterns[] p = new SitePatterns[3];
         for (int i = 0; i < 3; i++) {
-            p[i] = new Patterns(alignment, i, alignment.getPatternCount(), 3);
+            p[i] = new SitePatterns(alignment, alignment, i, maxIndex - 1, 3, false, false);
         }
 
         // Coalescent model
@@ -123,10 +146,10 @@ public class StarTreeRenaissance {
 
         // log
         ArrayLogFormatter formatter = new ArrayLogFormatter(false);
-        MCLogger logger = new MCLogger(formatter, SAMPLE_FREQ, false);
+        MCLogger logger = new MCLogger(formatter, sampleEvery, false);
         createdNdSloggers(treeModel, robustCounts, logger);
 
-        MCMCOptions options = new MCMCOptions(CHAIN_LENGTH);
+        MCMCOptions options = new MCMCOptions(chainLength);
         MCMC mcmc = new MCMC("mcmc");
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
         mcmc.run();
@@ -139,10 +162,12 @@ public class StarTreeRenaissance {
         final DoubleMatrix2D cn = new DenseDoubleMatrix2D(traceLength, nCodons), cs = new DenseDoubleMatrix2D(traceLength, nCodons),
                 un = new DenseDoubleMatrix2D(traceLength, nCodons), us = new DenseDoubleMatrix2D(traceLength, nCodons);
 
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("([cu])_([NS])\\[(\\d+)\\]$");
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
             for (final Trace trace : traces) {
                 final String name = trace.getName();
+                if("state".equals(name))
+                    continue;
                 final Matcher m = p.matcher(name);
                 Preconditions.checkState(m.matches(), "%s does not match", name);
 
@@ -171,19 +196,19 @@ public class StarTreeRenaissance {
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
-        CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[4];
+        CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[2];
 
         String[] type = new String[]{"N", "S"};
         StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
-        for (int i = 0; i < 4; i++) {
-            final String label = String.format("%s_%s", i / 2 == 0 ? "C" : "U", type[i % 2]);
+        for (int i = 0; i < 2; i++) {
+            final String label = type[i];
             robustCounts[i] = new CodonPartitionedRobustCounting(label,
                     treeModel,
                     treeLikelihoods,
                     Codons.UNIVERSAL,
-                    CodonLabeling.parseFromString(type[i % 2]),
-                    true,  // uniformization
+                    CodonLabeling.parseFromString(type[i]),
+                    false,  // uniformization
                     true,  // external branches
                     true,  // internal branches
                     false, // unconditional per branch
@@ -196,7 +221,7 @@ public class StarTreeRenaissance {
 
     private static AncestralStateBeagleTreeLikelihood[] getAncestralStateBeagleTreeLikelihoods(List<? extends SubstitutionModel> subsModels,
                                                                                                List<? extends SiteRateModel> siteModels,
-                                                                                               Patterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
+                                                                                               SitePatterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
         for (int i = 0; i < 3; i++) {
             treeLikelihoods[i] = new AncestralStateBeagleTreeLikelihood(p[i],
@@ -221,7 +246,9 @@ public class StarTreeRenaissance {
         int j = 0;
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
             for (TreeTrait trait : rc.getTreeTraits()) {
-                traits[j++] = trait;
+                if(trait.getTraitName().matches("[CcUu]_[NnSs]")) {
+                    traits[j++] = trait;
+                }
             }
         }
 
