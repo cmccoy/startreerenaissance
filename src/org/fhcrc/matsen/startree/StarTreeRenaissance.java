@@ -74,8 +74,8 @@ public class StarTreeRenaissance {
     public static TwoTaxonResult calculate(final Alignment alignment,
                                            final List<? extends SubstitutionModel> subsModels,
                                            final List<? extends SiteRateModel> siteModels) throws Tree.MissingTaxonException {
-        assert(subsModels.size() == 3);
-        assert(siteModels.size() == 3);
+        Preconditions.checkArgument(subsModels.size() == 3);
+        Preconditions.checkArgument(siteModels.size() == 3);
 
         // Patterns
         Patterns[] p = new Patterns[3];
