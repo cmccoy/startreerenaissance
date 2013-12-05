@@ -65,7 +65,8 @@ public class StarTreeRenaissance {
 
     /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
-     * @param alignment An alignment with two taxa - no tree moves are performed!
+     *
+     * @param alignment  An alignment with two taxa - no tree moves are performed!
      * @param subsModels One substitution model for each site.
      * @param siteModels One site model for each site.
      * @return A TwoTaxonResult, with counts by iteration.
@@ -79,7 +80,7 @@ public class StarTreeRenaissance {
 
         // Patterns
         Patterns[] p = new Patterns[3];
-        for(int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             p[i] = new Patterns(alignment, i, alignment.getPatternCount(), 3);
         }
 
@@ -139,18 +140,18 @@ public class StarTreeRenaissance {
                 un = new DenseDoubleMatrix2D(traceLength, nCodons), us = new DenseDoubleMatrix2D(traceLength, nCodons);
 
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([cu])_([NS])\\[(\\d+)\\]$");
-        for(int i = 0; i < traceLength; i++) {
-            for(final Trace trace : traces) {
+        for (int i = 0; i < traceLength; i++) {
+            for (final Trace trace : traces) {
                 final String name = trace.getName();
                 final Matcher m = p.matcher(name);
-                assert(m.matches());
+                Preconditions.checkState(m.matches(), "%s does not match", name);
 
                 final int pos = Integer.parseInt(m.group(3)) - 1;
 
                 boolean isConditioned = name.substring(0, 1).equals(CodonPartitionedRobustCounting.SITE_SPECIFIC_PREFIX);
                 boolean isNonsynonymous = name.substring(2, 3).equals(CodonLabeling.NON_SYN.getText());
                 DoubleMatrix2D target;
-                if(isConditioned && isNonsynonymous)
+                if (isConditioned && isNonsynonymous)
                     target = cn;
                 else if (isConditioned)
                     target = cs;
@@ -172,10 +173,10 @@ public class StarTreeRenaissance {
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
         CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[4];
 
-        String[] type = new String[] {"N", "S"};
+        String[] type = new String[]{"N", "S"};
         StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
-        for(int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             final String label = String.format("%s_%s", i / 2 == 0 ? "C" : "U", type[i % 2]);
             robustCounts[i] = new CodonPartitionedRobustCounting(label,
                     treeModel,
@@ -197,7 +198,7 @@ public class StarTreeRenaissance {
                                                                                                List<? extends SiteRateModel> siteModels,
                                                                                                Patterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
-        for(int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             treeLikelihoods[i] = new AncestralStateBeagleTreeLikelihood(p[i],
                     treeModel,
                     new HomogeneousBranchModel(subsModels.get(i), subsModels.get(i).getFrequencyModel()),
@@ -218,8 +219,8 @@ public class StarTreeRenaissance {
     private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
         final TreeTrait[] traits = new TreeTrait[4];
         int j = 0;
-        for(final CodonPartitionedRobustCounting rc : robustCounts)  {
-            for(TreeTrait trait : rc.getTreeTraits()) {
+        for (final CodonPartitionedRobustCounting rc : robustCounts) {
+            for (TreeTrait trait : rc.getTreeTraits()) {
                 traits[j++] = trait;
             }
         }
@@ -239,7 +240,7 @@ public class StarTreeRenaissance {
 
         final List<SubstitutionModel> models = new ArrayList<SubstitutionModel>();
         final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
-        for(int i = 0; i < mrates.size(); i++) {
+        for (int i = 0; i < mrates.size(); i++) {
             models.add(mrates.get(i).getModel());
             GammaSiteRateModel r = new GammaSiteRateModel(String.format("rate%d", i));
             r.setMu(mrates.get(i).getRate());
@@ -262,7 +263,7 @@ public class StarTreeRenaissance {
             public TwoTaxonResult apply(Alignment a) {
                 try {
                     return calculate(a, models, rates);
-                } catch(Tree.MissingTaxonException exception) {
+                } catch (Tree.MissingTaxonException exception) {
                     throw new RuntimeException(exception);
                 }
             }
