@@ -54,8 +54,6 @@ public class StarTreeRenaissance {
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
     // TODOs
-    // * Parse SAM records into (BEAST-compatible) pairwise alignments
-    // * Parse JSON output from fit-star
     // * Run for each pair, aggregate matrices (spark?)
 
     /**
@@ -128,42 +126,6 @@ public class StarTreeRenaissance {
         return twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount());
     }
 
-    private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
-        final TreeTrait[] traits = new TreeTrait[4];
-        int j = 0;
-        for(final CodonPartitionedRobustCounting rc : robustCounts)  {
-            for(TreeTrait trait : rc.getTreeTraits()) {
-                traits[j++] = trait;
-            }
-        }
-
-        DnDsLogger dndsNLogger = new DnDsLogger("dndsN", treeModel, traits, false, false, true, false);
-        logger.add(dndsNLogger);
-        DnDsLogger dndsSLogger = new DnDsLogger("dndsS", treeModel, traits, false, false, true, true);
-        logger.add(dndsSLogger);
-    }
-
-    private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
-        CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[4];
-
-        String[] type = new String[] {"N", "S"};
-        StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
-        StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
-        for(int i = 0; i < 4; i++) {
-            final String label = String.format("%s_%s", i / 2 == 0 ? "C" : "U", type[i % 2]);
-            robustCounts[i] = new CodonPartitionedRobustCounting(label, treeModel, treeLikelihoods, Codons.UNIVERSAL,
-                    CodonLabeling.parseFromString(type[i % 2]),
-                    true, // uniformization
-                    true, // external branches
-                    true, // internal branches
-                    false, // unconditional per branch
-                    false, // complete history
-                    branchFormat,
-                    logFormat);
-        }
-        return robustCounts;
-    }
-
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons) {
         final int traceLength = traces.get(0).getValuesSize();
         final DoubleMatrix2D cn = new DenseDoubleMatrix2D(traceLength, nCodons), cs = new DenseDoubleMatrix2D(traceLength, nCodons),
@@ -200,6 +162,27 @@ public class StarTreeRenaissance {
         return new TwoTaxonResult(cn, cs, un, us);
     }
 
+    private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
+        CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[4];
+
+        String[] type = new String[] {"N", "S"};
+        StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
+        StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
+        for(int i = 0; i < 4; i++) {
+            final String label = String.format("%s_%s", i / 2 == 0 ? "C" : "U", type[i % 2]);
+            robustCounts[i] = new CodonPartitionedRobustCounting(label, treeModel, treeLikelihoods, Codons.UNIVERSAL,
+                    CodonLabeling.parseFromString(type[i % 2]),
+                    true,  // uniformization
+                    true,  // external branches
+                    true,  // internal branches
+                    false, // unconditional per branch
+                    false, // complete history
+                    branchFormat,
+                    logFormat);
+        }
+        return robustCounts;
+    }
+
     private static AncestralStateBeagleTreeLikelihood[] getAncestralStateBeagleTreeLikelihoods(List<SubstitutionModel> subsModels, List<SiteRateModel> siteModels, Patterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
         for(int i = 0; i < 3; i++) {
@@ -218,6 +201,21 @@ public class StarTreeRenaissance {
                     true); // Use ML?
         }
         return treeLikelihoods;
+    }
+
+    private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
+        final TreeTrait[] traits = new TreeTrait[4];
+        int j = 0;
+        for(final CodonPartitionedRobustCounting rc : robustCounts)  {
+            for(TreeTrait trait : rc.getTreeTraits()) {
+                traits[j++] = trait;
+            }
+        }
+
+        DnDsLogger dndsNLogger = new DnDsLogger("dndsN", treeModel, traits, false, false, true, false);
+        logger.add(dndsNLogger);
+        DnDsLogger dndsSLogger = new DnDsLogger("dndsS", treeModel, traits, false, false, true, true);
+        logger.add(dndsSLogger);
     }
 
 }

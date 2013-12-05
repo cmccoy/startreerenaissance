@@ -20,6 +20,9 @@ public class TwoTaxonResult {
         this.unconditionalSynonymous = unconditionalSynonymous;
     }
 
+    public TwoTaxonResult add (final TwoTaxonResult other) {
+
+    }
 
     public DoubleMatrix2D getUnconditionalSynonymous() {
         return unconditionalSynonymous;

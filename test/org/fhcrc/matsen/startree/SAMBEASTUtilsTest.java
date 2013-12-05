@@ -1,5 +1,6 @@
 package org.fhcrc.matsen.startree;
 
+import cern.jet.math.Functions;
 import dr.evolution.alignment.Alignment;
 import net.sf.samtools.SAMFileHeader;
 import net.sf.samtools.SAMRecord;
