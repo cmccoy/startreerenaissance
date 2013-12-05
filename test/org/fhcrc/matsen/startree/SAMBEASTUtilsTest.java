@@ -47,4 +47,3 @@ public class SAMBEASTUtilsTest {
         assertEquals(queryName, result.getTaxonId(1));
     }
 }
-

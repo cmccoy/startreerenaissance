@@ -4,13 +4,18 @@ import dr.evolution.alignment.Alignment;
 import dr.evolution.alignment.SimpleAlignment;
 import dr.evolution.sequence.Sequence;
 import dr.evolution.util.Taxon;
+import net.sf.picard.reference.FastaSequenceFile;
+import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.AlignmentBlock;
 import net.sf.samtools.CigarElement;
 import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA.
@@ -90,5 +95,18 @@ public class SAMBEASTUtils {
         alignment.addSequence(new Sequence(new Taxon(record.getReadName()), qaln.toString()));
 
         return alignment;
+    }
+
+    public static Map<String, byte[]> readAllFasta(final File path) {
+        final Map<String, byte[]> result = new HashMap<String, byte[]>();
+
+        final FastaSequenceFile file = new FastaSequenceFile(path, true);
+        ReferenceSequence sequence = file.nextSequence();
+        while(sequence != null) {
+            result.put(sequence.getName(), sequence.getBases());
+            sequence = file.nextSequence();
+        }
+
+        return result;
     }
 }
