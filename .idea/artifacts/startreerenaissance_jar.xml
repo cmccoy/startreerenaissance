@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="startreerenaissance:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/startreerenaissance_jar</output-path>
+    <root id="archive" name="startreerenaissance.jar">
+      <element id="module-output" name="startreerenaissance" />
+      <element id="extracted-dir" path="$APPLICATION_HOME_DIR$/lib/junit-4.10.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/beast.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/sam-1.104.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/gson-2.2.4.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/guava-15.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/picard-1.104.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
