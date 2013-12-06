@@ -259,10 +259,10 @@ public class StarTreeRenaissance {
     }
 
     public static void main(String... args) throws Exception {
-        SAMFileReader reader = new SAMFileReader(new File("test.bam"));
-        File fasta = new File("ighvdj.fasta");
+        SAMFileReader reader = new SAMFileReader(new File("testdata/test.bam"));
+        File fasta = new File("testdata/ighvdj.fasta");
 
-        BufferedReader jsonReader = new BufferedReader(new FileReader("test.json"));
+        BufferedReader jsonReader = new BufferedReader(new FileReader("testdata/test.json"));
         List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
 
         final List<SubstitutionModel> models = new ArrayList<SubstitutionModel>();

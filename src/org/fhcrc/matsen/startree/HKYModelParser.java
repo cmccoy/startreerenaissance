@@ -3,9 +3,12 @@ package org.fhcrc.matsen.startree;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
+import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
 import dr.app.beagle.evomodel.substmodel.FrequencyModel;
 import dr.app.beagle.evomodel.substmodel.HKY;
 import dr.evolution.datatype.Nucleotides;
+import dr.inference.model.Parameter;
 
 import java.io.Reader;
 import java.util.ArrayList;
@@ -33,28 +36,45 @@ public class HKYModelParser {
 
             assert p.get("name").getAsString().equals("HKY85");
 
-            final HKY hky = new HKY(kappa, new FrequencyModel(Nucleotides.INSTANCE, pi));
             final double rate = p.get("rate").getAsJsonObject().get("Constant.value").getAsDouble();
-            result.add(new HKYAndRate(hky, rate));
+            result.add(new HKYAndRate(kappa, pi, rate));
         }
         return result;
     }
 
-    public static class HKYAndRate {
-        private final HKY model;
+    public static class HKYAndRate implements java.io.Serializable {
+        private final double kappa;
+        private final double[] frequencies;
         private final double rate;
 
-        public HKYAndRate(HKY model, double rate) {
-            this.model = model;
+        public HKYAndRate(double kappa, double[] frequencies, double rate) {
+            this.kappa = kappa;
+            this.frequencies = frequencies;
             this.rate = rate;
         }
 
-        public HKY getModel() {
-            return model;
+        public double getKappa() {
+            return kappa;
+        }
+
+        public double[] getFrequencies() {
+            return frequencies;
         }
 
         public double getRate() {
             return rate;
+        }
+
+        public HKY getModel() {
+            return new HKY(kappa, new FrequencyModel(Nucleotides.INSTANCE, frequencies));
+        }
+
+        public SiteRateModel getSiteRateModel() {
+            return new GammaSiteRateModel(String.format("rate"),
+                    new Parameter.Default(rate),
+                    null,
+                    1,
+                    null);
         }
     }
 }
