@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 
 
@@ -64,6 +65,10 @@ import java.util.regex.Matcher;
  */
 public class StarTreeRenaissance {
 
+    // Lock beagle instance creation-related actions - getting using instances that have been created from multiple threads
+    // should present no problem.
+    // TODO: what about releasing beagle instance?
+    private static ReentrantLock beagleLock = new ReentrantLock();
     public static final int CHAIN_LENGTH = 5000;
     public static final int N_SAMPLES = 500;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
@@ -225,20 +230,25 @@ public class StarTreeRenaissance {
                                                                                                List<? extends SiteRateModel> siteModels,
                                                                                                SitePatterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
-        for (int i = 0; i < 3; i++) {
-            treeLikelihoods[i] = new AncestralStateBeagleTreeLikelihood(p[i],
-                    treeModel,
-                    new HomogeneousBranchModel(subsModels.get(i), subsModels.get(i).getFrequencyModel()),
-                    siteModels.get(i),
-                    branchRates,
-                    null,  // Tip states model
-                    false, // Use ambiguities?
-                    PartialsRescalingScheme.DELAYED,
-                    null,  // Partials restrictions
-                    Nucleotides.INSTANCE,
-                    String.format("CP%d.states", i + 1),
-                    false, // Use MAP?
-                    true); // Use ML?
+        try {
+            beagleLock.lock();
+            for (int i = 0; i < 3; i++) {
+                treeLikelihoods[i] = new AncestralStateBeagleTreeLikelihood(p[i],
+                        treeModel,
+                        new HomogeneousBranchModel(subsModels.get(i), subsModels.get(i).getFrequencyModel()),
+                        siteModels.get(i),
+                        branchRates,
+                        null,  // Tip states model
+                        false, // Use ambiguities?
+                        PartialsRescalingScheme.DELAYED,
+                        null,  // Partials restrictions
+                        Nucleotides.INSTANCE,
+                        String.format("CP%d.states", i + 1),
+                        false, // Use MAP?
+                        true); // Use ML?
+            }
+        } finally {
+            beagleLock.unlock();
         }
         return treeLikelihoods;
     }
