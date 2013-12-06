@@ -174,13 +174,13 @@ public class StarTreeRenaissance {
                 final int pos = Integer.parseInt(m.group(3)) - 1;
 
                 boolean isConditioned = name.substring(0, 1).equals(CodonPartitionedRobustCounting.SITE_SPECIFIC_PREFIX);
-                boolean isNonsynonymous = name.substring(2, 3).equals(CodonLabeling.NON_SYN.getText());
+                boolean isNonSynonymous = name.substring(2, 3).equals(CodonLabeling.NON_SYN.getText());
                 DoubleMatrix2D target;
-                if (isConditioned && isNonsynonymous)
+                if (isConditioned && isNonSynonymous)
                     target = cn;
                 else if (isConditioned)
                     target = cs;
-                else if (isNonsynonymous)
+                else if (isNonSynonymous)
                     target = un;
                 else
                     target = us;
