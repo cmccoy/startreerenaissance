@@ -41,6 +41,9 @@ public class SparkTest {
 
         BeagleInfo.getVersion();
 
+        java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
+        java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
+
         System.err.format("Loading JSON from %s\n", jsonPath);
         BufferedReader jsonReader = new BufferedReader(new FileReader(jsonPath));
         final List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
