@@ -78,7 +78,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         ps.print('\n');
 
         for(int row = 0; row < matrices[0].rows(); row++) {
-            ps.format("%d", row + 1);
+            ps.format("%d", 10 * row);
             for(final DoubleMatrix2D m : matrices) {
                 for(int col = 0; col < matrices[0].columns(); col++) {
                     ps.print('\t');

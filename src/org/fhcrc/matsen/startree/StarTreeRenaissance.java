@@ -152,8 +152,8 @@ public class StarTreeRenaissance {
 
         MCMCOptions options = new MCMCOptions(chainLength);
         MCMC mcmc = new MCMC("mcmc");
+        mcmc.setShowOperatorAnalysis(false);
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
-        mcmc.setOperatorAnalysisFile(new File("/dev/null"));
         mcmc.run();
 
         return twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount());
