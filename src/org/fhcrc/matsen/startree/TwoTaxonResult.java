@@ -69,12 +69,10 @@ public class TwoTaxonResult implements java.io.Serializable {
         String[] types = new String[] { "N", "S", "N", "S"};
         String[] conditions = new String[] { "C", "C", "U", "U"};
         ps.print("state");
-        for(String condition : conditions) {
-            for(String type : types) {
-                for(int i = 0; i < conditionalNonsynonymous.columns(); i++) {
-                    ps.print('\t');
-                    ps.format("%s%s[%d]", condition, type, i + 1);
-                }
+        for(int m = 0; m < matrices.length; m++) {
+            for(int i = 0; i < conditionalNonsynonymous.columns(); i++) {
+                ps.print('\t');
+                ps.format("%s%s[%d]", conditions[m], types[m], i + 1);
             }
         }
         ps.print('\n');
