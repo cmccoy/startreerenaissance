@@ -11,7 +11,7 @@ import com.google.common.base.Preconditions;
  * Time: 12:59 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TwoTaxonResult {
+public class TwoTaxonResult implements java.io.Serializable {
     final DoubleMatrix2D conditionalNonsynonymous, conditionalSynonymous,
             unconditionalNonsynonymous, unconditionalSynonymous;
 
@@ -57,7 +57,37 @@ public class TwoTaxonResult {
         return conditionalSynonymous;
     }
 
-    public DoubleMatrix2D getConditionalNonsynonymous() {
-        return conditionalNonsynonymous;
+    public DoubleMatrix2D getConditionalNonsynonymous() { return conditionalNonsynonymous; }
+
+    public void print(final java.io.PrintStream ps) {
+        DoubleMatrix2D[] matrices = new DoubleMatrix2D[] {
+                conditionalNonsynonymous,
+                conditionalSynonymous,
+                unconditionalNonsynonymous,
+                unconditionalSynonymous
+        };
+        String[] types = new String[] { "N", "S", "N", "S"};
+        String[] conditions = new String[] { "C", "C", "U", "U"};
+        ps.print("state");
+        for(String condition : conditions) {
+            for(String type : types) {
+                for(int i = 0; i < conditionalNonsynonymous.columns(); i++) {
+                    ps.print('\t');
+                    ps.format("%s%s[%d]", condition, type, i + 1);
+                }
+            }
+        }
+        ps.print('\n');
+
+        for(int row = 0; row < matrices[0].rows(); row++) {
+            ps.format("%d", row + 1);
+            for(final DoubleMatrix2D m : matrices) {
+                for(int col = 0; col < matrices[0].columns(); col++) {
+                    ps.print('\t');
+                    ps.print(m.get(row, col));
+                }
+            }
+            ps.print('\n');
+        }
     }
 }

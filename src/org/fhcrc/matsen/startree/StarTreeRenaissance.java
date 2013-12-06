@@ -8,21 +8,20 @@ import com.google.common.collect.Iterables;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
 import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.*;
+import dr.app.beagle.evomodel.substmodel.CodonLabeling;
+import dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting;
+import dr.app.beagle.evomodel.substmodel.StratifiedTraitOutputFormat;
+import dr.app.beagle.evomodel.substmodel.SubstitutionModel;
 import dr.app.beagle.evomodel.treelikelihood.AncestralStateBeagleTreeLikelihood;
 import dr.app.beagle.evomodel.treelikelihood.PartialsRescalingScheme;
 import dr.app.beagle.evomodel.utilities.DnDsLogger;
 import dr.evolution.alignment.Alignment;
-import dr.evolution.alignment.Patterns;
 import dr.evolution.alignment.SitePatterns;
 import dr.evolution.datatype.Codons;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.tree.Tree;
 import dr.evolution.tree.TreeTrait;
-import dr.evolution.util.TaxonList;
-import dr.evomodel.MSSD.ExponentialBranchLengthTreePrior;
 import dr.evomodel.branchratemodel.StrictClockBranchRates;
-import dr.evomodel.coalescent.CoalescentLikelihood;
 import dr.evomodel.coalescent.CoalescentSimulator;
 import dr.evomodel.coalescent.ConstantPopulationModel;
 import dr.evomodel.tree.TreeModel;
@@ -32,7 +31,9 @@ import dr.inference.loggers.Logger;
 import dr.inference.loggers.MCLogger;
 import dr.inference.mcmc.MCMC;
 import dr.inference.mcmc.MCMCOptions;
-import dr.inference.model.*;
+import dr.inference.model.CompoundLikelihood;
+import dr.inference.model.Likelihood;
+import dr.inference.model.Parameter;
 import dr.inference.operators.ScaleOperator;
 import dr.inference.operators.SimpleOperatorSchedule;
 import dr.inference.trace.Trace;
@@ -63,8 +64,8 @@ import java.util.regex.Matcher;
  */
 public class StarTreeRenaissance {
 
-    public static final int CHAIN_LENGTH = 20000;
-    public static final int N_SAMPLES = 1000;
+    public static final int CHAIN_LENGTH = 5000;
+    public static final int N_SAMPLES = 500;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
     /**
@@ -124,7 +125,7 @@ public class StarTreeRenaissance {
         // Tree likelihoods
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = getAncestralStateBeagleTreeLikelihoods(subsModels, siteModels, p, branchRates, treeModel);
 
-        // DnDs Counts
+        // dNdS Counts
         CodonPartitionedRobustCounting[] robustCounts = getCodonPartitionedRobustCountings(treeModel, treeLikelihoods);
 
         // Priors
@@ -133,7 +134,7 @@ public class StarTreeRenaissance {
         rootHeightPrior.addData(treeModel.getRootHeightParameter());
         priors.add(rootHeightPrior);
 
-        // Likelihood
+        // Compound Likelihood
         List<Likelihood> likelihoods = new ArrayList<Likelihood>(3);
         likelihoods.add(new CompoundLikelihood(priors));
         likelihoods.addAll(Arrays.asList(treeLikelihoods));
@@ -231,7 +232,7 @@ public class StarTreeRenaissance {
                     branchRates,
                     null,  // Tip states model
                     false, // Use ambiguities?
-                    PartialsRescalingScheme.DEFAULT,
+                    PartialsRescalingScheme.DELAYED,
                     null,  // Partials restrictions
                     Nucleotides.INSTANCE,
                     String.format("CP%d.states", i + 1),

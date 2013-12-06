@@ -48,7 +48,7 @@ public class SparkTest {
         BufferedReader jsonReader = new BufferedReader(new FileReader(jsonPath));
         final List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
 
-        System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        //System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         JavaSparkContext ctx = new JavaSparkContext(masterPath, "StarTreeRenaissance");
         final Map<String, byte[]> references = SAMUtils.readAllFasta(new File(fastaPath));
 
@@ -71,10 +71,6 @@ public class SparkTest {
                     rates.add(hr.getSiteRateModel());
                 }
 
-                System.err.println(System.getProperty("java.library.path"));
-
-                BeagleInfo.printResourceList();
-
                 return StarTreeRenaissance.calculate(a, models, rates);
             }
         }).reduce(new Function2<TwoTaxonResult, TwoTaxonResult, TwoTaxonResult>() {
@@ -83,5 +79,7 @@ public class SparkTest {
                 return a.plus(b);
             }
         });
+
+        result.print(System.out);
     }
 }
