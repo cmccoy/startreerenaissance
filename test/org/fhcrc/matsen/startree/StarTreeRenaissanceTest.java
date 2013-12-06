@@ -29,7 +29,7 @@ public class StarTreeRenaissanceTest {
 
     }
 
-    //@org.junit.Ignore("Just runs a sampler")
+    @org.junit.Ignore("Just runs a sampler")
     @Test
     public void testCalculate() throws Exception {
         List<HKY> hkys = new ArrayList<HKY>();
