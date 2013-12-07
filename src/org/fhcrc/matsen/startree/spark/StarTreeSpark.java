@@ -24,11 +24,11 @@ import java.util.Map;
 /**
  * Created by cmccoy on 12/6/13.
  */
-public class SparkTest {
+public class StarTreeSpark {
     public static void main(String... args) throws Exception {
         // spark path, json fasta, sam
         if(args.length != 4) {
-            System.err.format("USAGE: SparkTest master_path json fasta bam\n");
+            System.err.format("USAGE: StarTreeSpark master_path json fasta bam\n");
             System.exit(1);
         }
 
@@ -46,7 +46,7 @@ public class SparkTest {
 
         System.err.format("Loading JSON from %s\n", jsonPath);
         BufferedReader jsonReader = new BufferedReader(new FileReader(jsonPath));
-        final List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
+        final List<HKYModelParser.HKYAndRate> modelRates = HKYModelParser.substitutionModel(jsonReader);
 
         //System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         JavaSparkContext ctx = new JavaSparkContext(masterPath, "StarTreeRenaissance");
@@ -66,7 +66,7 @@ public class SparkTest {
             public TwoTaxonResult call(final Alignment a) throws Exception {
                 final List<HKY> models = new ArrayList<HKY>();
                 final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
-                for (HKYModelParser.HKYAndRate hr : mRates) {
+                for (HKYModelParser.HKYAndRate hr : modelRates) {
                     models.add(hr.getModel());
                     rates.add(hr.getSiteRateModel());
                 }
