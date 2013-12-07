@@ -180,8 +180,8 @@ public class StarTreeRenaissance {
 
                 final int pos = Integer.parseInt(m.group(3)) - 1;
 
-                boolean isConditioned = name.substring(0, 1).equals(CodonPartitionedRobustCounting.SITE_SPECIFIC_PREFIX);
-                boolean isNonSynonymous = name.substring(2, 3).equals(CodonLabeling.NON_SYN.getText());
+                final boolean isConditioned = m.group(1).equals("C");
+                final boolean isNonSynonymous = m.group(2).equals("N");
                 DoubleMatrix2D target;
                 if (isConditioned && isNonSynonymous)
                     target = cn;
@@ -218,7 +218,7 @@ public class StarTreeRenaissance {
                     true,  // uniformization
                     true,  // external branches
                     true,  // internal branches
-                    false, // unconditional per branch
+                    true, // unconditional per branch
                     false, // complete history
                     branchFormat,
                     logFormat);
