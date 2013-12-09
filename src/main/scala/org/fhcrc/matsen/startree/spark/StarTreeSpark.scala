@@ -20,12 +20,6 @@ import com.google.common.base.Preconditions;
 object StarTreeSpark {
   val appName = "StarTreeSpark"
 
-
-  def orEmpty(x: String) = x match {
-    case null => ""
-    case x => x
-  }
-
   def main(args: Array[String]) {
     // spark path, json fasta, sam
     if(args.length != 4) {
@@ -46,8 +40,8 @@ object StarTreeSpark {
 
     System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
     System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
-    System.setProperty("spark.kryoserializer.buffer.mb", "128");
-    System.setProperty("spark.executor.memory", "2g");
+    System.setProperty("spark.kryoserializer.buffer.mb", "256");
+    System.setProperty("spark.executor.memory", "4g");
 
     val sc = masterPath match {
       case x if x.startsWith("local") =>
@@ -66,21 +60,22 @@ object StarTreeSpark {
       SAMBEASTUtils.alignmentOfRecord(r, ref)
     }).toList
 
-    val byReference = sc.parallelize(alignments)
-      .keyBy(a => a.getTaxon(0).getId)
-      .map { case (ref, a) => {
+    val byReference = sc.parallelize(alignments, 32)
+      .map(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
-        (ref, StarTreeRenaissance.calculate(a, model, rates))
-      } }
+        (a.getTaxon(0).getId, StarTreeRenaissance.calculate(a, model, rates))
+      })
       .reduceByKey(_.plus(_)).collect
 
-    byReference.head match {
+
+    byReference.foreach { _ match {
       case (refName, v) => {
-        val writer = new PrintStream(new File(refName + ".log"))
+        val outName = refName.replaceAll("\\*", "_") + ".log"
+        val writer = new PrintStream(new File(outName))
         v.print(writer)
         writer.close()
-      }
+      } }
     }
   }
 }
