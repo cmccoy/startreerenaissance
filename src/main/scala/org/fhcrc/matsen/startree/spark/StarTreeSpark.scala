@@ -18,6 +18,14 @@ import org.fhcrc.matsen.startree._;
 import com.google.common.base.Preconditions;
 
 object StarTreeSpark {
+  val appName = "StarTreeSpark"
+
+
+  def orEmpty(x: String) = x match {
+    case null => ""
+    case x => x
+  }
+
   def main(args: Array[String]) {
     // spark path, json fasta, sam
     if(args.length != 4) {
@@ -40,9 +48,14 @@ object StarTreeSpark {
     System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
     System.setProperty("spark.kryoserializer.buffer.mb", "128");
 
-    val sc = new SparkContext(masterPath, "StarTreeRenaissance",
-                              System.getenv("SPARK_HOME"),
-                              Seq(System.getenv("STARTREE_JAR")))
+    val sc = masterPath match {
+      case x if x.startsWith("local") =>
+        new SparkContext(masterPath, appName)
+      case _ =>
+        new SparkContext(masterPath, appName,
+                         System.getenv("SPARK_HOME"),
+                         Seq(System.getenv("STARTREE_JAR")))
+    }
 
     val references = SAMUtils.readAllFasta(new File(fastaPath))
 
