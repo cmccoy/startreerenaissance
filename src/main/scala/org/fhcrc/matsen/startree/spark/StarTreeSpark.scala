@@ -60,5 +60,13 @@ object StarTreeSpark {
         (ref, StarTreeRenaissance.calculate(a, model, rates))
       } }
       .reduceByKey(_.plus(_)).collect
+
+    byReference.head match {
+      case (refName, v) => {
+        val writer = new PrintStream(new File(refName + ".log"))
+        v.print(writer)
+        writer.close()
+      }
+    }
   }
 }

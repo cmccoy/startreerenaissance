@@ -17,4 +17,3 @@ mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
 assembleArtifact in packageScala := false
 
 test in assembly := {}
-
