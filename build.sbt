@@ -10,4 +10,4 @@ resolvers += "Spray Repository" at "http://repo.spray.cc/"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.9" % "test"
 
-libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating"
+libraryDependencies += "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating" % "provided"
