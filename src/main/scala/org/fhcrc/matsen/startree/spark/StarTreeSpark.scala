@@ -38,11 +38,11 @@ object StarTreeSpark {
 
     System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
     System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
-    System.setProperty("spark.kryoserializer.buffer.mb", "64");
+    System.setProperty("spark.kryoserializer.buffer.mb", "128");
 
-    val sc = new SparkContext(masterPath, "StarTreeRenaissance")
-    //val sc = new SparkContext("local", "Simple App", "YOUR_SPARK_HOME",
-    //  List("target/scala-2.9.3/simple-project_2.9.3-1.0.jar"))
+    val sc = new SparkContext(masterPath, "StarTreeRenaissance",
+                              System.getenv("SPARK_HOME"),
+                              Seq(System.getenv("STARTREE_JAR")))
 
     val references = SAMUtils.readAllFasta(new File(fastaPath))
 
