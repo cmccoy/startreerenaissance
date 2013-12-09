@@ -107,6 +107,10 @@ public class StarTreeRenaissance {
         Preconditions.checkArgument(siteModels.size() == 3,
                 "Invalid number of site models: %d", siteModels.size());
 
+        // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
+        java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
+        java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
+
         // Patterns
         int maxIndex = alignment.getPatternCount();
         maxIndex -= maxIndex % 3;

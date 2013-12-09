@@ -39,16 +39,16 @@ public class StarTreeSpark {
 
         SAMFileReader reader = new SAMFileReader(new File(bamPath));
 
-        BeagleInfo.getVersion();
-
-        java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
-        java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
+        //BeagleInfo.getVersion();
 
         System.err.format("Loading JSON from %s\n", jsonPath);
         BufferedReader jsonReader = new BufferedReader(new FileReader(jsonPath));
         final List<HKYModelParser.HKYAndRate> modelRates = HKYModelParser.substitutionModel(jsonReader);
 
-        //System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
+        System.setProperty("spark.kryoserializer.buffer.mb", "64");
+
         JavaSparkContext ctx = new JavaSparkContext(masterPath, "StarTreeRenaissance");
         final Map<String, byte[]> references = SAMUtils.readAllFasta(new File(fastaPath));
 
@@ -80,6 +80,6 @@ public class StarTreeSpark {
             }
         });
 
-        result.print(System.out);
+        //result.print(System.out);
     }
 }
