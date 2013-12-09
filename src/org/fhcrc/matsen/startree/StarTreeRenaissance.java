@@ -1,7 +1,7 @@
 package org.fhcrc.matsen.startree;
 
 import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import cern.colt.matrix.impl.RCDoubleMatrix2D;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -170,8 +170,8 @@ public class StarTreeRenaissance {
 
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons) {
         final int traceLength = traces.get(0).getValuesSize();
-        final DoubleMatrix2D cn = new DenseDoubleMatrix2D(traceLength, nCodons), cs = new DenseDoubleMatrix2D(traceLength, nCodons),
-                un = new DenseDoubleMatrix2D(traceLength, nCodons), us = new DenseDoubleMatrix2D(traceLength, nCodons);
+        final DoubleMatrix2D cn = new RCDoubleMatrix2D(traceLength, nCodons), cs = new RCDoubleMatrix2D(traceLength, nCodons),
+                un = new RCDoubleMatrix2D(traceLength, nCodons), us = new RCDoubleMatrix2D(traceLength, nCodons);
 
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {

@@ -10,9 +10,13 @@ import dr.app.beagle.evomodel.substmodel.HKY;
 import dr.evolution.alignment.Alignment;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.DoubleFunction;
 import org.apache.spark.api.java.function.Function2;
 import org.fhcrc.matsen.startree.*;
+import scala.Tuple2;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -52,15 +56,40 @@ public class StarTreeSpark {
         JavaSparkContext ctx = new JavaSparkContext(masterPath, "StarTreeRenaissance");
         final Map<String, byte[]> references = SAMUtils.readAllFasta(new File(fastaPath));
 
-        List<Alignment> alignments = Lists.newArrayList(Iterables.transform(reader, new Function<SAMRecord, Alignment>() {
+        JavaRDD<Alignment> alignments = ctx.parallelize(Lists.newArrayList(Iterables.transform(reader, new Function<SAMRecord, Alignment>() {
             @Override
             public Alignment apply(SAMRecord samRecord) {
                 final byte[] ref = references.get(samRecord.getReferenceName());
                 Preconditions.checkNotNull(ref, "no reference for %s", samRecord.getReferenceName());
                 return SAMBEASTUtils.alignmentOfRecord(samRecord, ref);
             }
+        })));
+
+        JavaPairRDD<String, Alignment> alignmentByRef = JavaPairRDD.fromRDD(alignments.keyBy(new org.apache.spark.api.java.function.Function<Alignment, String>() {
+            @Override
+            public String call(Alignment a) throws Exception {
+                return a.getTaxon(0).getId();
+            }
         }));
 
+        ctx.parallelize(alignments).keyBy(new org.apache.spark.api.java.function.Function<Alignment, String>() {
+            @Override
+            public String call(Alignment a) throws Exception {
+                return a.getTaxon(0).getId();
+            }
+        }).map(new org.apache.spark.api.java.function.Function<Tuple2<String, Alignment>, Tuple2<String, TwoTaxonResult>>() {
+            @Override
+            public Tuple2<String, TwoTaxonResult> call(Tuple2<String, Alignment> tup) throws Exception {
+                final List<HKY> models = new ArrayList<HKY>();
+                final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
+                for (HKYModelParser.HKYAndRate hr : modelRates) {
+                    models.add(hr.getModel());
+                    rates.add(hr.getSiteRateModel());
+                }
+
+                return new Tuple2<String, TwoTaxonResult>(tup._1(), StarTreeRenaissance.calculate(tup._2(), models, rates));
+            }
+        });
         final TwoTaxonResult result = ctx.parallelize(alignments).map(new org.apache.spark.api.java.function.Function<Alignment, TwoTaxonResult>() {
             @Override
             public TwoTaxonResult call(final Alignment a) throws Exception {
