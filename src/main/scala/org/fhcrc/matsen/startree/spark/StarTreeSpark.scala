@@ -146,7 +146,7 @@ object StarTreeSpark {
     val reader = new SAMFileReader(new File(bamPath))
     System.err.format("Loading JSON from %s\n", jsonPath);
     val jsonReader = new BufferedReader(new FileReader(jsonPath));
-    val modelRates = HKYModelParser.substitutionModel(jsonReader);
+    val modelRates = HKYModelParser.substitutionModel(jsonReader).asScala;
     jsonReader.close()
 
     System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
@@ -158,11 +158,20 @@ object StarTreeSpark {
     //  List("target/scala-2.9.3/simple-project_2.9.3-1.0.jar"))
 
     val references = SAMUtils.readAllFasta(new File(fastaPath))
-    
-    val alignments = sc.parallelize(reader.map(r => {
+
+    val alignments = reader.asScala.map(r => {
       val ref = references.get(r.getReferenceName());
       Preconditions.checkNotNull(ref, "No reference for %s", r.getReferenceName());
       SAMBEASTUtils.alignmentOfRecord(r, ref)
-    }))
+    }).toList
+
+    val byReference = sc.parallelize(alignments)
+      .keyBy(a => a.getTaxon(0).getId)
+      .map { case (ref, a) => {
+        val model = modelRates.map(hr => hr.getModel).asJava
+        val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
+        (ref, StarTreeRenaissance.calculate(a, model, rates))
+      } }
+      .reduceByKey(_.plus(_)).collect
   }
 }
