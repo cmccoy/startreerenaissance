@@ -29,7 +29,7 @@ public class StarTreeRenaissanceTest {
 
     }
 
-    @org.junit.Ignore("Just runs a sampler")
+    //@org.junit.Ignore("Just runs a sampler")
     @Test
     public void testCalculate() throws Exception {
         List<HKY> hkys = new ArrayList<HKY>();
@@ -46,10 +46,10 @@ public class StarTreeRenaissanceTest {
         alignment.addSequence(new Sequence(new Taxon("qry"), "GTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
 
         TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 200);
-        System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
-                r.getUnconditionalNonsynonymous(),
-                r.getUnconditionalSynonymous(),
-                r.getConditionalNonsynonymous(),
-                r.getConditionalSynonymous());
+        //System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
+                //r.getUnconditionalNonsynonymous(),
+                //r.getUnconditionalSynonymous(),
+                //r.getConditionalNonsynonymous(),
+                //r.getConditionalSynonymous());
     }
 }
