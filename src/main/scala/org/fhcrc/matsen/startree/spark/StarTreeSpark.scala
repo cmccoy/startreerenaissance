@@ -18,26 +18,30 @@ import org.fhcrc.matsen.startree._;
 
 import com.google.common.base.Preconditions;
 
+case class Config(parallelism: Int = 12,
+                  masterPath: String = "",
+                  jsonPath: File = new File("."),
+                  fastaPath: File = new File("."),
+                  bamPath: File = new File("."))
+
 object StarTreeSpark {
   val appName = "StarTreeSpark"
   val logger = Logger.getLogger("org.fhcrc.matsen.startree.spark")
-  val parallelism = 12
 
-  def main(args: Array[String]) {
-    // spark path, json fasta, sam
-    if(args.length != 4) {
-      System.err.format("USAGE: StarTreeSpark master_path json fasta bam\n");
-      System.exit(1);
-    }
+  val parser = new scopt.OptionParser[Config](appName) {
+    head(appName, "0.1")
+    opt[Int]('p', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
+    arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
+    arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
+    arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
+    arg[File]("<bam>") required() action { (x, c) => c.copy(bamPath = x) } text("path to BAM file with aligned reads.")
+    help("help") text("prints this usage text")
+  }
 
-    val masterPath = args(0)
-    val jsonPath = args(1)
-    val fastaPath = args(2)
-    val bamPath = args(3)
-
-    val reader = new SAMFileReader(new File(bamPath))
-    System.err.format("Loading JSON from %s\n", jsonPath);
-    val jsonReader = new BufferedReader(new FileReader(jsonPath));
+  def run(config: Config) {
+    val reader = new SAMFileReader(config.bamPath)
+    System.err.format("Loading JSON from %s\n", config.jsonPath);
+    val jsonReader = new BufferedReader(new FileReader(config.jsonPath));
     val modelRates = HKYModelParser.substitutionModel(jsonReader).asScala;
     jsonReader.close()
 
@@ -46,29 +50,29 @@ object StarTreeSpark {
     //System.setProperty("spark.kryoserializer.buffer.mb", "256");
     System.setProperty("spark.executor.memory", "4g");
 
-    val sc = masterPath match {
-      case x if x.startsWith("local") =>
-        new SparkContext(masterPath, appName)
-      case _ =>
-        new SparkContext(masterPath, appName,
+    val sc = config.masterPath match {
+      case mp if mp.startsWith("local") =>
+        new SparkContext(mp, appName)
+      case mp =>
+        new SparkContext(mp, appName,
                          System.getenv("SPARK_HOME"),
                          Seq(System.getenv("STARTREE_JAR")))
     }
 
-    val references = SAMUtils.readAllFasta(new File(fastaPath))
+    val references = SAMUtils.readAllFasta(config.fastaPath)
 
     val alignments = sc.parallelize(reader.asScala.map(
       r => {
         val ref = references.get(r.getReferenceName());
         Preconditions.checkNotNull(ref, "No reference for %s", r.getReferenceName());
         SAMBEASTUtils.alignmentOfRecord(r, ref)
-      }).toList, parallelism).keyBy(_.getTaxon(0).getId)
+      }).toList, config.parallelism).keyBy(_.getTaxon(0).getId)
 
     alignments.mapValues(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
-      }).reduceByKey(_.plus(_), parallelism).collect.foreach { _ match {
+      }).reduceByKey(_.plus(_), config.parallelism).collect.foreach { _ match {
         case (refName, v) => {
           val outName = refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
@@ -77,4 +81,16 @@ object StarTreeSpark {
           } }
       }
   }
+
+  def main(args: Array[String]) {
+    // spark path, json fasta, sam
+    parser.parse(args, Config()) map { config =>
+      // do stuff
+      run(config)
+    } getOrElse {
+      // arguments are bad, error message will have been displayed
+      System.exit(1)
+    }
+  }
+
 }
