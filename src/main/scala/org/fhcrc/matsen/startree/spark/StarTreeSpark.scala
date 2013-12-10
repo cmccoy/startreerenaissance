@@ -72,7 +72,7 @@ object StarTreeSpark {
         case (refName, v) => {
           val outName = refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
-          v.print(writer, true)
+          v.getSmoothed.print(writer, true)
           writer.close()
           } }
       }
