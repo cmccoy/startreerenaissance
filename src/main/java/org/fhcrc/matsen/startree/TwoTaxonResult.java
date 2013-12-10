@@ -1,8 +1,11 @@
 package org.fhcrc.matsen.startree;
 
 import cern.colt.matrix.DoubleMatrix2D;
+import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 import cern.jet.math.Functions;
 import com.google.common.base.Preconditions;
+import dr.math.EmpiricalBayesPoissonSmoother;
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -59,13 +62,61 @@ public class TwoTaxonResult implements java.io.Serializable {
 
     public DoubleMatrix2D getConditionalNonsynonymous() { return conditionalNonsynonymous; }
 
+    /**
+     * Get a smoothed equivalent of this result. 
+     *
+     * This applies the Empirical Bayes smoothing of Lemey et. al. to each row of each matrix.
+     */
+    public TwoTaxonResult getSmoothed() {
+        double[][] cn = conditionalNonsynonymous.toArray(),
+                   cs = conditionalSynonymous.toArray(),
+                   un = unconditionalNonsynonymous.toArray(),
+                   us = unconditionalSynonymous.toArray();
+
+        double[][][] arrays = new double[][][]{cn, cs, un, us};
+
+        for(int i = 0; i < arrays.length; i++) {
+            for(int j = 0; j < arrays[i].length; j++) {
+                arrays[i][j] = EmpiricalBayesPoissonSmoother.smooth(arrays[i][j]);
+            }
+        }
+
+        return new TwoTaxonResult(
+            new DenseDoubleMatrix2D(cn),
+            new DenseDoubleMatrix2D(cs),
+            new DenseDoubleMatrix2D(un),
+            new DenseDoubleMatrix2D(us));
+    }
+
+    /**
+     * Apply the robust counting method of Lemey et. al. - this corresponds to Equation 1.
+     */
+    public DoubleMatrix2D getDNdSMatrix() {
+        final DoubleMatrix2D result = conditionalNonsynonymous.like();
+
+        for(int i = 0; i < conditionalNonsynonymous.rows(); i++) {
+            for(int j = 0; j < conditionalNonsynonymous.columns(); j++) {
+                final double d = (conditionalNonsynonymous.getQuick(i, j) * unconditionalSynonymous.getQuick(i, j)) /
+                                 (conditionalSynonymous.getQuick(i, j) * unconditionalNonsynonymous.getQuick(i, j));
+                result.setQuick(i, j, d);
+            }
+        }
+
+        return result;
+    }
+
     public void print(final java.io.PrintStream ps) {
+        print(ps, true);
+    }
+
+    public void print(final java.io.PrintStream ps, final boolean dNdS) {
         DoubleMatrix2D[] matrices = new DoubleMatrix2D[] {
                 conditionalNonsynonymous,
                 conditionalSynonymous,
                 unconditionalNonsynonymous,
                 unconditionalSynonymous
         };
+        final DoubleMatrix2D dndsMatrix = dNdS ? getDNdSMatrix() : null;
         String[] types = new String[] { "N", "S", "N", "S"};
         String[] conditions = new String[] { "C", "C", "U", "U"};
         ps.print("state");
@@ -74,6 +125,11 @@ public class TwoTaxonResult implements java.io.Serializable {
                 ps.print('\t');
                 ps.format("%s%s[%d]", conditions[m], types[m], i + 1);
             }
+
+        }
+        if(dNdS) {
+            for(int i = 0; i < conditionalNonsynonymous.columns(); i++)
+                ps.format("\tdNdS[%d]", i + 1);
         }
         ps.print('\n');
 
@@ -85,6 +141,13 @@ public class TwoTaxonResult implements java.io.Serializable {
                     ps.print(m.get(row, col));
                 }
             }
+            if(dndsMatrix != null) {
+                for(int col = 0; col < matrices[0].columns(); col++) {
+                    ps.print('\t');
+                    ps.print(dndsMatrix.getQuick(row, col));
+                }
+            }
+
             ps.print('\n');
         }
     }
