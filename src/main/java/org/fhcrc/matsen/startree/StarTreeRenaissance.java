@@ -70,7 +70,7 @@ public class StarTreeRenaissance {
     // should present no problem.
     // TODO: what about releasing beagle instance?
     private static ReentrantLock beagleLock = new ReentrantLock();
-    public static final int CHAIN_LENGTH = 2000;
+    public static final int CHAIN_LENGTH = 5000;
     public static final int N_SAMPLES = 1000;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
@@ -89,6 +89,24 @@ public class StarTreeRenaissance {
                                            final List<? extends SubstitutionModel> subsModels,
                                            final List<? extends SiteRateModel> siteModels) throws Tree.MissingTaxonException {
         return calculate(alignment, subsModels, siteModels, CHAIN_LENGTH, SAMPLE_FREQ);
+    }
+
+    /**
+     * Find start of first non-gap codon
+     */
+    private static int findOffset(final Alignment alignment) {
+      Preconditions.checkState(alignment.getSequenceCount() == 2,
+          "Unexpected number of sequences");
+      final String query = alignment.getAlignedSequenceString(1);
+      int offset = 0;
+      for(int i = 0; i < query.length(); i += 3) {
+        for(int j = i; j < i + 3; j++) {
+          if(query.charAt(j) != '-')
+            return offset;
+        }
+        offset = i;
+      }
+      return 0;
     }
 
     /**
@@ -115,12 +133,16 @@ public class StarTreeRenaissance {
         java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
         java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
 
+        int minIndex = findOffset(alignment);
+        log.log(Level.CONFIG, "offset: %d", new Object[] { minIndex });
+        Preconditions.checkState(minIndex % 3 == 0);
+
         // Patterns
         int maxIndex = alignment.getPatternCount();
         maxIndex -= maxIndex % 3;
         SitePatterns[] p = new SitePatterns[3];
         for (int i = 0; i < 3; i++) {
-            p[i] = new SitePatterns(alignment, alignment, i, maxIndex - 1, 3, false, false);
+            p[i] = new SitePatterns(alignment, alignment, minIndex + i, maxIndex - 1, 3, false, false);
         }
 
         // Coalescent model
@@ -169,19 +191,21 @@ public class StarTreeRenaissance {
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
         mcmc.run();
 
-        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount());
+        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount(), minIndex / 3);
 
         final long endTime = System.currentTimeMillis();
 
-        log.log(Level.INFO, String.format("%s in %sms", "Ran", endTime - startTime));
+        log.log(Level.INFO, String.format("Sampled in in %d ms", endTime - startTime));
 
         return result;
     }
 
-    private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons) {
+    private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset) {
         final int traceLength = traces.get(0).getValuesSize();
-        final DoubleMatrix2D cn = new RCDoubleMatrix2D(traceLength, nCodons), cs = new RCDoubleMatrix2D(traceLength, nCodons),
-                un = new RCDoubleMatrix2D(traceLength, nCodons), us = new RCDoubleMatrix2D(traceLength, nCodons);
+        final DoubleMatrix2D cn = new RCDoubleMatrix2D(traceLength, offset + nCodons),
+                cs = new RCDoubleMatrix2D(traceLength, offset + nCodons),
+                un = new RCDoubleMatrix2D(traceLength, offset + nCodons),
+                us = new RCDoubleMatrix2D(traceLength, offset + nCodons);
 
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
@@ -192,7 +216,7 @@ public class StarTreeRenaissance {
                 final Matcher m = p.matcher(name);
                 Preconditions.checkState(m.matches(), "%s does not match", name);
 
-                final int pos = Integer.parseInt(m.group(3)) - 1;
+                final int pos = Integer.parseInt(m.group(3)) - 1 + offset;
 
                 final boolean isConditioned = m.group(1).equals("C");
                 final boolean isNonSynonymous = m.group(2).equals("N");

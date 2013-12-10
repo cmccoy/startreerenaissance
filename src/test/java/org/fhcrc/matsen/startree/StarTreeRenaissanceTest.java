@@ -11,6 +11,7 @@ import dr.evolution.util.Taxon;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,10 +43,11 @@ public class StarTreeRenaissanceTest {
         }
 
         SimpleAlignment alignment = new SimpleAlignment();
-        alignment.addSequence(new Sequence(new Taxon("ref"), "GTCACCATGACCACAGACACATCCACGAGCACAGCCTACATGGAGCTGAGGAGCCTGAGATCTGACGACACGGCCGTGTATTACTGTGCGAGA"));
-        alignment.addSequence(new Sequence(new Taxon("qry"), "GTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
+        alignment.addSequence(new Sequence(new Taxon("ref"), "CAGGTTCAGCTGGTGCAGTCTGGAGCTGAGGTGAAGAAGCCTGGGGCCTCAGTGAAGGTCTCCTGCAAGGCTTCTGGTTACACCTTTACCAGCTATGGTATCAGCTGGGTGCGACAGGCCCCTGGACAAGGGCTTGAGTGGATGGGATGGATCAGCGCTTACAATGGTAACACAAACTATGCACAGAAGCTCCAGGGCAGAGTCACCATGACCACAGACACATCCACGAGCACAGCCTACATGGAGCTGAGGAGCCTGAGATCTGACGACACGGCCGTGTATTACTGTGCGAGA"));
+        alignment.addSequence(new Sequence(new Taxon("qry"), "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------NNCAGGGCAGAGTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
 
-        TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 200);
+        TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 5000, 1000);
+        assertEquals(r.getUnconditionalNonsynonymous().columns(), alignment.getPatternCount() / 3);
         //System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
                 //r.getUnconditionalNonsynonymous(),
                 //r.getUnconditionalSynonymous(),
