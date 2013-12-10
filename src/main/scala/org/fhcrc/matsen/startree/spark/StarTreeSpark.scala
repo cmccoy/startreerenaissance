@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 object StarTreeSpark {
   val appName = "StarTreeSpark"
   val logger = Logger.getLogger("org.fhcrc.matsen.startree.spark")
+  val parallelism = 48
 
   def main(args: Array[String]) {
     // spark path, json fasta, sam
@@ -61,20 +62,19 @@ object StarTreeSpark {
         val ref = references.get(r.getReferenceName());
         Preconditions.checkNotNull(ref, "No reference for %s", r.getReferenceName());
         SAMBEASTUtils.alignmentOfRecord(r, ref)
-      }).toList, 48).keyBy(_.getTaxon(0).getId)
+      }).toList, parallelism).keyBy(_.getTaxon(0).getId)
 
-    val byReference = alignments.mapValues(a => {
+    alignments.mapValues(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
-      }).reduceByKey(_.plus(_)).collect
-    byReference.foreach { _ match {
-      case (refName, v) => {
-        val outName = refName.replaceAll("\\*", "_") + ".log"
-        val writer = new PrintStream(new File(outName))
-        v.print(writer)
-        writer.close()
-      } }
-    }
+      }).reduceByKey(_.plus(_), parallelism).foreach { _ match {
+        case (refName, v) => {
+          val outName = refName.replaceAll("\\*", "_") + ".log"
+          val writer = new PrintStream(new File(outName))
+          v.print(writer)
+          writer.close()
+          } }
+      }
   }
 }
