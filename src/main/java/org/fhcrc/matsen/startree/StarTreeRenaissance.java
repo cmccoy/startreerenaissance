@@ -243,7 +243,7 @@ public class StarTreeRenaissance {
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
         CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[2];
 
-        String[] type = new String[]{"N", "S"};
+        String[] type = new String[]{"S", "N"};
         StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         for (int i = 0; i < 2; i++) {
