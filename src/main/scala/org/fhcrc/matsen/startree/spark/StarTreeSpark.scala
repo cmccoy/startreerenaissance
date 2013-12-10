@@ -38,9 +38,9 @@ object StarTreeSpark {
     val modelRates = HKYModelParser.substitutionModel(jsonReader).asScala;
     jsonReader.close()
 
-    System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-    System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
-    System.setProperty("spark.kryoserializer.buffer.mb", "256");
+    //System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+    //System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
+    //System.setProperty("spark.kryoserializer.buffer.mb", "256");
     System.setProperty("spark.executor.memory", "4g");
 
     val sc = masterPath match {
@@ -60,7 +60,7 @@ object StarTreeSpark {
       SAMBEASTUtils.alignmentOfRecord(r, ref)
     }).toList
 
-    val byReference = sc.parallelize(alignments, 32)
+    val byReference = sc.parallelize(alignments, 48)
       .map(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
