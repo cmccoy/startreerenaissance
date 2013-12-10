@@ -1,6 +1,8 @@
 package org.fhcrc.matsen.startree;
 
+import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
+import cern.colt.matrix.impl.DenseDoubleMatrix1D;
 import cern.colt.matrix.impl.RCDoubleMatrix2D;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -70,7 +72,7 @@ public class StarTreeRenaissance {
     // should present no problem.
     // TODO: what about releasing beagle instance?
     private static ReentrantLock beagleLock = new ReentrantLock();
-    public static final int CHAIN_LENGTH = 5000;
+    public static final int CHAIN_LENGTH = 100000;
     public static final int N_SAMPLES = 1000;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
@@ -200,6 +202,9 @@ public class StarTreeRenaissance {
         return result;
     }
 
+    /**
+     * Pull the statistics we're interested out of a collection of traces
+     */
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset) {
         final int traceLength = traces.get(0).getValuesSize();
         final DoubleMatrix2D cn = new RCDoubleMatrix2D(traceLength, offset + nCodons),
@@ -207,28 +212,45 @@ public class StarTreeRenaissance {
                 un = new RCDoubleMatrix2D(traceLength, offset + nCodons),
                 us = new RCDoubleMatrix2D(traceLength, offset + nCodons);
 
+        final DoubleMatrix1D totalN = new DenseDoubleMatrix1D(traceLength);
+        final DoubleMatrix1D totalS = new DenseDoubleMatrix1D(traceLength);
+        final DoubleMatrix1D state = new DenseDoubleMatrix1D(traceLength);
+
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
             for (final Trace trace : traces) {
                 final String name = trace.getName();
-                if("state".equals(name))
+                if(name.matches("state|total_[NS]")) {
+                    final DoubleMatrix1D target;
+                    if("state".equals(name))
+                        target = state;
+                    else if("total_N".equals(name))
+                        target = totalN;
+                    else if("total_S".equals(name))
+                        target = totalS;
+                    else
+                        throw new IllegalStateException("unknown trace: " + name);
+                    @SuppressWarnings("unchecked")
+                    final Trace<Double> dTrace = (Trace<Double>) trace;
+                    target.setQuick(i, dTrace.getValue(i));
                     continue;
+                }
                 final Matcher m = p.matcher(name);
                 Preconditions.checkState(m.matches(), "%s does not match", name);
 
                 final int pos = Integer.parseInt(m.group(3)) - 1 + offset;
 
-                final boolean isConditioned = m.group(1).equals("C");
-                final boolean isNonSynonymous = m.group(2).equals("N");
-                DoubleMatrix2D target;
-                if (isConditioned && isNonSynonymous)
+                final DoubleMatrix2D target;
+                if(name.startsWith("CN"))
                     target = cn;
-                else if (isConditioned)
+                else if (name.startsWith("CS"))
                     target = cs;
-                else if (isNonSynonymous)
+                else if (name.startsWith("UN"))
                     target = un;
-                else
+                else if (name.startsWith("US"))
                     target = us;
+                else
+                    throw new IllegalStateException("unknown trace: " + name);
 
                 @SuppressWarnings("unchecked")
                 Trace<Double> dTrace = (Trace<Double>) trace;
@@ -237,7 +259,18 @@ public class StarTreeRenaissance {
             }
         }
 
-        return new TwoTaxonResult(cn, cs, un, us);
+        final DoubleMatrix1D cnSum = new DenseDoubleMatrix1D(traceLength),
+                             csSum = new DenseDoubleMatrix1D(traceLength),
+                             unSum = new DenseDoubleMatrix1D(traceLength),
+                             usSum = new DenseDoubleMatrix1D(traceLength);
+        for(int i = 0; i < cn.columns(); i++) {
+          cnSum.assign(cn.viewColumn(i), cern.jet.math.Functions.plus);
+          csSum.assign(cs.viewColumn(i), cern.jet.math.Functions.plus);
+          unSum.assign(un.viewColumn(i), cern.jet.math.Functions.plus);
+          usSum.assign(us.viewColumn(i), cern.jet.math.Functions.plus);
+        }
+
+        return new TwoTaxonResult(state, cn, cs, un, us, totalN, totalS);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
@@ -247,8 +280,8 @@ public class StarTreeRenaissance {
         StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         for (int i = 0; i < 2; i++) {
-            final String label = type[i];
-            robustCounts[i] = new CodonPartitionedRobustCounting(label,
+            robustCounts[i] = new CodonPartitionedRobustCounting(
+                    type[i],
                     treeModel,
                     treeLikelihoods,
                     Codons.UNIVERSAL,
@@ -297,6 +330,7 @@ public class StarTreeRenaissance {
         final TreeTrait[] traits = new TreeTrait[4];
         int j = 0;
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
+            logger.add(rc);
             for (TreeTrait trait : rc.getTreeTraits()) {
                 if(trait.getTraitName().matches("[CcUu]_[NnSs]")) {
                     traits[j++] = trait;
@@ -304,15 +338,13 @@ public class StarTreeRenaissance {
             }
         }
 
-        DnDsLogger dndsNLogger = new DnDsLogger("dndsN", treeModel, traits, false, false, true, false);
-        logger.add(dndsNLogger);
-        DnDsLogger dndsSLogger = new DnDsLogger("dndsS", treeModel, traits, false, false, true, true);
-        logger.add(dndsSLogger);
+        logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
+        logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
     }
 
     public static void main(String... args) throws Exception {
-        SAMFileReader reader = new SAMFileReader(new File("testdata/test.bam"));
-        File fasta = new File("testdata/ighvdj.fasta");
+        SAMFileReader reader = new SAMFileReader(new File("simulate/merged.bam"));
+        File fasta = new File("simulate/merged.fasta");
 
         BufferedReader jsonReader = new BufferedReader(new FileReader("testdata/test.json"));
         List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);

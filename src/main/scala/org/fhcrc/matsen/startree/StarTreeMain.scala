@@ -51,6 +51,7 @@ object StarTreeMain {
     val v = alignments.map(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
+        System.err.println("Working on " + a.getTaxon(1).getId())
         StarTreeRenaissance.calculate(a, model, rates)
     }).reduce(_.plus(_))
 
