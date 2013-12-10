@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
 import java.util.regex.Matcher;
 
 
@@ -72,6 +73,8 @@ public class StarTreeRenaissance {
     public static final int CHAIN_LENGTH = 2000;
     public static final int N_SAMPLES = 1000;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
+
+    private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree");
 
     /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
@@ -102,7 +105,7 @@ public class StarTreeRenaissance {
                                            final List<? extends SiteRateModel> siteModels,
                                            final int chainLength,
                                            final int sampleEvery) throws Tree.MissingTaxonException {
-        java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree.StarTreeRenaissace").info("Working on " + alignment.getTaxon(1).getId());
+        final long startTime = System.currentTimeMillis();
         Preconditions.checkArgument(subsModels.size() == 3,
                 "invalid number of substitution models: %d", subsModels.size());
         Preconditions.checkArgument(siteModels.size() == 3,
@@ -166,7 +169,13 @@ public class StarTreeRenaissance {
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
         mcmc.run();
 
-        return twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount());
+        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount());
+
+        final long endTime = System.currentTimeMillis();
+
+        log.log(Level.INFO, String.format("%s in %sms", "Ran", endTime - startTime));
+
+        return result;
     }
 
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons) {
