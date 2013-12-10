@@ -69,8 +69,8 @@ public class StarTreeRenaissance {
     // should present no problem.
     // TODO: what about releasing beagle instance?
     private static ReentrantLock beagleLock = new ReentrantLock();
-    public static final int CHAIN_LENGTH = 5000;
-    public static final int N_SAMPLES = 500;
+    public static final int CHAIN_LENGTH = 2000;
+    public static final int N_SAMPLES = 1000;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
     /**
@@ -102,6 +102,7 @@ public class StarTreeRenaissance {
                                            final List<? extends SiteRateModel> siteModels,
                                            final int chainLength,
                                            final int sampleEvery) throws Tree.MissingTaxonException {
+        java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree.StarTreeRenaissace").info("Working on " + alignment.getTaxon(1).getId());
         Preconditions.checkArgument(subsModels.size() == 3,
                 "invalid number of substitution models: %d", subsModels.size());
         Preconditions.checkArgument(siteModels.size() == 3,

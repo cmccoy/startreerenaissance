@@ -2,6 +2,7 @@ package org.fhcrc.matsen.startree.spark
 
 // Start
 import java.io._
+import java.util.logging._
 import scala.collection.JavaConverters._
 
 import org.apache.spark.SparkContext
@@ -19,6 +20,7 @@ import com.google.common.base.Preconditions;
 
 object StarTreeSpark {
   val appName = "StarTreeSpark"
+  val logger = Logger.getLogger("org.fhcrc.matsen.startree.spark")
 
   def main(args: Array[String]) {
     // spark path, json fasta, sam
@@ -54,21 +56,18 @@ object StarTreeSpark {
 
     val references = SAMUtils.readAllFasta(new File(fastaPath))
 
-    val alignments = reader.asScala.map(r => {
-      val ref = references.get(r.getReferenceName());
-      Preconditions.checkNotNull(ref, "No reference for %s", r.getReferenceName());
-      SAMBEASTUtils.alignmentOfRecord(r, ref)
-    }).toList
+    val alignments = sc.parallelize(reader.asScala.map(
+      r => {
+        val ref = references.get(r.getReferenceName());
+        Preconditions.checkNotNull(ref, "No reference for %s", r.getReferenceName());
+        SAMBEASTUtils.alignmentOfRecord(r, ref)
+      }).toList, 48).keyBy(_.getTaxon(0).getId)
 
-    val byReference = sc.parallelize(alignments, 48)
-      .map(a => {
+    val byReference = alignments.mapValues(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
-        (a.getTaxon(0).getId, StarTreeRenaissance.calculate(a, model, rates))
-      })
-      .reduceByKey(_.plus(_)).collect
-
-
+        StarTreeRenaissance.calculate(a, model, rates)
+      }).reduceByKey(_.plus(_)).collect
     byReference.foreach { _ match {
       case (refName, v) => {
         val outName = refName.replaceAll("\\*", "_") + ".log"
