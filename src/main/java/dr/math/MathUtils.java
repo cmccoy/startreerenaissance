@@ -52,12 +52,20 @@ public class MathUtils {
 	 * MersenneTwisterFast class for access to a single instance of the class, that
 	 * has synchronization.
 	 */
-	private static final MersenneTwisterFast random = MersenneTwisterFast.DEFAULT_INSTANCE;
+  private static final ThreadLocal<MersenneTwisterFast> random = new ThreadLocal<MersenneTwisterFast>() {
+    @Override
+    protected MersenneTwisterFast initialValue() {
+      // TODO: support seed
+      final MersenneTwisterFast result = new MersenneTwisterFast();
+      result.setSeed(1);
+      return result;
+    }
+  };
+	//private static final MersenneTwisterFast random = MersenneTwisterFast.DEFAULT_INSTANCE;
 
 	// Chooses one category if a cumulative probability distribution is given
 	public static int randomChoice(double[] cf) {
-
-       final double U = nextDouble();
+		final double U = nextDouble();
 
 		int s;
 		if (U <= cf[0]) {
@@ -140,72 +148,56 @@ public class MathUtils {
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static long getSeed() {
-		synchronized (random) {
-			return random.getSeed();
-		}
+			return random.get().getSeed();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static void setSeed(long seed) {
-		synchronized (random) {
-			random.setSeed(seed);
-		}
+			random.get().setSeed(seed);
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static byte nextByte() {
-		synchronized (random) {
-			return random.nextByte();
-		}
+			return random.get().nextByte();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static boolean nextBoolean() {
-		synchronized (random) {
-			return random.nextBoolean();
-		}
+			return random.get().nextBoolean();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static void nextBytes(byte[] bs) {
-		synchronized (random) {
-			random.nextBytes(bs);
-		}
+			random.get().nextBytes(bs);
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static char nextChar() {
-		synchronized (random) {
-			return random.nextChar();
-		}
+			return random.get().nextChar();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static double nextGaussian() {
-		synchronized (random) {
-			return random.nextGaussian();
-		}
+			return random.get().nextGaussian();
 	}
 	
 	//Mean = alpha / lambda
 	//Variance = alpha / (lambda*lambda)
 
 	public static double nextGamma(double alpha, double lambda) {
-		synchronized (random) {
-			return random.nextGamma(alpha, lambda);
-		}
+			return random.get().nextGamma(alpha, lambda);
 	}
 
 	/**
@@ -214,9 +206,7 @@ public class MathUtils {
 	 * @return a pseudo random double precision floating point number in [01)
 	 */
 	public static double nextDouble() {
-		synchronized (random) {
-			return random.nextDouble();
-		}
+			return random.get().nextDouble();
 	}
 
 	/**
@@ -230,18 +220,15 @@ public class MathUtils {
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static double nextExponential(double lambda) {
-		synchronized (random) {
-			return -1.0 * Math.log(1 - random.nextDouble()) / lambda;
-		}
+			return -1.0 * Math.log(1 - random.get().nextDouble()) / lambda;
 	}
 
     /**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static double nextInverseGaussian(double mu, double lambda) {
-		synchronized (random) {
 			/* CODE TAKEN FROM WIKIPEDIA. TESTING DONE WITH RESULTS GENERATED IN R AND LOOK COMPARABLE */
-            double v = random.nextGaussian();   // sample from a normal distribution with a mean of 0 and 1 standard deviation
+            double v = random.get().nextGaussian();   // sample from a normal distribution with a mean of 0 and 1 standard deviation
             double y = v * v;
             double x = mu + (mu * mu * y)/(2 * lambda) - (mu/(2 * lambda)) * Math.sqrt(4 * mu * lambda * y + mu * mu * y * y);
             double test = MathUtils.nextDouble();  // sample from a uniform distribution between 0 and 1
@@ -251,7 +238,6 @@ public class MathUtils {
             else {
                 return (mu * mu) / x;
             }
-		}
 	}
 
 
@@ -259,45 +245,35 @@ public class MathUtils {
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static float nextFloat() {
-		synchronized (random) {
-			return random.nextFloat();
-		}
+			return random.get().nextFloat();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static long nextLong() {
-		synchronized (random) {
-			return random.nextLong();
-		}
+			return random.get().nextLong();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static short nextShort() {
-		synchronized (random) {
-			return random.nextShort();
-		}
+			return random.get().nextShort();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static int nextInt() {
-		synchronized (random) {
-			return random.nextInt();
-		}
+			return random.get().nextInt();
 	}
 
 	/**
 	 * Access a default instance of this class, access is synchronized
 	 */
 	public static int nextInt(int n) {
-		synchronized (random) {
-			return random.nextInt(n);
-		}
+			return random.get().nextInt(n);
 	}
 
     /**
@@ -314,18 +290,14 @@ public class MathUtils {
 	 * Shuffles an array.
 	 */
 	public static void shuffle(int[] array) {
-		synchronized (random) {
-			random.shuffle(array);
-		}
+			random.get().shuffle(array);
 	}
 
 	/**
 	 * Shuffles an array. Shuffles numberOfShuffles times
 	 */
 	public static void shuffle(int[] array, int numberOfShuffles) {
-		synchronized (random) {
-			random.shuffle(array, numberOfShuffles);
-		}
+			random.get().shuffle(array, numberOfShuffles);
 	}
 
 	/**
@@ -334,28 +306,22 @@ public class MathUtils {
 	 * @param l length of the array required.
 	 */
 	public static int[] shuffled(int l) {
-		synchronized (random) {
-			return random.shuffled(l);
-		}
+			return random.get().shuffled(l);
 	}
 
 
 	public static int[] sampleIndicesWithReplacement(int length) {
-		synchronized (random) {
 			int[] result = new int[length];
 			for (int i = 0; i < length; i++)
-				result[i] = random.nextInt(length);
+				result[i] = random.get().nextInt(length);
 			return result;
-		}
 	}
 
 	/**
 	 * Permutes an array.
 	 */
 	public static void permute(int[] array) {
-		synchronized (random) {
-			random.permute(array);
-		}
+			random.get().permute(array);
 	}
 
 	/**
@@ -364,9 +330,7 @@ public class MathUtils {
 	 * @param l length of the array required.
 	 */
 	public static int[] permuted(int l) {
-		synchronized (random) {
-			return random.permuted(l);
-		}
+			return random.get().permuted(l);
 	}
 
 

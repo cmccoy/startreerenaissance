@@ -21,7 +21,7 @@ import com.google.common.base.Preconditions;
 object StarTreeSpark {
   val appName = "StarTreeSpark"
   val logger = Logger.getLogger("org.fhcrc.matsen.startree.spark")
-  val parallelism = 48
+  val parallelism = 12
 
   def main(args: Array[String]) {
     // spark path, json fasta, sam

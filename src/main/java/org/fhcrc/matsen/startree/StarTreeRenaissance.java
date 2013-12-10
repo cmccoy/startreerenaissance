@@ -266,7 +266,9 @@ public class StarTreeRenaissance {
 
     private static AncestralStateBeagleTreeLikelihood[] getAncestralStateBeagleTreeLikelihoods(List<? extends SubstitutionModel> subsModels,
                                                                                                List<? extends SiteRateModel> siteModels,
-                                                                                               SitePatterns[] p, StrictClockBranchRates branchRates, TreeModel treeModel) {
+                                                                                               SitePatterns[] p,
+                                                                                               StrictClockBranchRates branchRates,
+                                                                                               TreeModel treeModel) {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = new AncestralStateBeagleTreeLikelihood[3];
         try {
             beagleLock.lock();
