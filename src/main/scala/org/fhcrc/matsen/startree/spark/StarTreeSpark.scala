@@ -49,6 +49,7 @@ object StarTreeSpark {
     //System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
     //System.setProperty("spark.kryoserializer.buffer.mb", "256");
     System.setProperty("spark.executor.memory", "4g");
+    System.setProperty("spark.akka.frameSize", "32");
 
     val sc = config.masterPath match {
       case mp if mp.startsWith("local") =>
