@@ -19,6 +19,7 @@ import org.fhcrc.matsen.startree._;
 import com.google.common.base.Preconditions;
 
 case class Config(parallelism: Int = 12,
+                  smooth: Boolean = true,
                   masterPath: String = "",
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
@@ -31,6 +32,7 @@ object StarTreeSpark {
   val parser = new scopt.OptionParser[Config](appName) {
     head(appName, "0.1")
     opt[Int]('p', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
+    opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
     arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
     arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
@@ -77,7 +79,10 @@ object StarTreeSpark {
         case (refName, v) => {
           val outName = refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
-          v.getSmoothed.print(writer, true)
+          if(config.smooth)
+            v.getSmoothed.print(writer, true)
+          else
+            v.print(writer, true)
           writer.close()
           } }
       }
