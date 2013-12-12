@@ -3,7 +3,7 @@ package org.fhcrc.matsen.startree;
 import cern.colt.matrix.DoubleMatrix1D;
 import cern.colt.matrix.DoubleMatrix2D;
 import cern.colt.matrix.impl.DenseDoubleMatrix1D;
-import cern.colt.matrix.impl.RCDoubleMatrix2D;
+import cern.colt.matrix.impl.DenseDoubleMatrix2D;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -207,10 +207,10 @@ public class StarTreeRenaissance {
      */
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset) {
         final int traceLength = traces.get(0).getValuesSize();
-        final DoubleMatrix2D cn = new RCDoubleMatrix2D(traceLength, offset + nCodons),
-                cs = new RCDoubleMatrix2D(traceLength, offset + nCodons),
-                un = new RCDoubleMatrix2D(traceLength, offset + nCodons),
-                us = new RCDoubleMatrix2D(traceLength, offset + nCodons);
+        final DoubleMatrix2D cn = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
+                cs = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
+                un = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
+                us = new DenseDoubleMatrix2D(traceLength, offset + nCodons);
 
         final DoubleMatrix1D totalN = new DenseDoubleMatrix1D(traceLength);
         final DoubleMatrix1D totalS = new DenseDoubleMatrix1D(traceLength);
