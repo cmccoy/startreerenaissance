@@ -19,6 +19,7 @@ import org.fhcrc.matsen.startree._;
 import com.google.common.base.Preconditions;
 
 case class Config(parallelism: Int = 12,
+                  prefix: String = "",
                   smooth: Boolean = true,
                   masterPath: String = "",
                   jsonPath: File = new File("."),
@@ -31,7 +32,8 @@ object StarTreeSpark {
 
   val parser = new scopt.OptionParser[Config](appName) {
     head(appName, "0.1")
-    opt[Int]('p', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
+    opt[Int]('j', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
+    opt[String]('p', "prefix") action { (x, c) => c.copy(prefix = x) } text("Prefix to add to each output file")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
     arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
@@ -77,7 +79,7 @@ object StarTreeSpark {
         StarTreeRenaissance.calculate(a, model, rates)
       }).reduceByKey(_.plus(_), config.parallelism).collect.foreach { _ match {
         case (refName, v) => {
-          val outName = refName.replaceAll("\\*", "_") + ".log"
+          val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
           if(config.smooth)
             v.getSmoothed.print(writer, true)
