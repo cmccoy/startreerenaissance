@@ -55,10 +55,6 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 
 
-// TODOs
-// * Run for each pair, aggregate matrices (spark?)
-// * Verify that no smoothing is being performed
-
 /**
  * Created with IntelliJ IDEA.
  * User: cmccoy
@@ -212,27 +208,16 @@ public class StarTreeRenaissance {
                 un = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
                 us = new DenseDoubleMatrix2D(traceLength, offset + nCodons);
 
-        final DoubleMatrix1D totalN = new DenseDoubleMatrix1D(traceLength);
-        final DoubleMatrix1D totalS = new DenseDoubleMatrix1D(traceLength);
         final DoubleMatrix1D state = new DenseDoubleMatrix1D(traceLength);
 
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
             for (final Trace trace : traces) {
                 final String name = trace.getName();
-                if(name.matches("state|total_[NS]")) {
-                    final DoubleMatrix1D target;
-                    if("state".equals(name))
-                        target = state;
-                    else if("total_N".equals(name))
-                        target = totalN;
-                    else if("total_S".equals(name))
-                        target = totalS;
-                    else
-                        throw new IllegalStateException("unknown trace: " + name);
+                if (name.equals("state")) {
                     @SuppressWarnings("unchecked")
                     final Trace<Double> dTrace = (Trace<Double>) trace;
-                    target.setQuick(i, dTrace.getValue(i));
+                    state.setQuick(i, dTrace.getValue(i));
                     continue;
                 }
                 final Matcher m = p.matcher(name);
@@ -270,7 +255,7 @@ public class StarTreeRenaissance {
           usSum.assign(us.viewColumn(i), cern.jet.math.Functions.plus);
         }
 
-        return new TwoTaxonResult(state, cn, cs, un, us, totalN, totalS);
+        return new TwoTaxonResult(state, cn, cs, un, us);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
@@ -330,14 +315,12 @@ public class StarTreeRenaissance {
         final TreeTrait[] traits = new TreeTrait[4];
         int j = 0;
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
-            logger.add(rc);
             for (TreeTrait trait : rc.getTreeTraits()) {
                 if(trait.getTraitName().matches("[CcUu]_[NnSs]")) {
                     traits[j++] = trait;
                 }
             }
         }
-
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
         logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
     }

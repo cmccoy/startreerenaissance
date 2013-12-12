@@ -18,9 +18,9 @@ import dr.math.EmpiricalBayesPoissonSmoother;
 public class TwoTaxonResult implements java.io.Serializable {
     final DoubleMatrix2D conditionalNonsynonymous, conditionalSynonymous,
             unconditionalNonsynonymous, unconditionalSynonymous;
-    final DoubleMatrix1D state, totalN, totalS;
+    final DoubleMatrix1D state;
 
-    public TwoTaxonResult(DoubleMatrix1D state, DoubleMatrix2D conditionalNonsynonymous, DoubleMatrix2D conditionalSynonymous, DoubleMatrix2D unconditionalNonsynonymous, DoubleMatrix2D unconditionalSynonymous, DoubleMatrix1D totalN, DoubleMatrix1D totalS) {
+    public TwoTaxonResult(DoubleMatrix1D state, DoubleMatrix2D conditionalNonsynonymous, DoubleMatrix2D conditionalSynonymous, DoubleMatrix2D unconditionalNonsynonymous, DoubleMatrix2D unconditionalSynonymous) {
         Preconditions.checkArgument(conditionalNonsynonymous.rows() == conditionalSynonymous.rows());
         Preconditions.checkArgument(conditionalNonsynonymous.rows() == unconditionalNonsynonymous.rows());
         Preconditions.checkArgument(conditionalNonsynonymous.rows() == unconditionalSynonymous.rows());
@@ -28,16 +28,12 @@ public class TwoTaxonResult implements java.io.Serializable {
         Preconditions.checkArgument(conditionalNonsynonymous.columns() == unconditionalNonsynonymous.columns());
         Preconditions.checkArgument(conditionalNonsynonymous.columns() == unconditionalSynonymous.columns());
         Preconditions.checkArgument(conditionalNonsynonymous.rows() == state.size());
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == totalN.size());
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == totalS.size());
 
         this.conditionalNonsynonymous = conditionalNonsynonymous;
         this.conditionalSynonymous = conditionalSynonymous;
         this.unconditionalNonsynonymous = unconditionalNonsynonymous;
         this.unconditionalSynonymous = unconditionalSynonymous;
         this.state = state;
-        this.totalN = totalN;
-        this.totalS = totalS;
     }
 
     public TwoTaxonResult plus(final TwoTaxonResult other) {
@@ -48,17 +44,13 @@ public class TwoTaxonResult implements java.io.Serializable {
                 cs = conditionalSynonymous.copy(),
                 un = unconditionalNonsynonymous.copy(),
                 us = unconditionalSynonymous.copy();
-        DoubleMatrix1D tn = totalN.copy(),
-                       ts = totalS.copy();
 
         cn.assign(other.conditionalNonsynonymous, Functions.plus);
         cs.assign(other.conditionalSynonymous, Functions.plus);
         un.assign(other.unconditionalNonsynonymous, Functions.plus);
         us.assign(other.unconditionalSynonymous, Functions.plus);
-        tn.assign(other.totalN, Functions.plus);
-        ts.assign(other.totalS, Functions.plus);
 
-        return new TwoTaxonResult(state, cn, cs, un, us, tn, ts);
+        return new TwoTaxonResult(state, cn, cs, un, us);
     }
 
     public DoubleMatrix2D getUnconditionalSynonymous() {
@@ -99,9 +91,7 @@ public class TwoTaxonResult implements java.io.Serializable {
             new DenseDoubleMatrix2D(cn),
             new DenseDoubleMatrix2D(cs),
             new DenseDoubleMatrix2D(un),
-            new DenseDoubleMatrix2D(us),
-            totalN,
-            totalS);
+            new DenseDoubleMatrix2D(us));
     }
 
     /**
@@ -126,13 +116,13 @@ public class TwoTaxonResult implements java.io.Serializable {
     }
 
     public void print(final java.io.PrintStream ps, final boolean dNdS) {
+        final com.google.common.base.Joiner joiner = com.google.common.base.Joiner.on('\t');
         DoubleMatrix2D[] matrices = new DoubleMatrix2D[] {
                 conditionalNonsynonymous,
                 conditionalSynonymous,
                 unconditionalNonsynonymous,
                 unconditionalSynonymous
         };
-        DoubleMatrix1D[] arrays = new DoubleMatrix1D[] { totalN, totalS };
 
         final DoubleMatrix2D dndsMatrix = dNdS ? getDNdSMatrix() : null;
         String[] types = new String[] { "N", "S", "N", "S"};
@@ -145,7 +135,8 @@ public class TwoTaxonResult implements java.io.Serializable {
             }
 
         }
-        ps.print("\ttotal_N\ttotal_S\toverall_dNdS");
+
+        ps.print(joiner.join("", "c_N", "c_S", "u_N", "u_S", "dNdS"));
         if(dNdS) {
             for(int i = 0; i < conditionalNonsynonymous.columns(); i++)
                 ps.format("\tdNdS[%d]", i + 1);
@@ -164,14 +155,8 @@ public class TwoTaxonResult implements java.io.Serializable {
                 }
             }
 
-            for(final DoubleMatrix1D v : arrays) {
-                  ps.print('\t');
-                  ps.print(v.get(row));
-            }
-
-            ps.print('\t');
-            ps.print((sums[0] / sums[2]) / (sums[1] / sums[3]));
-
+            ps.print(joiner.join("", sums[0], sums[1], sums[2], sums[3],
+                                 (sums[0] / sums[2]) / (sums[1] / sums[3])));
 
             if(dndsMatrix != null) {
                 for(int col = 0; col < matrices[0].columns(); col++) {
