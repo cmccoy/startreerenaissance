@@ -145,7 +145,7 @@ public class TwoTaxonResult implements java.io.Serializable {
             }
 
         }
-        ps.print("\ttotal_N\ttotal_S");
+        ps.print("\ttotal_N\ttotal_S\toverall_dNdS");
         if(dNdS) {
             for(int i = 0; i < conditionalNonsynonymous.columns(); i++)
                 ps.format("\tdNdS[%d]", i + 1);
@@ -153,11 +153,14 @@ public class TwoTaxonResult implements java.io.Serializable {
         ps.print('\n');
 
         for(int row = 0; row < matrices[0].rows(); row++) {
+            // Same order as matrices
+            double[] sums = new double[] {0, 0, 0, 0};
             ps.print(state.getQuick(row));
-            for(final DoubleMatrix2D m : matrices) {
+            for(int i = 0; i < matrices.length; i++) {
                 for(int col = 0; col < matrices[0].columns(); col++) {
                     ps.print('\t');
-                    ps.print(m.get(row, col));
+                    ps.print(matrices[i].get(row, col));
+                    sums[i] += matrices[i].get(row, col);
                 }
             }
 
@@ -165,6 +168,9 @@ public class TwoTaxonResult implements java.io.Serializable {
                   ps.print('\t');
                   ps.print(v.get(row));
             }
+
+            ps.print('\t');
+            ps.print((sums[0] / sums[2]) / (sums[1] / sums[3]));
 
 
             if(dndsMatrix != null) {
