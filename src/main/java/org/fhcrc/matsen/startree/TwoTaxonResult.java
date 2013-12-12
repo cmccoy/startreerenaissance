@@ -47,7 +47,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         DoubleMatrix2D cn = conditionalNonsynonymous.copy(),
                 cs = conditionalSynonymous.copy(),
                 un = unconditionalNonsynonymous.copy(),
-                us = unconditionalNonsynonymous.copy();
+                us = unconditionalSynonymous.copy();
         DoubleMatrix1D tn = totalN.copy(),
                        ts = totalS.copy();
 
