@@ -1,8 +1,8 @@
 package org.fhcrc.matsen.startree;
 
-import cern.colt.matrix.DoubleMatrix1D;
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import org.apache.commons.math.linear.BlockRealMatrix;
+import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.RealVector;
 import cern.jet.math.Functions;
 import com.google.common.base.Preconditions;
 import dr.math.EmpiricalBayesPoissonSmoother;
@@ -16,18 +16,18 @@ import dr.math.EmpiricalBayesPoissonSmoother;
  * To change this template use File | Settings | File Templates.
  */
 public class TwoTaxonResult implements java.io.Serializable {
-    final DoubleMatrix2D conditionalNonsynonymous, conditionalSynonymous,
+    final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
             unconditionalNonsynonymous, unconditionalSynonymous;
-    final DoubleMatrix1D state;
+    final RealVector state;
 
-    public TwoTaxonResult(DoubleMatrix1D state, DoubleMatrix2D conditionalNonsynonymous, DoubleMatrix2D conditionalSynonymous, DoubleMatrix2D unconditionalNonsynonymous, DoubleMatrix2D unconditionalSynonymous) {
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == conditionalSynonymous.rows());
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == unconditionalNonsynonymous.rows());
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == unconditionalSynonymous.rows());
-        Preconditions.checkArgument(conditionalNonsynonymous.columns() == conditionalSynonymous.columns());
-        Preconditions.checkArgument(conditionalNonsynonymous.columns() == unconditionalNonsynonymous.columns());
-        Preconditions.checkArgument(conditionalNonsynonymous.columns() == unconditionalSynonymous.columns());
-        Preconditions.checkArgument(conditionalNonsynonymous.rows() == state.size());
+    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous) {
+        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == conditionalSynonymous.getRowDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalNonsynonymous.getRowDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalSynonymous.getRowDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == conditionalSynonymous.getColumnDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalNonsynonymous.getColumnDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalSynonymous.getColumnDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == state.getDimension());
 
         this.conditionalNonsynonymous = conditionalNonsynonymous;
         this.conditionalSynonymous = conditionalSynonymous;
@@ -37,35 +37,35 @@ public class TwoTaxonResult implements java.io.Serializable {
     }
 
     public TwoTaxonResult plus(final TwoTaxonResult other) {
-        Preconditions.checkArgument(other.conditionalNonsynonymous.rows() == conditionalNonsynonymous.rows());
-        Preconditions.checkArgument(other.conditionalNonsynonymous.columns() == conditionalNonsynonymous.columns());
+        Preconditions.checkArgument(other.conditionalNonsynonymous.getRowDimension() == conditionalNonsynonymous.getRowDimension());
+        Preconditions.checkArgument(other.conditionalNonsynonymous.getColumnDimension() == conditionalNonsynonymous.getColumnDimension());
 
-        DoubleMatrix2D cn = conditionalNonsynonymous.copy(),
+        RealMatrix cn = conditionalNonsynonymous.copy(),
                 cs = conditionalSynonymous.copy(),
                 un = unconditionalNonsynonymous.copy(),
                 us = unconditionalSynonymous.copy();
 
-        cn.assign(other.conditionalNonsynonymous, Functions.plus);
-        cs.assign(other.conditionalSynonymous, Functions.plus);
-        un.assign(other.unconditionalNonsynonymous, Functions.plus);
-        us.assign(other.unconditionalSynonymous, Functions.plus);
+        cn.add(other.conditionalNonsynonymous);
+        cs.add(other.conditionalSynonymous);
+        un.add(other.unconditionalNonsynonymous);
+        us.add(other.unconditionalSynonymous);
 
         return new TwoTaxonResult(state, cn, cs, un, us);
     }
 
-    public DoubleMatrix2D getUnconditionalSynonymous() {
+    public RealMatrix getUnconditionalSynonymous() {
         return unconditionalSynonymous;
     }
 
-    public DoubleMatrix2D getUnconditionalNonsynonymous() {
+    public RealMatrix getUnconditionalNonsynonymous() {
         return unconditionalNonsynonymous;
     }
 
-    public DoubleMatrix2D getConditionalSynonymous() {
+    public RealMatrix getConditionalSynonymous() {
         return conditionalSynonymous;
     }
 
-    public DoubleMatrix2D getConditionalNonsynonymous() { return conditionalNonsynonymous; }
+    public RealMatrix getConditionalNonsynonymous() { return conditionalNonsynonymous; }
 
     /**
      * Get a smoothed equivalent of this result. 
@@ -73,10 +73,10 @@ public class TwoTaxonResult implements java.io.Serializable {
      * This applies the Empirical Bayes smoothing of Lemey et. al. to each row of each matrix.
      */
     public TwoTaxonResult getSmoothed() {
-        double[][] cn = conditionalNonsynonymous.toArray(),
-                   cs = conditionalSynonymous.toArray(),
-                   un = unconditionalNonsynonymous.toArray(),
-                   us = unconditionalSynonymous.toArray();
+        double[][] cn = conditionalNonsynonymous.getData(),
+                   cs = conditionalSynonymous.getData(),
+                   un = unconditionalNonsynonymous.getData(),
+                   us = unconditionalSynonymous.getData();
 
         double[][][] arrays = new double[][][]{cn, cs, un, us};
 
@@ -88,28 +88,30 @@ public class TwoTaxonResult implements java.io.Serializable {
 
         return new TwoTaxonResult(
             state,
-            new DenseDoubleMatrix2D(cn),
-            new DenseDoubleMatrix2D(cs),
-            new DenseDoubleMatrix2D(un),
-            new DenseDoubleMatrix2D(us));
+            new BlockRealMatrix(cn),
+            new BlockRealMatrix(cs),
+            new BlockRealMatrix(un),
+            new BlockRealMatrix(us));
     }
 
     /**
      * Apply the robust counting method of Lemey et. al. - this corresponds to Equation 1.
      */
-    public DoubleMatrix2D getDNdSMatrix() {
-        final DoubleMatrix2D result = conditionalNonsynonymous.like();
+    public RealMatrix getDNdSMatrix() {
+        final RealMatrix result = conditionalNonsynonymous.createMatrix(conditionalNonsynonymous.getRowDimension(),
+                conditionalNonsynonymous.getColumnDimension());
 
-        for(int i = 0; i < conditionalNonsynonymous.rows(); i++) {
-            for(int j = 0; j < conditionalNonsynonymous.columns(); j++) {
-                final double d = (conditionalNonsynonymous.getQuick(i, j) / unconditionalNonsynonymous.getQuick(i, j)) /
-                                 (conditionalSynonymous.getQuick(i, j) / unconditionalSynonymous.getQuick(i, j));
-                result.setQuick(i, j, d);
+        for(int i = 0; i < conditionalNonsynonymous.getRowDimension(); i++) {
+            for(int j = 0; j < conditionalNonsynonymous.getColumnDimension(); j++) {
+                final double d = (conditionalNonsynonymous.getEntry(i, j) / unconditionalNonsynonymous.getEntry(i, j)) /
+                                 (conditionalSynonymous.getEntry(i, j) / unconditionalSynonymous.getEntry(i, j));
+                result.setEntry(i, j, d);
             }
         }
 
         return result;
     }
+
 
     public void print(final java.io.PrintStream ps) {
         print(ps, true);
@@ -117,19 +119,19 @@ public class TwoTaxonResult implements java.io.Serializable {
 
     public void print(final java.io.PrintStream ps, final boolean dNdS) {
         final com.google.common.base.Joiner joiner = com.google.common.base.Joiner.on('\t');
-        DoubleMatrix2D[] matrices = new DoubleMatrix2D[] {
+        RealMatrix[] matrices = new RealMatrix[] {
                 conditionalNonsynonymous,
                 conditionalSynonymous,
                 unconditionalNonsynonymous,
                 unconditionalSynonymous
         };
 
-        final DoubleMatrix2D dndsMatrix = dNdS ? getDNdSMatrix() : null;
+        final RealMatrix dndsMatrix = dNdS ? getDNdSMatrix() : null;
         String[] types = new String[] { "N", "S", "N", "S"};
         String[] conditions = new String[] { "C", "C", "U", "U"};
         ps.print("state");
         for(int m = 0; m < matrices.length; m++) {
-            for(int i = 0; i < conditionalNonsynonymous.columns(); i++) {
+            for(int i = 0; i < conditionalNonsynonymous.getColumnDimension(); i++) {
                 ps.print('\t');
                 ps.format("%s%s[%d]", conditions[m], types[m], i + 1);
             }
@@ -138,20 +140,20 @@ public class TwoTaxonResult implements java.io.Serializable {
 
         ps.print(joiner.join("", "c_N", "c_S", "u_N", "u_S", "dNdS"));
         if(dNdS) {
-            for(int i = 0; i < conditionalNonsynonymous.columns(); i++)
+            for(int i = 0; i < conditionalNonsynonymous.getColumnDimension(); i++)
                 ps.format("\tdNdS[%d]", i + 1);
         }
         ps.print('\n');
 
-        for(int row = 0; row < matrices[0].rows(); row++) {
+        for(int row = 0; row < matrices[0].getRowDimension(); row++) {
             // Same order as matrices
             double[] sums = new double[] {0, 0, 0, 0};
-            ps.print(state.getQuick(row));
+            ps.print(state.getEntry(row));
             for(int i = 0; i < matrices.length; i++) {
-                for(int col = 0; col < matrices[0].columns(); col++) {
+                for(int col = 0; col < matrices[0].getColumnDimension(); col++) {
                     ps.print('\t');
-                    ps.print(matrices[i].get(row, col));
-                    sums[i] += matrices[i].get(row, col);
+                    ps.print(matrices[i].getEntry(row, col));
+                    sums[i] += matrices[i].getEntry(row, col);
                 }
             }
 
@@ -159,9 +161,9 @@ public class TwoTaxonResult implements java.io.Serializable {
                                  (sums[0] / sums[2]) / (sums[1] / sums[3])));
 
             if(dndsMatrix != null) {
-                for(int col = 0; col < matrices[0].columns(); col++) {
+                for(int col = 0; col < matrices[0].getColumnDimension(); col++) {
                     ps.print('\t');
-                    ps.print(dndsMatrix.getQuick(row, col));
+                    ps.print(dndsMatrix.getEntry(row, col));
                 }
             }
 
