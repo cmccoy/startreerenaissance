@@ -1,11 +1,14 @@
 package org.fhcrc.matsen.startree;
 
-import org.apache.commons.math.linear.BlockRealMatrix;
-import org.apache.commons.math.linear.RealMatrix;
-import org.apache.commons.math.linear.RealVector;
 import cern.jet.math.Functions;
 import com.google.common.base.Preconditions;
 import dr.math.EmpiricalBayesPoissonSmoother;
+import org.apache.commons.math.linear.BlockRealMatrix;
+import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.RealVector;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 /**
@@ -16,6 +19,8 @@ import dr.math.EmpiricalBayesPoissonSmoother;
  * To change this template use File | Settings | File Templates.
  */
 public class TwoTaxonResult implements java.io.Serializable {
+    private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
+
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
             unconditionalNonsynonymous, unconditionalSynonymous;
     final RealVector state;
@@ -103,8 +108,14 @@ public class TwoTaxonResult implements java.io.Serializable {
 
         for(int i = 0; i < conditionalNonsynonymous.getRowDimension(); i++) {
             for(int j = 0; j < conditionalNonsynonymous.getColumnDimension(); j++) {
-                final double d = (conditionalNonsynonymous.getEntry(i, j) / unconditionalNonsynonymous.getEntry(i, j)) /
-                                 (conditionalSynonymous.getEntry(i, j) / unconditionalSynonymous.getEntry(i, j));
+                final double cn = conditionalNonsynonymous.getEntry(i, j),
+                             un = unconditionalNonsynonymous.getEntry(i, j),
+                             cs = conditionalSynonymous.getEntry(i, j),
+                             us = unconditionalSynonymous.getEntry(i, j);
+                final double d = (cn / un) / (cs / us);
+                if(Double.isInfinite(d)) {
+                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f", cn, un, cs, us));
+                }
                 result.setEntry(i, j, d);
             }
         }
