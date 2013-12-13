@@ -127,6 +127,8 @@ public class StarTreeRenaissance {
                 "invalid number of substitution models: %d", subsModels.size());
         Preconditions.checkArgument(siteModels.size() == 3,
                 "Invalid number of site models: %d", siteModels.size());
+        Preconditions.checkArgument(alignment.getSequenceCount() == 2,
+                "Expected 2 sequences, got %d", alignment.getSequenceCount());
 
         // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
         java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
@@ -302,15 +304,25 @@ public class StarTreeRenaissance {
     }
 
     private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
+        // expected trait order: c_S u_S c_N u_N
         final TreeTrait[] traits = new TreeTrait[4];
-        int j = 0;
+        final String[] expectedNames = new String[] { "c_S", "u_S", "c_N", "u_N" };
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
             for (TreeTrait trait : rc.getTreeTraits()) {
-                if(trait.getTraitName().matches("[CcUu]_[NnSs]")) {
-                    traits[j++] = trait;
+                if(trait.getTraitName().matches("[cu]_[NS]")) {
+                    final String name = trait.getTraitName();
+                    // Generate index to match expected order above
+                    final int idx = (name.endsWith("S") ? 0 : 2) + (name.startsWith("c") ? 0 : 1);
+                    Preconditions.checkState(traits[idx] == null);
+                    traits[idx] = trait;
                 }
             }
         }
+        for(int i = 0; i < traits.length; i++) {
+            Preconditions.checkState(traits[i] != null, "Missing trait %d", i);
+            Preconditions.checkState(traits[i].getTraitName().equals(expectedNames[i]), "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
+        }
+
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
         logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
     }
