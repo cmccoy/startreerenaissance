@@ -31,7 +31,7 @@ javacOptions in (Compile, compile) += "-Xlint"
 
 
 addCommandAlias("localHigh", ";compile" +
-                ";runMain org.fhcrc.matsen.startree.StarTreeMain --no-smooth simulate/test.json simulate/yg94_omega10.0.fasta simulate/yg94_omega10.0.bam yg94_omega10.0.log")
+                ";runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/yg94_omega10.0.fasta simulate/yg94_omega10.0.bam yg94_omega10.0.log")
 
 addCommandAlias("localLow", ";compile" +
-                ";runMain org.fhcrc.matsen.startree.StarTreeMain --no-smooth simulate/test.json simulate/yg94_omega0.1.fasta simulate/yg94_omega0.1.bam yg94_omega0.1.log")
+                ";runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/yg94_omega0.1.fasta simulate/yg94_omega0.1.bam yg94_omega0.1.log")
