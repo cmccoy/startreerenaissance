@@ -6,6 +6,7 @@ import dr.math.EmpiricalBayesPoissonSmoother;
 import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
+import org.apache.commons.math.stat.StatUtils;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
