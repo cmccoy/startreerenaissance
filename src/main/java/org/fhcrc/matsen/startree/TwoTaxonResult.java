@@ -89,6 +89,9 @@ public class TwoTaxonResult implements java.io.Serializable {
 
         for(int i = 0; i < arrays.length; i++) {
             for(int j = 0; j < arrays[i].length; j++) {
+                if (StatUtils.sum(arrays[i][j]) == 0.0) {
+                    logger.warning(String.format("No counts observed at %d, %d", i, j));
+                }
                 arrays[i][j] = EmpiricalBayesPoissonSmoother.smooth(arrays[i][j]);
             }
         }
@@ -116,9 +119,11 @@ public class TwoTaxonResult implements java.io.Serializable {
                              us = unconditionalSynonymous.getEntry(i, j);
                 final double d = (cn / un) / (cs / us);
                 if(Double.isInfinite(d)) {
-                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f", i, j, cn, un, cs, us));
+                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f - using 1.0", i, j, cn, un, cs, us));
+                    result.setEntry(i, j, 1.0);
+                } else {
+                    result.setEntry(i, j, d);
                 }
-                result.setEntry(i, j, d);
             }
         }
 

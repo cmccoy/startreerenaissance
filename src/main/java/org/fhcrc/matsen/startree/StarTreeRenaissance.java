@@ -1,6 +1,5 @@
 package org.fhcrc.matsen.startree;
 
-import org.apache.commons.math.linear.BlockRealMatrix;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -40,8 +39,10 @@ import dr.math.distributions.ExponentialDistribution;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
 import org.apache.commons.math.linear.ArrayRealVector;
+import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
+import org.apache.commons.math.stat.StatUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -210,7 +211,7 @@ public class StarTreeRenaissance {
 
         final RealVector state = new ArrayRealVector(traceLength);
 
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
+        java.util.regex.Pattern p = java.util.regex.Pattern.compile("[CU][NS]\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
             for (final Trace trace : traces) {
                 final String name = trace.getName();
@@ -223,7 +224,7 @@ public class StarTreeRenaissance {
                 final Matcher m = p.matcher(name);
                 Preconditions.checkState(m.matches(), "%s does not match", name);
 
-                final int pos = Integer.parseInt(m.group(3)) - 1 + offset;
+                final int pos = Integer.parseInt(m.group(1)) - 1 + offset;
 
                 final RealMatrix target;
                 if(name.startsWith("CN"))
@@ -263,7 +264,7 @@ public class StarTreeRenaissance {
                     true,  // uniformization
                     true,  // external branches
                     true,  // internal branches
-                    true, // unconditional per branch
+                    true,  // unconditional per branch
                     false, // complete history
                     branchFormat,
                     logFormat);
@@ -312,44 +313,5 @@ public class StarTreeRenaissance {
         }
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
         logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
-    }
-
-    public static void main(String... args) throws Exception {
-        SAMFileReader reader = new SAMFileReader(new File("simulate/merged.bam"));
-        File fasta = new File("simulate/merged.fasta");
-
-        BufferedReader jsonReader = new BufferedReader(new FileReader("testdata/test.json"));
-        List<HKYModelParser.HKYAndRate> mRates = HKYModelParser.substitutionModel(jsonReader);
-
-        final List<SubstitutionModel> models = new ArrayList<SubstitutionModel>();
-        final List<SiteRateModel> rates = new ArrayList<SiteRateModel>();
-        for (int i = 0; i < mRates.size(); i++) {
-            models.add(mRates.get(i).getModel());
-            GammaSiteRateModel r = new GammaSiteRateModel(String.format("rate%d", i));
-            r.setMu(mRates.get(i).getRate());
-            rates.add(r);
-        }
-
-        final Map<String, byte[]> references = SAMUtils.readAllFasta(fasta);
-
-        Iterable<Alignment> alignments = Iterables.transform(reader, new Function<SAMRecord, Alignment>() {
-            @Override
-            public Alignment apply(SAMRecord samRecord) {
-                final byte[] ref = references.get(samRecord.getReferenceName());
-                Preconditions.checkNotNull(ref, "no reference for %s", samRecord.getReferenceName());
-                return SAMBEASTUtils.alignmentOfRecord(samRecord, ref);
-            }
-        });
-
-        Iterable<TwoTaxonResult> results = Iterables.transform(alignments, new Function<Alignment, TwoTaxonResult>() {
-            @Override
-            public TwoTaxonResult apply(Alignment a) {
-                try {
-                    return calculate(a, models, rates);
-                } catch (Tree.MissingTaxonException exception) {
-                    throw new RuntimeException(exception);
-                }
-            }
-        });
     }
 }
