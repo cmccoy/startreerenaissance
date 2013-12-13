@@ -27,4 +27,4 @@ runMain in Compile <<= Defaults.runMainTask(fullClasspath in Compile, runner in 
 
 run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Compile, run), runner in (Compile, run)) 
 
-addCommandAlias("localMain", "runMain org.fhcrc.matsen.startree.StarTreeMain testdata/test.json simulate/merged.fasta simulate/merged.bam test.log")
+addCommandAlias("localMain", "runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/test_omega1.fasta simulate/test_omega1.bam test.log")

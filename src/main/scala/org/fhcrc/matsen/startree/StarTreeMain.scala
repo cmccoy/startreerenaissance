@@ -1,6 +1,5 @@
 package org.fhcrc.matsen.startree
 
-// Start
 import java.io._
 import java.util.logging._
 import scala.collection.JavaConverters._

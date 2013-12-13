@@ -1,9 +1,6 @@
 package org.fhcrc.matsen.startree;
 
-import cern.colt.matrix.DoubleMatrix1D;
-import cern.colt.matrix.DoubleMatrix2D;
-import cern.colt.matrix.impl.DenseDoubleMatrix1D;
-import cern.colt.matrix.impl.DenseDoubleMatrix2D;
+import org.apache.commons.math.linear.BlockRealMatrix;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -42,6 +39,9 @@ import dr.inference.trace.Trace;
 import dr.math.distributions.ExponentialDistribution;
 import net.sf.samtools.SAMFileReader;
 import net.sf.samtools.SAMRecord;
+import org.apache.commons.math.linear.ArrayRealVector;
+import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.RealVector;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -54,10 +54,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 
-
-// TODOs
-// * Run for each pair, aggregate matrices (spark?)
-// * Verify that no smoothing is being performed
 
 /**
  * Created with IntelliJ IDEA.
@@ -207,32 +203,21 @@ public class StarTreeRenaissance {
      */
     private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset) {
         final int traceLength = traces.get(0).getValuesSize();
-        final DoubleMatrix2D cn = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
-                cs = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
-                un = new DenseDoubleMatrix2D(traceLength, offset + nCodons),
-                us = new DenseDoubleMatrix2D(traceLength, offset + nCodons);
+        final RealMatrix cn = new BlockRealMatrix(traceLength, offset + nCodons),
+                cs = new BlockRealMatrix(traceLength, offset + nCodons),
+                un = new BlockRealMatrix(traceLength, offset + nCodons),
+                us = new BlockRealMatrix(traceLength, offset + nCodons);
 
-        final DoubleMatrix1D totalN = new DenseDoubleMatrix1D(traceLength);
-        final DoubleMatrix1D totalS = new DenseDoubleMatrix1D(traceLength);
-        final DoubleMatrix1D state = new DenseDoubleMatrix1D(traceLength);
+        final RealVector state = new ArrayRealVector(traceLength);
 
         java.util.regex.Pattern p = java.util.regex.Pattern.compile("([CU])([NS])\\[(\\d+)\\]$");
         for (int i = 0; i < traceLength; i++) {
             for (final Trace trace : traces) {
                 final String name = trace.getName();
-                if(name.matches("state|total_[NS]")) {
-                    final DoubleMatrix1D target;
-                    if("state".equals(name))
-                        target = state;
-                    else if("total_N".equals(name))
-                        target = totalN;
-                    else if("total_S".equals(name))
-                        target = totalS;
-                    else
-                        throw new IllegalStateException("unknown trace: " + name);
+                if (name.equals("state")) {
                     @SuppressWarnings("unchecked")
                     final Trace<Double> dTrace = (Trace<Double>) trace;
-                    target.setQuick(i, dTrace.getValue(i));
+                    state.setEntry(i, dTrace.getValue(i));
                     continue;
                 }
                 final Matcher m = p.matcher(name);
@@ -240,7 +225,7 @@ public class StarTreeRenaissance {
 
                 final int pos = Integer.parseInt(m.group(3)) - 1 + offset;
 
-                final DoubleMatrix2D target;
+                final RealMatrix target;
                 if(name.startsWith("CN"))
                     target = cn;
                 else if (name.startsWith("CS"))
@@ -255,22 +240,11 @@ public class StarTreeRenaissance {
                 @SuppressWarnings("unchecked")
                 Trace<Double> dTrace = (Trace<Double>) trace;
 
-                target.set(i, pos, dTrace.getValue(i));
+                target.setEntry(i, pos, dTrace.getValue(i));
             }
         }
 
-        final DoubleMatrix1D cnSum = new DenseDoubleMatrix1D(traceLength),
-                             csSum = new DenseDoubleMatrix1D(traceLength),
-                             unSum = new DenseDoubleMatrix1D(traceLength),
-                             usSum = new DenseDoubleMatrix1D(traceLength);
-        for(int i = 0; i < cn.columns(); i++) {
-          cnSum.assign(cn.viewColumn(i), cern.jet.math.Functions.plus);
-          csSum.assign(cs.viewColumn(i), cern.jet.math.Functions.plus);
-          unSum.assign(un.viewColumn(i), cern.jet.math.Functions.plus);
-          usSum.assign(us.viewColumn(i), cern.jet.math.Functions.plus);
-        }
-
-        return new TwoTaxonResult(state, cn, cs, un, us, totalN, totalS);
+        return new TwoTaxonResult(state, cn, cs, un, us);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
@@ -330,14 +304,12 @@ public class StarTreeRenaissance {
         final TreeTrait[] traits = new TreeTrait[4];
         int j = 0;
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
-            logger.add(rc);
             for (TreeTrait trait : rc.getTreeTraits()) {
                 if(trait.getTraitName().matches("[CcUu]_[NnSs]")) {
                     traits[j++] = trait;
                 }
             }
         }
-
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
         logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
     }
