@@ -104,7 +104,7 @@ public class TwoTaxonResult implements java.io.Serializable {
      */
     public RealMatrix getDNdSMatrix() {
         final RealMatrix result = conditionalNonsynonymous.createMatrix(conditionalNonsynonymous.getRowDimension(),
-                conditionalNonsynonymous.getColumnDimension());
+                                                                        conditionalNonsynonymous.getColumnDimension());
 
         for(int i = 0; i < conditionalNonsynonymous.getRowDimension(); i++) {
             for(int j = 0; j < conditionalNonsynonymous.getColumnDimension(); j++) {
@@ -168,6 +168,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                 }
             }
 
+            // cn, cs, un, us, dnds
             ps.print(joiner.join("", sums[0], sums[1], sums[2], sums[3],
                                  (sums[0] / sums[2]) / (sums[1] / sums[3])));
 
