@@ -43,6 +43,7 @@ public class HKYModelParser {
     }
 
     public static class HKYAndRate implements java.io.Serializable {
+        public static final long serialVersionUID = 1;
         private final double kappa;
         private final double[] frequencies;
         private final double rate;

@@ -19,6 +19,8 @@ import java.util.logging.Logger;
  * To change this template use File | Settings | File Templates.
  */
 public class TwoTaxonResult implements java.io.Serializable {
+    private static final long serialVersionUID = 1;
+
     private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
 
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
@@ -114,7 +116,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                              us = unconditionalSynonymous.getEntry(i, j);
                 final double d = (cn / un) / (cs / us);
                 if(Double.isInfinite(d)) {
-                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f", cn, un, cs, us));
+                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f", i, j, cn, un, cs, us));
                 }
                 result.setEntry(i, j, d);
             }
