@@ -47,7 +47,7 @@ public class StarTreeRenaissanceTest {
         alignment.addSequence(new Sequence(new Taxon("qry"), "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------NNCAGGGCAGAGTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
 
         TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 5000, 1000);
-        assertEquals(r.getUnconditionalNonsynonymous().columns(), alignment.getPatternCount() / 3);
+        assertEquals(r.getUnconditionalNonsynonymous().getColumnDimension(), alignment.getPatternCount() / 3);
         //System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
                 //r.getUnconditionalNonsynonymous(),
                 //r.getUnconditionalSynonymous(),
