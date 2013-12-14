@@ -96,6 +96,8 @@ public class StarTreeRenaissance {
     /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
      *
+     * Creates @link N_SAMPLES from a chain length of @link CHAIN_LENGTH
+     *
      * @param alignment  An alignment with two taxa - no tree moves are performed!
      * @param subsModels One substitution model for each site.
      * @param siteModels One site model for each site.

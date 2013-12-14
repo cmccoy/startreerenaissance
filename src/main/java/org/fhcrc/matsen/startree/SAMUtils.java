@@ -1,6 +1,7 @@
 package org.fhcrc.matsen.startree;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import net.sf.picard.reference.FastaSequenceFile;
 import net.sf.picard.reference.ReferenceSequence;
 import net.sf.samtools.CigarElement;
@@ -17,9 +18,17 @@ import java.util.Map;
  * Created by cmccoy on 12/5/13.
  */
 public class SAMUtils {
+    /**
+     * Get aligned pairs from a SAM record
+     *
+     * This mimics pysams AlignedRead.aligned_pairs
+     * @param record Aligned read
+     * @return List of aligned (reference, query) indices
+     */
     public static List<AlignedPair> getAlignedPairs(final SAMRecord record) {
+        Preconditions.checkNotNull(record);
         int q = 0, r = record.getAlignmentStart() - 1;
-        List<AlignedPair> result = new ArrayList<AlignedPair>();
+        List<AlignedPair> result = Lists.newArrayList();
         for(final CigarElement e : record.getCigar().getCigarElements()) {
             final CigarOperator op = e.getOperator();
             for(int i = 0; i < e.getLength(); i++) {
