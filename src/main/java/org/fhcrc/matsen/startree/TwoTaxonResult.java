@@ -3,6 +3,7 @@ package org.fhcrc.matsen.startree;
 import cern.jet.math.Functions;
 import com.google.common.base.Preconditions;
 import dr.math.EmpiricalBayesPoissonSmoother;
+import org.apache.commons.math.linear.ArrayRealVector;
 import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
@@ -27,8 +28,9 @@ public class TwoTaxonResult implements java.io.Serializable {
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
             unconditionalNonsynonymous, unconditionalSynonymous;
     final RealVector state;
+    final RealVector coverage;
 
-    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous) {
+    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage) {
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == conditionalSynonymous.getRowDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalNonsynonymous.getRowDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalSynonymous.getRowDimension());
@@ -36,12 +38,14 @@ public class TwoTaxonResult implements java.io.Serializable {
         Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalNonsynonymous.getColumnDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalSynonymous.getColumnDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == state.getDimension());
+        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == coverage.length);
 
         this.conditionalNonsynonymous = conditionalNonsynonymous;
         this.conditionalSynonymous = conditionalSynonymous;
         this.unconditionalNonsynonymous = unconditionalNonsynonymous;
         this.unconditionalSynonymous = unconditionalSynonymous;
         this.state = state;
+        this.coverage = new ArrayRealVector(coverage);
     }
 
     public TwoTaxonResult plus(final TwoTaxonResult other) {
@@ -53,12 +57,15 @@ public class TwoTaxonResult implements java.io.Serializable {
                 un = unconditionalNonsynonymous.copy(),
                 us = unconditionalSynonymous.copy();
 
+        RealVector cov = this.coverage.copy();
+        cov.add(other.coverage);
+
         cn.add(other.conditionalNonsynonymous);
         cs.add(other.conditionalSynonymous);
         un.add(other.unconditionalNonsynonymous);
         us.add(other.unconditionalSynonymous);
 
-        return new TwoTaxonResult(state, cn, cs, un, us);
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage.toArray());
     }
 
     public RealMatrix getUnconditionalSynonymous() {
@@ -102,7 +109,8 @@ public class TwoTaxonResult implements java.io.Serializable {
             new BlockRealMatrix(cn),
             new BlockRealMatrix(cs),
             new BlockRealMatrix(un),
-            new BlockRealMatrix(us));
+            new BlockRealMatrix(us),
+            coverage.toArray());
     }
 
     /**

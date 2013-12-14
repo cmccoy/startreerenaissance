@@ -76,6 +76,24 @@ public class StarTreeRenaissance {
     private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree");
 
     /**
+     * Find start of first non-gap codon
+     */
+    private static int findOffset(final Alignment alignment) {
+        Preconditions.checkState(alignment.getSequenceCount() == 2,
+            "Unexpected number of sequences");
+        final String query = alignment.getAlignedSequenceString(1);
+        int offset = 0;
+        for(int i = 0; i < query.length(); i += 3) {
+            for(int j = i; j < i + 3; j++) {
+              if(query.charAt(j) != '-')
+                  return offset;
+            }
+            offset = i;
+        }
+        return 0;
+    }
+
+    /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
      *
      * @param alignment  An alignment with two taxa - no tree moves are performed!
@@ -90,22 +108,30 @@ public class StarTreeRenaissance {
         return calculate(alignment, subsModels, siteModels, CHAIN_LENGTH, SAMPLE_FREQ);
     }
 
-    /**
-     * Find start of first non-gap codon
-     */
-    private static int findOffset(final Alignment alignment) {
-      Preconditions.checkState(alignment.getSequenceCount() == 2,
-          "Unexpected number of sequences");
-      final String query = alignment.getAlignedSequenceString(1);
-      int offset = 0;
-      for(int i = 0; i < query.length(); i += 3) {
-        for(int j = i; j < i + 3; j++) {
-          if(query.charAt(j) != '-')
-            return offset;
+    private static double[] getCodonCoverage(final Alignment alignment) {
+        Preconditions.checkNotNull(alignment);
+        Preconditions.checkArgument(alignment.getSequenceCount() == 2,
+                "Expected 2 sequences, got %d", alignment.getSequenceCount());
+        Preconditions.checkArgument(alignment.getPatternCount() % 3 == 0,
+            "Invalid codon alignment length: %d", alignment.getPatternCount());
+
+        final double[] result = new double[alignment.getPatternCount() / 3];
+        final String qry = alignment.getAlignedSequenceString(1);
+
+        for(int i = 0; i < result.length; i++) {
+            result[i] = 0.0;
+            for(int j = 0; j < 3; j++) {
+                final char c = qry.charAt(3 * i + j);
+                if(c != 'N' && c != '-') {
+                    result[i] = 1;
+                    continue;
+                }
+            }
         }
-        offset = i;
-      }
-      return 0;
+
+        Preconditions.checkState(StatUtils.max(result) == 1.0,
+            "Unexpected maximum value: %f", StatUtils.max(result));
+        return result;
     }
 
     /**
@@ -114,6 +140,8 @@ public class StarTreeRenaissance {
      * @param alignment  An alignment with two taxa - no tree moves are performed!
      * @param subsModels One substitution model for each site.
      * @param siteModels One site model for each site.
+     * @param chainLength Length of the MCMC chain
+     * @param sampleEvery Sampling frequency
      * @return A TwoTaxonResult, with counts by iteration.
      * @throws Tree.MissingTaxonException
      */
@@ -192,7 +220,7 @@ public class StarTreeRenaissance {
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
         mcmc.run();
 
-        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount(), minIndex / 3);
+        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount(), minIndex / 3, getCodonCoverage(alignment));
 
         final long endTime = System.currentTimeMillis();
 
@@ -204,7 +232,7 @@ public class StarTreeRenaissance {
     /**
      * Pull the statistics we're interested out of a collection of traces
      */
-    private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset) {
+    private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset, final double[] coverage) {
         final int traceLength = traces.get(0).getValuesSize();
         final RealMatrix cn = new BlockRealMatrix(traceLength, offset + nCodons),
                 cs = new BlockRealMatrix(traceLength, offset + nCodons),
@@ -247,7 +275,7 @@ public class StarTreeRenaissance {
             }
         }
 
-        return new TwoTaxonResult(state, cn, cs, un, us);
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
@@ -320,7 +348,8 @@ public class StarTreeRenaissance {
         }
         for(int i = 0; i < traits.length; i++) {
             Preconditions.checkState(traits[i] != null, "Missing trait %d", i);
-            Preconditions.checkState(traits[i].getTraitName().equals(expectedNames[i]), "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
+            Preconditions.checkState(traits[i].getTraitName().equals(expectedNames[i]),
+                "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
         }
 
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
