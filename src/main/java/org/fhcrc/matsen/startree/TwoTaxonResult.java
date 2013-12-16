@@ -52,20 +52,12 @@ public class TwoTaxonResult implements java.io.Serializable {
         Preconditions.checkArgument(other.conditionalNonsynonymous.getRowDimension() == conditionalNonsynonymous.getRowDimension());
         Preconditions.checkArgument(other.conditionalNonsynonymous.getColumnDimension() == conditionalNonsynonymous.getColumnDimension());
 
-        RealMatrix cn = conditionalNonsynonymous.copy(),
-                cs = conditionalSynonymous.copy(),
-                un = unconditionalNonsynonymous.copy(),
-                us = unconditionalSynonymous.copy();
+        RealMatrix cn = conditionalNonsynonymous.add(other.conditionalNonsynonymous),
+                cs = conditionalSynonymous.add(other.conditionalSynonymous),
+                un = unconditionalNonsynonymous.add(other.unconditionalNonsynonymous),
+                us = unconditionalSynonymous.add(other.unconditionalSynonymous);
 
-        RealVector cov = this.coverage.copy();
-        cov.add(other.coverage);
-
-        cn.add(other.conditionalNonsynonymous);
-        cs.add(other.conditionalSynonymous);
-        un.add(other.unconditionalNonsynonymous);
-        us.add(other.unconditionalSynonymous);
-
-        return new TwoTaxonResult(state, cn, cs, un, us, cov.toArray());
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray());
     }
 
     public RealMatrix getUnconditionalSynonymous() {
@@ -153,6 +145,8 @@ public class TwoTaxonResult implements java.io.Serializable {
                 unconditionalNonsynonymous,
                 unconditionalSynonymous
         };
+
+        ps.format("# Coverage: %s\n", java.util.Arrays.toString(coverage.toArray()));
 
         final RealMatrix dndsMatrix = dNdS ? getDNdSMatrix() : null;
         String[] types = new String[] { "N", "S", "N", "S"};
