@@ -33,9 +33,14 @@ import dr.util.NumberFormatter;
 /**
  * Handy utility functions which have some Mathematical relavance.
  *
+ * This mirrors the version in BEAST, but provides a thread-local Mersenne Twister instance, preventing contention on that
+ * resource.
+ * Note that this makes all RNG-dependent functionality non-deterministic when used from multiple threads.
+ *
  * @author Matthew Goode
  * @author Alexei Drummond
  * @author Gerton Lunter
+ * @author Connor McCoy
  * @version $Id: MathUtils.java,v 1.13 2006/08/31 14:57:24 rambaut Exp $
  */
 public class MathUtils {
