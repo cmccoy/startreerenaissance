@@ -113,9 +113,7 @@ public class StarTreeRenaissance {
     private static double[] getCodonCoverage(final Alignment alignment) {
         Preconditions.checkNotNull(alignment);
         Preconditions.checkArgument(alignment.getSequenceCount() == 2,
-                "Expected 2 sequences, got %d", alignment.getSequenceCount());
-        Preconditions.checkArgument(alignment.getPatternCount() % 3 == 0,
-            "Invalid codon alignment length: %d", alignment.getPatternCount());
+                "Expected 2 sequences, got %s", alignment.getSequenceCount());
 
         final double[] result = new double[alignment.getPatternCount() / 3];
         final String qry = alignment.getAlignedSequenceString(1);
@@ -154,18 +152,18 @@ public class StarTreeRenaissance {
                                            final int sampleEvery) throws Tree.MissingTaxonException {
         final long startTime = System.currentTimeMillis();
         Preconditions.checkArgument(subsModels.size() == 3,
-                "invalid number of substitution models: %d", subsModels.size());
+                "invalid number of substitution models: %s", subsModels.size());
         Preconditions.checkArgument(siteModels.size() == 3,
-                "Invalid number of site models: %d", siteModels.size());
+                "Invalid number of site models: %s", siteModels.size());
         Preconditions.checkArgument(alignment.getSequenceCount() == 2,
-                "Expected 2 sequences, got %d", alignment.getSequenceCount());
+                "Expected 2 sequences, got %s", alignment.getSequenceCount());
 
         // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
         java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
         java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
 
         int minIndex = findOffset(alignment);
-        log.log(Level.CONFIG, "offset: %d", new Object[] { minIndex });
+        log.log(Level.CONFIG, "offset: {0}", new Object[] { minIndex });
         Preconditions.checkState(minIndex % 3 == 0);
 
         // Patterns

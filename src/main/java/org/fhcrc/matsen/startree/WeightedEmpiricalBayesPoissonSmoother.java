@@ -30,7 +30,7 @@ class WeightedEmpiricalBayesPoissonSmoother {
         Preconditions.checkNotNull(values, "Missing values");
         Preconditions.checkNotNull(weights, "Missing weights");
         Preconditions.checkArgument(values.length == weights.length,
-                "value / weight lengths differ: %d vs %d",
+                "value / weight lengths differ: %s vs %s",
                 values.length, weights.length);
 
         // Transform so that the highest weight site has w=1.0
