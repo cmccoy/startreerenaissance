@@ -1,13 +1,14 @@
 package org.fhcrc.matsen.startree;
 
 import com.google.common.base.Preconditions;
+import org.apache.commons.math.stat.StatUtils;
 import org.apache.commons.math.stat.descriptive.moment.Mean;
 import org.apache.commons.math.stat.descriptive.moment.Variance;
 
 /**
  * Created by cmccoy on 12/16/13.
  */
-public class WeightedEmpiricalBayesPoissonSmoother {
+class WeightedEmpiricalBayesPoissonSmoother {
     private WeightedEmpiricalBayesPoissonSmoother() {
         Preconditions.checkArgument(false, "Do not construct.");
     }
@@ -25,16 +26,22 @@ public class WeightedEmpiricalBayesPoissonSmoother {
      * @param weights Weight of each value
      * @return Smoothed version
      */
-    public static double[] smooth(final double[] values, double[] weights) {
+    public static double[] smooth(final double[] values, final double[] weights) {
         Preconditions.checkNotNull(values, "Missing values");
         Preconditions.checkNotNull(weights, "Missing weights");
         Preconditions.checkArgument(values.length == weights.length,
                 "value / weight lengths differ: %d vs %d",
                 values.length, weights.length);
 
+        // Transform so that the highest weight site has w=1.0
+        final double maxWeight = StatUtils.max(weights);
+        final double[] normWeights = new double[weights.length];
+        for(int i = 0; i < weights.length; i++)
+            normWeights[i] = weights[i] / maxWeight;
+
         // Lemey et. al. 2012 Equation 4
-        final double mu = new Mean().evaluate(values, weights);
-        final double sigma_sq = new Variance().evaluate(values, weights, mu);
+        final double mu = new Mean().evaluate(values, normWeights);
+        final double sigma_sq = new Variance().evaluate(values, normWeights, mu);
 
         // Match moments of gamma poisson
         // Lemey et. al. 2012 Equation 5
