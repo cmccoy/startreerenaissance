@@ -94,13 +94,14 @@ public class TwoTaxonResult implements java.io.Serializable {
                    us = unconditionalSynonymous.getData();
 
         double[][][] arrays = new double[][][]{cn, cs, un, us};
+        final double[] cov = coverage.toArray();
 
         for(int i = 0; i < arrays.length; i++) {
             for(int j = 0; j < arrays[i].length; j++) {
                 if (StatUtils.sum(arrays[i][j]) == 0.0) {
                     logger.warning(String.format("No counts observed at %d, %d", i, j));
                 }
-                arrays[i][j] = EmpiricalBayesPoissonSmoother.smooth(arrays[i][j]);
+                arrays[i][j] = WeightedEmpiricalBayesPoissonSmoother.smooth(arrays[i][j], cov);
             }
         }
 
@@ -110,7 +111,7 @@ public class TwoTaxonResult implements java.io.Serializable {
             new BlockRealMatrix(cs),
             new BlockRealMatrix(un),
             new BlockRealMatrix(us),
-            coverage.toArray());
+            cov);
     }
 
     /**
