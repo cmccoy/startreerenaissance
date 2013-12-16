@@ -65,7 +65,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         un.add(other.unconditionalNonsynonymous);
         us.add(other.unconditionalSynonymous);
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage.toArray());
+        return new TwoTaxonResult(state, cn, cs, un, us, cov.toArray());
     }
 
     public RealMatrix getUnconditionalSynonymous() {
