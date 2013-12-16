@@ -8,8 +8,6 @@ import dr.evolution.alignment.SimpleAlignment;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.sequence.Sequence;
 import dr.evolution.util.Taxon;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -20,15 +18,6 @@ import java.util.List;
  * Created by cmccoy on 12/5/13.
  */
 public class StarTreeRenaissanceTest {
-    @Before
-    public void setUp() throws Exception {
-
-    }
-
-    @After
-    public void tearDown() throws Exception {
-
-    }
 
     //@org.junit.Ignore("Just runs a sampler")
     @Test

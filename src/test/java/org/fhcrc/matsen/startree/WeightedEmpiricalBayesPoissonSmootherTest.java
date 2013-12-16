@@ -4,7 +4,6 @@ import java.util.Arrays;
 
 import dr.math.EmpiricalBayesPoissonSmoother;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 /**
