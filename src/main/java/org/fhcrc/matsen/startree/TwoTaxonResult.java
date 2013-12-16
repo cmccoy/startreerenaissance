@@ -74,6 +74,8 @@ public class TwoTaxonResult implements java.io.Serializable {
 
     public RealMatrix getConditionalNonsynonymous() { return conditionalNonsynonymous; }
 
+    public RealVector getCoverage() { return coverage; }
+
     /**
      * Get a smoothed equivalent of this result. 
      *
