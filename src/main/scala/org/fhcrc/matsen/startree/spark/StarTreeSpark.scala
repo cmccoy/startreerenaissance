@@ -80,16 +80,14 @@ object StarTreeSpark {
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
       }).reduceByKey(_.plus(_), config.parallelism).collect.foreach {
-        _ match {
-          case (refName, v) => {
-            val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
-            val writer = new PrintStream(new File(outName))
-            if(config.smooth)
-              v.getSmoothed(config.sample).print(writer, true)
-            else
-              v.print(writer, true)
-            writer.close()
-          }
+        case (refName, v) => {
+          val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
+          val writer = new PrintStream(new File(outName))
+          if(config.smooth)
+            v.getSmoothed(config.sample).print(writer, true)
+          else
+            v.print(writer, true)
+          writer.close()
         }
       }
   }
