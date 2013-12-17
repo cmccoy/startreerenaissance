@@ -28,4 +28,25 @@ public class WeightedEmpiricalBayesPoissonSmootherTest {
 
         Assert.assertArrayEquals(origSmoothed, weightedSmoothed, TOL);
     }
+    /**
+     * Verify the unweighted case against the original Poisson smoothing code incorporating sampling
+     * @throws Exception
+     */
+    @Test
+    public void testSmoothSample() throws Exception {
+        final int n = 100;
+        double[] arr = new double[n], w = new double[n];
+        Arrays.fill(w, 1.0);
+        Arrays.fill(arr, 0, n / 2, 5.0);
+        Arrays.fill(arr, n / 2, n, 1.0);
+
+        final int seed = 1;
+        dr.math.MathUtils.setSeed(seed);
+        final double[] weightedSmoothed = WeightedEmpiricalBayesPoissonSmoother.smooth(arr, w, true);
+
+        dr.math.MathUtils.setSeed(seed);
+        final double[] origSmoothed = EmpiricalBayesPoissonSmoother.smoothWithSample(arr);
+
+        Assert.assertArrayEquals(origSmoothed, weightedSmoothed, TOL);
+    }
 }

@@ -1,9 +1,11 @@
 package org.fhcrc.matsen.startree;
 
+
 import com.google.common.base.Preconditions;
-import org.apache.commons.math.stat.StatUtils;
+import dr.math.distributions.GammaDistribution;
 import org.apache.commons.math.stat.descriptive.moment.Mean;
 import org.apache.commons.math.stat.descriptive.moment.Variance;
+import org.apache.commons.math.stat.StatUtils;
 
 /**
  * Created by cmccoy on 12/16/13.
@@ -15,7 +17,7 @@ class WeightedEmpiricalBayesPoissonSmoother {
 
 
     /**
-     * This is equivalent @link dr.math.EmpiricalBayesPoissonSmoother, but sample mean and variance calculations are weighted
+     * This is equivalent to @link dr.math.EmpiricalBayesPoissonSmoother, but sample mean and variance calculations are weighted
      *
      * For details, see:
      *
@@ -24,9 +26,10 @@ class WeightedEmpiricalBayesPoissonSmoother {
      *
      * @param values  Values to smooth
      * @param weights Weight of each value
-     * @return Smoothed version
+     * @param sample Sample each smoothed rate from a Poisson-Gamma, rather than fixing to the mean
+     * @return Smoothed version of <c>values</c>
      */
-    public static double[] smooth(final double[] values, final double[] weights) {
+    public static double[] smooth(final double[] values, final double[] weights, boolean sample) {
         Preconditions.checkNotNull(values, "Missing values");
         Preconditions.checkNotNull(weights, "Missing weights");
         Preconditions.checkArgument(values.length == weights.length,
@@ -52,13 +55,40 @@ class WeightedEmpiricalBayesPoissonSmoother {
 
         // Lemey et. al. 2012 Equation 7:
         if (sigma_sq > mu) {
-            for (int i = 0; i < result.length; i++) {
-                result[i] = (values[i] + alpha) / (1 + beta);
+            if(sample) {
+                for (int i = 0; i < result.length; i++) {
+                    final double shape = values[i] + alpha;
+                    // BEAST Gamma distribution is parameterized in terms of shape, scale.
+                    // scale = 1 / beta
+                    // Per Lemey et. al. 2012 Equation 6, we are sampling using beta = 1 + beta
+                    final double scale = 1 / (1 + beta);
+                    result[i] = GammaDistribution.nextGamma(shape, scale);
+                }
+            } else {
+                for (int i = 0; i < result.length; i++) {
+                    result[i] = (values[i] + alpha) / (1 + beta);
+                }
             }
         } else {
             java.util.Arrays.fill(result, mu);
         }
 
         return result;
+    }
+
+    /**
+     * This is equivalent to @link dr.math.EmpiricalBayesPoissonSmoother, but sample mean and variance calculations are weighted.
+     *
+     * For details, see:
+     *
+     * Lemey, Philippe, et al. "A counting renaissance: combining stochastic mapping and empirical Bayes to quickly detect amino acid sites under positive selection."
+     * Bioinformatics 28.24 (2012): 3248-3256.
+     *
+     * @param values  Values to smooth
+     * @param weights Weight of each value
+     * @return Smoothed version of <c>values</c>
+     */
+    public static double[] smooth(final double[] values, final double[] weights) {
+        return smooth(values, weights, false);
     }
 }
