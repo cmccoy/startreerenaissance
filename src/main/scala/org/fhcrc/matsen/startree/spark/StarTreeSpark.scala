@@ -49,10 +49,10 @@ object StarTreeSpark {
     val modelRates = HKYModelParser.substitutionModel(jsonReader).asScala;
     jsonReader.close()
 
-    //System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-    //System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
-    //System.setProperty("spark.kryoserializer.buffer.mb", "256");
-    System.setProperty("spark.executor.memory", "4g");
+    System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+    System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
+    System.setProperty("spark.kryoserializer.buffer.mb", "256");
+    System.setProperty("spark.executor.memory", "16g");
     System.setProperty("spark.akka.frameSize", "512");
 
     val sc = config.masterPath match {
