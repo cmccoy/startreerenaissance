@@ -81,7 +81,7 @@ public class TwoTaxonResult implements java.io.Serializable {
      *
      * This applies the Empirical Bayes smoothing of Lemey et. al. to each row of each matrix.
      */
-    public TwoTaxonResult getSmoothed() {
+    public TwoTaxonResult getSmoothed(boolean sample) {
         double[][] cn = conditionalNonsynonymous.getData(),
                    cs = conditionalSynonymous.getData(),
                    un = unconditionalNonsynonymous.getData(),
@@ -95,7 +95,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                 if (StatUtils.sum(arrays[i][j]) == 0.0) {
                     logger.warning(String.format("No counts observed at %d, %d", i, j));
                 }
-                arrays[i][j] = WeightedEmpiricalBayesPoissonSmoother.smooth(arrays[i][j], cov);
+                arrays[i][j] = WeightedEmpiricalBayesPoissonSmoother.smooth(arrays[i][j], cov, sample);
             }
         }
 

@@ -14,6 +14,7 @@ import dr.evolution.alignment.Alignment;
 import com.google.common.base.Preconditions;
 
 case class Config(smooth: Boolean = true,
+                  sample: Boolean = false,
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
                   bamPath: File = new File("."),
@@ -26,6 +27,7 @@ object StarTreeMain {
   val parser = new scopt.OptionParser[Config](appName) {
     head(appName, "0.1")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
+    opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
     arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
     arg[File]("<bam>") required() action { (x, c) => c.copy(bamPath = x) } text("path to BAM file with aligned reads.")
@@ -58,7 +60,7 @@ object StarTreeMain {
 
     val writer = new PrintStream(config.outputPath)
     if(config.smooth)
-      v.getSmoothed.print(writer, true)
+      v.getSmoothed(config.sample).print(writer, true)
     else
       v.print(writer, true)
     writer.close()

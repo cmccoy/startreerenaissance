@@ -21,6 +21,7 @@ import com.google.common.base.Preconditions;
 case class Config(parallelism: Int = 12,
                   prefix: String = "",
                   smooth: Boolean = true,
+                  sample: Boolean = false,
                   masterPath: String = "",
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
@@ -35,6 +36,7 @@ object StarTreeSpark {
     opt[Int]('j', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
     opt[String]('p', "prefix") action { (x, c) => c.copy(prefix = x) } text("Prefix to add to each output file")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
+    opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
     arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
     arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
@@ -83,7 +85,7 @@ object StarTreeSpark {
             val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
             val writer = new PrintStream(new File(outName))
             if(config.smooth)
-              v.getSmoothed.print(writer, true)
+              v.getSmoothed(config.sample).print(writer, true)
             else
               v.print(writer, true)
             writer.close()
