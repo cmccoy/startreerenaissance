@@ -19,6 +19,8 @@ import dr.evolution.datatype.Codons;
 import dr.evolution.datatype.Nucleotides;
 import dr.evolution.tree.Tree;
 import dr.evolution.tree.TreeTrait;
+import dr.evolution.util.Date;
+import dr.evolution.util.Units;
 import dr.evomodel.branchratemodel.StrictClockBranchRates;
 import dr.evomodel.coalescent.CoalescentSimulator;
 import dr.evomodel.coalescent.ConstantPopulationModel;
@@ -31,8 +33,10 @@ import dr.inference.mcmc.MCMC;
 import dr.inference.mcmc.MCMCOptions;
 import dr.inference.model.CompoundLikelihood;
 import dr.inference.model.Likelihood;
+import dr.inference.model.NegativeStatistic;
 import dr.inference.model.Parameter;
-import dr.inference.operators.ScaleOperator;
+import dr.inference.operators.CoercionMode;
+import dr.inference.operators.RandomWalkOperator;
 import dr.inference.operators.SimpleOperatorSchedule;
 import dr.inference.trace.Trace;
 import dr.math.distributions.ExponentialDistribution;
@@ -174,7 +178,11 @@ public class StarTreeRenaissance {
             p[i] = new SitePatterns(alignment, alignment, minIndex + i, maxIndex - 1, 3, false, false);
         }
 
-        // Coalescent model
+        // Set tip dates
+        alignment.getTaxon(0).setDate(new Date(0.00, Units.Type.SUBSTITUTIONS, false));
+        alignment.getTaxon(1).setDate(new Date(0.00, Units.Type.SUBSTITUTIONS, false));
+
+        // Coalescent model - this is just a shortcut to a starting tree.
         final ConstantPopulationModel coalModel = new ConstantPopulationModel(new Parameter.Default(1.0),
                 dr.evolution.util.Units.Type.SUBSTITUTIONS);
 
@@ -182,9 +190,20 @@ public class StarTreeRenaissance {
         final StrictClockBranchRates branchRates = new StrictClockBranchRates(new Parameter.Default(1.0));
 
         // Tree model
-        CoalescentSimulator coalSim = new CoalescentSimulator();
+        final CoalescentSimulator coalSim = new CoalescentSimulator();
         final TreeModel treeModel = new TreeModel("treeModel", coalSim.simulateTree(alignment, coalModel));
-        treeModel.getRootHeightParameter().setParameterValueQuietly(0, 0.05);
+
+        final Parameter rootHeightParameter = treeModel.getRootHeightParameter();
+        rootHeightParameter.setId("root.height");
+        rootHeightParameter.setParameterValueQuietly(0, 1e-8);
+
+        // We keep the reference sequence fixed at t = 0 (present),
+        // and move the query sequence up and down in negative time.
+        // This seems to work (in terms of the output trees), where I was unable to get co-varying root height and
+        // reference height to work sensibly.
+        final Parameter queryHeightParameter = treeModel.getLeafHeightParameter(treeModel.getExternalNode(1));
+        queryHeightParameter.setId(alignment.getTaxon(1).getId() + ".height");
+        queryHeightParameter.setParameterValueQuietly(0, -0.01);
 
         // Tree likelihoods
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = getAncestralStateBeagleTreeLikelihoods(subsModels, siteModels, p, branchRates, treeModel);
@@ -194,26 +213,36 @@ public class StarTreeRenaissance {
 
         // Priors
         List<Likelihood> priors = new ArrayList<Likelihood>(1);
-        DistributionLikelihood rootHeightPrior = new DistributionLikelihood(new ExponentialDistribution(10.0));
-        rootHeightPrior.addData(treeModel.getRootHeightParameter());
-        priors.add(rootHeightPrior);
+
+        // The query height ends up being negative - so we just put an exponential prior on the negated value.
+        DistributionLikelihood queryHeightPrior = new DistributionLikelihood(new ExponentialDistribution(10.0));
+        queryHeightPrior.addData(new NegativeStatistic("negated." + queryHeightParameter.getParameterName(), queryHeightParameter));
+        priors.add(queryHeightPrior);
 
         // Compound Likelihood
-        List<Likelihood> likelihoods = new ArrayList<Likelihood>(3);
+        List<Likelihood> likelihoods = new ArrayList<Likelihood>(4);
         likelihoods.add(new CompoundLikelihood(priors));
+        likelihoods.get(0).setId("prior");
         likelihoods.addAll(Arrays.asList(treeLikelihoods));
         final CompoundLikelihood like = new CompoundLikelihood(likelihoods);
         like.setUsed();
 
         // Operators
         SimpleOperatorSchedule operatorSchedule = new SimpleOperatorSchedule();
-        operatorSchedule.addOperator(new ScaleOperator(treeModel.getRootHeightParameter(), 0.75));
+        // Random walk on query height - this just moves it around in negative "time"
+        operatorSchedule.addOperator(new RandomWalkOperator(
+                queryHeightParameter,
+                1.0,
+                RandomWalkOperator.BoundaryCondition.reflecting,
+                1.0,
+                CoercionMode.DEFAULT));
 
-        // log
+        // log to a big array
         ArrayLogFormatter formatter = new ArrayLogFormatter(false);
         MCLogger logger = new MCLogger(formatter, sampleEvery, false);
         createdNdSloggers(treeModel, robustCounts, logger);
 
+        // Actually run the MCMC
         MCMCOptions options = new MCMCOptions(chainLength);
         MCMC mcmc = new MCMC("mcmc");
         mcmc.setShowOperatorAnalysis(false);
@@ -257,7 +286,7 @@ public class StarTreeRenaissance {
                 final int pos = Integer.parseInt(m.group(1)) - 1 + offset;
 
                 final RealMatrix target;
-                if(name.startsWith("CN"))
+                if (name.startsWith("CN"))
                     target = cn;
                 else if (name.startsWith("CS"))
                     target = cs;
