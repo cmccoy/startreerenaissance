@@ -11,12 +11,14 @@ import org.apache.spark.SparkContext._
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 
-import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.HKY;
-import dr.evolution.alignment.Alignment;
-import org.fhcrc.matsen.startree._;
+import dr.app.beagle.evomodel.sitemodel.SiteRateModel
+import dr.app.beagle.evomodel.substmodel.HKY
+import dr.evolution.alignment.Alignment
+import org.fhcrc.matsen.startree._
+import org.fhcrc.matsen.startree.gson._
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions
+import com.google.gson.GsonBuilder
 
 case class Config(parallelism: Int = 12,
                   prefix: String = "",
@@ -85,11 +87,20 @@ object StarTreeSpark {
         case (refName, v) => {
           val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
+          lazy val smoothed = v.getSmoothed(config.sample)
           if(config.smooth)
-            v.getSmoothed(config.sample).print(writer, true)
+            smoothed.print(writer, true)
           else
             v.print(writer, true)
           writer.close()
+
+          val jsonName = config.prefix + refName.replaceAll("\\*", "_") + ".json.gz"
+          val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
+          val jsonWriter = new PrintStream(jsonStream)
+          val gson = new GsonBuilder().registerTypeAdapter(BlockRealMatrixSerializer.serializedType, new BlockRealMatrixSerializer).create
+          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
+          gson.toJson(result, jsonWriter)
+          jsonWriter.close
         }
       }
   }
