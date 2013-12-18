@@ -23,6 +23,7 @@ case class Config(parallelism: Int = 12,
                   smooth: Boolean = true,
                   sample: Boolean = false,
                   masterPath: String = "",
+                  executorMemory: String = "16g",
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
                   bamPath: File = new File("."))
@@ -37,6 +38,7 @@ object StarTreeSpark {
     opt[String]('p', "prefix") action { (x, c) => c.copy(prefix = x) } text("Prefix to add to each output file")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
     opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
+    opt[String]("executor-memory") action { (x, c) => c.copy(executorMemory = x) } text("Prefix to add to each output file")
     arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
     arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
@@ -54,7 +56,7 @@ object StarTreeSpark {
     System.setProperty("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
     System.setProperty("spark.kryo.registrator", "org.fhcrc.matsen.startree.spark.StarTreeKryoRegistrator");
     System.setProperty("spark.kryoserializer.buffer.mb", "256");
-    System.setProperty("spark.executor.memory", "16g");
+    System.setProperty("spark.executor.memory", config.executorMemory);
     System.setProperty("spark.akka.frameSize", "512");
 
     val sc = config.masterPath match {
