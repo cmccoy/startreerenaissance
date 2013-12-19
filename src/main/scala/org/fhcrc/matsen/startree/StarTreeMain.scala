@@ -72,7 +72,10 @@ object StarTreeMain {
     val jsonName = config.outputPath + ".json.gz"
     val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
     val jsonWriter = new PrintStream(jsonStream)
-    val gson = new GsonBuilder().registerTypeAdapter(BlockRealMatrixSerializer.serializedType, new BlockRealMatrixSerializer).create
+    val gson = new GsonBuilder()
+      .registerTypeAdapter(BlockRealMatrixSerializer.serializedType, new BlockRealMatrixSerializer)
+      .serializeSpecialFloatingPointValues()
+      .create
     val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
     gson.toJson(result, jsonWriter)
     jsonWriter.close
