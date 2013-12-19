@@ -30,8 +30,5 @@ run in Compile <<= Defaults.runTask(fullClasspath in Compile, mainClass in (Comp
 javacOptions in (Compile, compile) += "-Xlint"
 
 
-addCommandAlias("localHigh", ";compile" +
-                ";runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/yg94_omega10.0.fasta simulate/yg94_omega10.0.bam yg94_omega10.0.log")
-
-addCommandAlias("localLow", ";compile" +
-                ";runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/yg94_omega0.1.fasta simulate/yg94_omega0.1.bam yg94_omega0.1.log")
+addCommandAlias("runLocal", ";compile" +
+                ";runMain org.fhcrc.matsen.startree.StarTreeMain simulate/test.json simulate/gy94_mixture.fasta simulate/gy94_mixture.bam gy94_mixture.log")

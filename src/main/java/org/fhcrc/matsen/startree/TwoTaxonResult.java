@@ -26,7 +26,7 @@ public class TwoTaxonResult implements java.io.Serializable {
     private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
 
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
-            unconditionalNonsynonymous, unconditionalSynonymous;
+            unconditionalNonsynonymous, unconditionalSynonymous, dNdS;
     final RealVector state;
     final RealVector coverage;
 
@@ -46,6 +46,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         this.unconditionalSynonymous = unconditionalSynonymous;
         this.state = state;
         this.coverage = new ArrayRealVector(coverage);
+        this.dNdS = computeDNdSMatrix();
     }
 
     public TwoTaxonResult plus(final TwoTaxonResult other) {
@@ -108,10 +109,14 @@ public class TwoTaxonResult implements java.io.Serializable {
             cov);
     }
 
+    public RealMatrix getDNdSMatrix() {
+        return dNdS;
+    }
+
     /**
      * Apply the robust counting method of Lemey et. al. - this corresponds to Equation 1.
      */
-    public RealMatrix getDNdSMatrix() {
+    private RealMatrix computeDNdSMatrix() {
         final RealMatrix result = conditionalNonsynonymous.createMatrix(conditionalNonsynonymous.getRowDimension(),
                                                                         conditionalNonsynonymous.getColumnDimension());
 

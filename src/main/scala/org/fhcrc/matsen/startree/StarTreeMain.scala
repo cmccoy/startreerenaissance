@@ -7,11 +7,14 @@ import scala.collection.JavaConverters._
 import net.sf.samtools.SAMFileReader
 import net.sf.samtools.SAMRecord
 
-import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.HKY;
-import dr.evolution.alignment.Alignment;
+import dr.app.beagle.evomodel.sitemodel.SiteRateModel
+import dr.app.beagle.evomodel.substmodel.HKY
+import dr.evolution.alignment.Alignment
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions
+import com.google.gson.GsonBuilder
+
+import org.fhcrc.matsen.startree.gson._
 
 case class Config(smooth: Boolean = true,
                   sample: Boolean = false,
@@ -59,11 +62,20 @@ object StarTreeMain {
     }).reduce(_.plus(_))
 
     val writer = new PrintStream(config.outputPath)
+    lazy val smoothed = v.getSmoothed(config.sample)
     if(config.smooth)
-      v.getSmoothed(config.sample).print(writer, true)
+      smoothed.print(writer, true)
     else
       v.print(writer, true)
     writer.close()
+
+    val jsonName = config.outputPath + ".json.gz"
+    val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
+    val jsonWriter = new PrintStream(jsonStream)
+    val gson = new GsonBuilder().registerTypeAdapter(BlockRealMatrixSerializer.serializedType, new BlockRealMatrixSerializer).create
+    val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
+    gson.toJson(result, jsonWriter)
+    jsonWriter.close
   }
 
   def main(args: Array[String]) {
