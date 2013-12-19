@@ -1,0 +1,7 @@
+---
+# This playbook sets up my workstation
+
+- hosts: all
+
+  roles:
+    - beagle

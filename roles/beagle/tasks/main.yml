@@ -1,0 +1,4 @@
+---
+
+- name: Install BEAGLE RPM
+  yum: pkg=https://s3.amazonaws.com/startreerenaissance/rpm/beagle_2.1.x86_64.rpm
