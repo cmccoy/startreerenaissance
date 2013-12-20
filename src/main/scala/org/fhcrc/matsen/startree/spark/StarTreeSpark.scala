@@ -25,6 +25,8 @@ case class Config(parallelism: Int = 12,
                   smooth: Boolean = true,
                   sample: Boolean = false,
                   masterPath: String = "",
+                  sparkHome: String = "/root/spark",
+                  jarPath: String = "/root/startreerenaissance/target/scala-2.9.3/startreerenaissance-assembly-0.1.jar",
                   executorMemory: String = "16g",
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
@@ -40,7 +42,9 @@ object StarTreeSpark {
     opt[String]('p', "prefix") action { (x, c) => c.copy(prefix = x) } text("Prefix to add to each output file")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
     opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
-    opt[String]("executor-memory") action { (x, c) => c.copy(executorMemory = x) } text("Prefix to add to each output file")
+    opt[String]('s', "spark-home") action { (x, c) => c.copy(sparkHome = x) } text("Spark home")
+    opt[String]('j', "jar-path") action { (x, c) => c.copy(jarPath = x) } text("Path to the application JAR")
+    opt[String]("executor-memory") action { (x, c) => c.copy(executorMemory = x) } text("Executor memory")
     arg[String]("<master_path>") required() action { (x, c) => c.copy(masterPath = x) } text("path to SPARK master")
     arg[File]("<json>") required() action { (x, c) => c.copy(jsonPath = x) } text("path to JSON model specification")
     arg[File]("<fasta>") required() action { (x, c) => c.copy(fastaPath = x) } text("path to reference FASTA file")
@@ -66,8 +70,8 @@ object StarTreeSpark {
         new SparkContext(mp, appName)
       case mp =>
         new SparkContext(mp, appName,
-                         System.getenv("SPARK_HOME"),
-                         Seq(System.getenv("STARTREE_JAR")))
+                         config.sparkHome,
+                         Seq(config.jarPath))
     }
 
     val references = SAMUtils.readAllFasta(config.fastaPath)
