@@ -14,6 +14,11 @@ launch:
 		--wait 300 \
 		launch $(CLUSTER_NAME)
 
+destroy:
+	spark-ec2/spark-ec2 \
+		--region $(REGION) \
+		destroy $(CLUSTER_NAME)
+
 get-master:
 	spark-ec2/spark-ec2 --region $(REGION) get-master $(CLUSTER_NAME)
 
@@ -24,4 +29,7 @@ login:
 		--region $(REGION) \
 		login $(CLUSTER_NAME)
 
-.PHONY: launch get-master login
+ansible-list:
+	ansible-playbook -i ec2.py site.yml --list-hosts
+
+.PHONY: launch get-master login ansible-list

@@ -2,6 +2,6 @@
 # This playbook sets up my workstation
 
 - hosts: all
-
+  when: ec2_master_group_name in ec2_security_group_names or ec2_slave_group_name in ec2_security_group_names
   roles:
     - beagle
