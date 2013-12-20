@@ -1,2 +1,5 @@
-ec2_master_group_name=test-spark-master
-ec2_slave_group_name=test-spark-slave
+ec2_master_group_name: test-spark-master
+ec2_slave_group_name: test-spark-slave
+
+remote_user: ec2_user
+sudo: yes
