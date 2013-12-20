@@ -26,19 +26,21 @@ public class TwoTaxonResult implements java.io.Serializable {
     private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
 
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
-            unconditionalNonsynonymous, unconditionalSynonymous, dNdS;
-    final RealVector state;
-    final RealVector coverage;
+            unconditionalNonsynonymous, unconditionalSynonymous, dNdS, totalBranchLength;
+    final RealVector state, coverage;
 
-    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage) {
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == conditionalSynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalNonsynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalSynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == conditionalSynonymous.getColumnDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalNonsynonymous.getColumnDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalSynonymous.getColumnDimension());
+    private static void checkDimensions(final RealMatrix a, final RealMatrix b) {
+        Preconditions.checkArgument(a.getRowDimension() == b.getRowDimension());
+        Preconditions.checkArgument(a.getColumnDimension() == b.getColumnDimension());
+    }
+
+    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage, RealMatrix totalBranchLength) {
+        checkDimensions(conditionalNonsynonymous, conditionalSynonymous);
+        checkDimensions(conditionalNonsynonymous, unconditionalNonsynonymous);
+        checkDimensions(conditionalNonsynonymous, unconditionalSynonymous);
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == state.getDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == coverage.length);
+        checkDimensions(conditionalNonsynonymous, totalBranchLength);
 
         this.conditionalNonsynonymous = conditionalNonsynonymous;
         this.conditionalSynonymous = conditionalSynonymous;
@@ -46,6 +48,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         this.unconditionalSynonymous = unconditionalSynonymous;
         this.state = state;
         this.coverage = new ArrayRealVector(coverage);
+        this.totalBranchLength = totalBranchLength;
         this.dNdS = computeDNdSMatrix();
     }
 
@@ -58,7 +61,8 @@ public class TwoTaxonResult implements java.io.Serializable {
                 un = unconditionalNonsynonymous.add(other.unconditionalNonsynonymous),
                 us = unconditionalSynonymous.add(other.unconditionalSynonymous);
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray());
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray(),
+            totalBranchLength.add(other.totalBranchLength));
     }
 
     public RealMatrix getUnconditionalSynonymous() {
@@ -76,6 +80,8 @@ public class TwoTaxonResult implements java.io.Serializable {
     public RealMatrix getConditionalNonsynonymous() { return conditionalNonsynonymous; }
 
     public RealVector getCoverage() { return coverage; }
+
+    public RealMatrix getTotalBranchLength() { return totalBranchLength; }
 
     /**
      * Get a smoothed equivalent of this result. 
@@ -106,7 +112,8 @@ public class TwoTaxonResult implements java.io.Serializable {
             new BlockRealMatrix(cs),
             new BlockRealMatrix(un),
             new BlockRealMatrix(us),
-            cov);
+            cov,
+            totalBranchLength);
     }
 
     public RealMatrix getDNdSMatrix() {
