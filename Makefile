@@ -1,13 +1,15 @@
 PK := $(HOME)/.ssh/id_rsa
 KEY_ID := cmccoy@stoat
 REGION := us-west-2
-INSTANCE_TYPE := m1.medium
+INSTANCE_TYPE := m1.large
 CLUSTER_NAME := test-spark
+SLAVES := 1
 
 launch:
 	spark-ec2/spark-ec2 \
-		-i $(PK) \
-		-k $(KEY_ID) \
+		--identity-file $(PK) \
+		--key-pair $(KEY_ID) \
+		--slaves $(SLAVES) \
 		--spot-price 0.09 \
 		--region $(REGION) \
 		--instance-type $(INSTANCE_TYPE) \
@@ -32,4 +34,7 @@ login:
 ansible-list:
 	ansible-playbook -i ec2.py site.yml --list-hosts
 
-.PHONY: launch get-master login ansible-list
+ansible-provision:
+	ansible-playbook -i ec2.py site.yml
+
+.PHONY: launch get-master login ansible-list ansible-provision destroy
