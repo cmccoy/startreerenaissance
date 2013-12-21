@@ -76,6 +76,7 @@ object StarTreeSpark {
 
     val references = SAMUtils.readAllFasta(config.fastaPath)
 
+
     val alignments = sc.parallelize(reader.asScala.map(
       r => {
         val ref = references.get(r.getReferenceName());
@@ -84,6 +85,7 @@ object StarTreeSpark {
       }).toList, config.parallelism).keyBy(_.getTaxon(0).getId)
 
     alignments.mapValues(a => {
+        System.err.format("java.library.path=%s\n", System.getProperty("java.library.path"))
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
