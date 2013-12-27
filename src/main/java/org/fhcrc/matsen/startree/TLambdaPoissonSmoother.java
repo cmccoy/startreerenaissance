@@ -16,11 +16,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * <p>
  * Alternative version of @link dr.math.EmpiricalBayesPoissonSmoother, where coverage across positions is presumed to vary.
  * <p/>
+ * <p>
  * we assume that <c>C_\ell \sim \mathrm{Poisson}(\lambda_\ell t_\ell)</c>,
  * where <c>t_\ell = \sum_i t_{\ell i}</c>, the sum of the branch lengths of sequences with a codon present at position <c>\ell</c>.
- * <p/>
+ * </p>
  * Created by cmccoy on 12/27/13.
  */
 public class TLambdaPoissonSmoother {
@@ -30,11 +32,11 @@ public class TLambdaPoissonSmoother {
     private final static int ADDL_INTERPOLATION_PTS = 2;
 
     /**
-     * Smooth the counts <c>c</c>,
+     * Smooth the counts <c>c</c>, producing per-site rates
      *
-     * @param c
-     * @param t
-     * @return
+     * @param c Substitution counts
+     * @param t Total branch lengths for each entry in <c>c</c>
+     * @return Smoothed rates
      */
     public static double[] smooth(final double[] c, final double[] t) {
         Preconditions.checkNotNull(c);
@@ -125,6 +127,12 @@ public class TLambdaPoissonSmoother {
         // Over sites
         for (int i = 0; i < n; i++) {
             final double ci = c[i], ti = t[i];
+
+            // Special case for zero branch length (no coverage)
+            if(ti == 0.0) {
+                continue;
+            }
+
             // Per Wolfram Alpha,
             // log(b^a×(t^c/(Gamma(c+1)))/(Gamma(a))×(Gamma(c+a))/(t+b)^(c+a)) simplifies to
             // (-a-c) log(b+t)+a log(b)+log(Gamma(a+c))-log(Gamma(a))+c log(t)-log(Gamma(c+1))
