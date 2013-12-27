@@ -107,25 +107,24 @@ public class TLambdaPoissonSmoother {
 
         // \mathcal L = \left(\frac{\beta^\alpha}{\Gamma(\alpha)}\right)^L \prod_\ell \frac{t_\ell^{C_\ell}}{\Gamma(C_\ell+1)} \frac{\Gamma(C_\ell + \alpha)}{(t_\ell + \beta)^{C_\ell + \alpha}} $$
 
-
-
-        // log(((alpha ^ beta / Gamma(alpha))^N)
-        // (log(alpha) * beta - log(Gamma(alpha)) * N
-        result = (Math.log(alpha) * beta - Gamma.logGamma(alpha)) * n;
+        result = 0;
 
         // Over sites
         for(int i = 0; i < n; i++) {
-            // t_l ^ C_l / Gamma(C_l + 1)
-            double x = Math.log(t[i]) * c[i] - Gamma.logGamma(c[i] + 1.0);
-
-            // Gamma(C_l + alpha) / (t_l + beta) ^ (C_l + alpha)
-            x += Gamma.logGamma(c[i] + alpha);
-            x -= Math.log(t[i] + beta) * (c[i] + alpha);
-
+            final double ci = c[i], ti = t[i];
+            // Per Wolfram Alpha,
+            // log(b^a×(t^c/(Gamma(c+1)))/(Gamma(a))×(Gamma(c+a))/(t+b)^(c+a)) simplifies to
+            // (-a-c) log(b+t)+a log(b)+log(Gamma(a+c))-log(Gamma(a))+c log(t)-log(Gamma(c+1))
+            double x = (-alpha - ci) * Math.log(beta + ti) +
+                    alpha * Math.log(beta) +
+                    Gamma.logGamma(alpha + ci) -
+                    Gamma.logGamma(alpha) +
+                    ci * Math.log(ti) -
+                    Gamma.logGamma(ci + 1);
             result += x;
         }
 
-        logger.log(Level.INFO, "LL = {0}", result);
+        //logger.log(Level.FINE, "LL = {0}", result);
         return result;
     }
 }
