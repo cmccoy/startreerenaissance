@@ -1,0 +1,28 @@
+package org.fhcrc.matsen.startree;
+
+import dr.math.EmpiricalBayesPoissonSmoother;
+import org.junit.Assert;
+import org.junit.Test;
+
+import java.util.Arrays;
+
+/**
+ * Created by cmccoy on 12/27/13.
+ */
+public class TLambdaPoissonSmootherTest {
+    public final double TOL = 1e-5;
+
+    @Test
+    public void testSmooth() throws Exception {
+        final int n = 100;
+        double[] arr = new double[n], w = new double[n];
+        Arrays.fill(w, 1.0);
+        Arrays.fill(arr, 0, n / 2, 20.0);
+        Arrays.fill(arr, n / 2, n, 0.0);
+
+        final double[] tlSmoothed = TLambdaPoissonSmoother.smooth(arr, w);
+        final double[] origSmoothed = EmpiricalBayesPoissonSmoother.smooth(arr);
+
+        Assert.assertArrayEquals(origSmoothed, tlSmoothed, TOL);
+    }
+}
