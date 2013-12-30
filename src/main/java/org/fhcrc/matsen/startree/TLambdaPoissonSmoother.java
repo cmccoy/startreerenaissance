@@ -2,15 +2,17 @@ package org.fhcrc.matsen.startree;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import org.apache.commons.math.special.Gamma;
+import org.apache.commons.math3.special.Gamma;
 import org.apache.commons.math3.analysis.MultivariateFunction;
 import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.SimpleBounds;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
-import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
-import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
+import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.StatUtils;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,14 +63,28 @@ public class TLambdaPoissonSmoother {
                 "Non-matching array lengths: %s vs %s", c.length, t.length);
 
         // Empirical Bayes
-        logger.info("Starting Empirical Bayes estimation of alpha, beta.");
-        PointValuePair result = estimateAlphaBeta(c, t);
-        final double alpha = result.getPoint()[0],
-                beta = result.getPoint()[1];
-        logger.log(Level.INFO, "MLE: alpha={0} beta={1} logL={2}",
-                new Object[]{alpha, beta, result.getValue()});
+        logger.log(Level.INFO, "Starting Empirical Bayes estimation of alpha, beta.");
 
         final double[] smoothed = new double[c.length];
+
+        final PointValuePair result;
+        try {
+            result = estimateAlphaBeta(c, t);
+        } catch (org.apache.commons.math3.exception.MathIllegalStateException e) {
+            logger.log(Level.WARNING, "optimization failed", e);
+            final double mean = new Mean().evaluate(c, t);
+
+            for (int i = 0; i < c.length; i++) {
+                smoothed[i] = mean;
+            }
+            return smoothed;
+        }
+
+        final double alpha = result.getPoint()[0],
+                beta = result.getPoint()[1];
+        logger.log(Level.FINE, "MLE: alpha={0} beta={1} logL={2}",
+                new Object[]{alpha, beta, result.getValue()});
+
 
         // TODO: support random draws
         for (int i = 0; i < c.length; i++) {
@@ -107,17 +123,39 @@ public class TLambdaPoissonSmoother {
             }
         };
 
+        // Start with method-of-moments
+        final double mean = StatUtils.mean(c),
+              var = StatUtils.variance(c);
+
+        double mom_alpha, mom_beta;
+        if (var > mean) {
+            mom_alpha = (mean * mean) / (var - mean);
+            mom_beta = mean / (var - mean);
+        } else {
+            mom_alpha = 1;
+            mom_beta = 1;
+        }
+
         // Bounds - both must be positive
-        final double lowerBounds[] = new double[]{1e-8, 1e-8};
+        final double lowerBounds[] = new double[]{1e-7, 1e-7};
         final double upperBounds[] = new double[]{Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY};
-        final double initial[] = new double[]{1.0, 1.0};
-        PointValuePair result = optimizer.optimize(
-                new MaxEval(1000),
-                new InitialGuess(initial),
-                GoalType.MAXIMIZE,
-                new ObjectiveFunction(fn),
-                new SimpleBounds(lowerBounds, upperBounds));
-        return result;
+        final double initial[] = new double[]{mom_alpha, mom_beta};
+        try {
+            PointValuePair result = optimizer.optimize(
+                    new MaxEval(1000),
+                    new InitialGuess(initial),
+                    GoalType.MAXIMIZE,
+                    new ObjectiveFunction(fn),
+                    new SimpleBounds(lowerBounds, upperBounds));
+            return result;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE,
+                "Optimization failed [mom_alpha: {0}, mom_beta: {1}]\nc={2}\nt={3}",
+                new Object[]{ mom_alpha, mom_beta,
+                  java.util.Arrays.toString(c),
+                  java.util.Arrays.toString(t)});
+            throw e;
+        }
     }
 
     /**
