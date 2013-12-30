@@ -12,7 +12,7 @@ import org.apache.commons.math.stat.StatUtils;
  * @deprecated
  * @see org.fhcrc.matsen.startree.TLambdaPoissonSmoother
  */
-@Deprecated("Replaced by TLambdaPoissonSmoother")
+@Deprecated
 class WeightedEmpiricalBayesPoissonSmoother {
     private WeightedEmpiricalBayesPoissonSmoother() {
         Preconditions.checkArgument(false, "Do not construct.");
