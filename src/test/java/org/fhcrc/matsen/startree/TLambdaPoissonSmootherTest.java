@@ -2,6 +2,7 @@ package org.fhcrc.matsen.startree;
 
 import dr.math.EmpiricalBayesPoissonSmoother;
 import org.apache.commons.math3.optim.PointValuePair;
+import org.apache.commons.math3.stat.StatUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -26,7 +27,7 @@ import java.util.Arrays;
  * </code>
  */
 public class TLambdaPoissonSmootherTest {
-    public final double TOL = 1e-5;
+    public final double TOL = 3e-2;
 
     @Test
     public void testSmooth() throws Exception {
@@ -34,10 +35,19 @@ public class TLambdaPoissonSmootherTest {
         final double[] t = new double[arr.length];
         Arrays.fill(t, 1.0);
 
+        final double mean = StatUtils.mean(arr);
+        final double var = StatUtils.variance(arr);
+        final double mom_alpha = (mean * mean) / (var - mean),
+                     mom_beta = mean / (var - mean);
+
         final PointValuePair result = TLambdaPoissonSmoother.estimateAlphaBeta(arr, t);
-        // Actual results are just close
-        Assert.assertEquals(1.0, result.getPointRef()[0], 0.2);
-        Assert.assertEquals(2.0, result.getPointRef()[1], 0.2);
+//        System.err.format("MOM: %f\t%f\nML: %f\t%f\n", mom_alpha, mom_beta,
+//                result.getPointRef()[0],
+//                result.getPointRef()[1]);
+
+        // Actual results are close to MOM result
+        Assert.assertEquals(mom_alpha, result.getPointRef()[0], TOL);
+        Assert.assertEquals(mom_beta, result.getPointRef()[1], TOL);
 
         final double[] tlSmoothed = TLambdaPoissonSmoother.smooth(arr, t);
         final double[] origSmoothed = EmpiricalBayesPoissonSmoother.smooth(arr);

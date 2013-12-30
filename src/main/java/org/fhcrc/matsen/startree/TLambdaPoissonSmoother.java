@@ -31,14 +31,30 @@ public class TLambdaPoissonSmoother {
 
     private final static int ADDL_INTERPOLATION_PTS = 2;
 
+    private TLambdaPoissonSmoother() {
+        Preconditions.checkArgument(false, "Do not construct.");
+    }
+
     /**
-     * Smooth the counts <c>c</c>, producing per-site rates
+     * Smooth counts <c>c</c> <i>without</i> sampling.
      *
      * @param c Substitution counts
      * @param t Total branch lengths for each entry in <c>c</c>
      * @return Smoothed rates
      */
     public static double[] smooth(final double[] c, final double[] t) {
+        return smooth(c, t, false);
+    }
+
+    /**
+     * Smooth the counts <c>c</c>, producing per-site rates
+     *
+     * @param c Substitution counts
+     * @param t Total branch lengths for each entry in <c>c</c>
+     * @param sample Should rates be sampled from the posterior distribution? If not, posterior mean is used.
+     * @return Smoothed rates
+     */
+    public static double[] smooth(final double[] c, final double[] t, final boolean sample) {
         Preconditions.checkNotNull(c);
         Preconditions.checkNotNull(t);
         Preconditions.checkArgument(c.length == t.length,
@@ -56,8 +72,14 @@ public class TLambdaPoissonSmoother {
 
         // TODO: support random draws
         for (int i = 0; i < c.length; i++) {
-            // posterior mean = alpha /
-            smoothed[i] = (c[i] + alpha) / (t[i] + beta);
+            // posterior mean = alpha / beta
+            if (sample) {
+                final double shape = c[i] + alpha;
+                final double scale = 1 / (t[i] + beta);
+                smoothed[i] = dr.math.distributions.GammaDistribution.nextGamma(shape, scale);
+            } else {
+                smoothed[i] = (c[i] + alpha) / (t[i] + beta);
+            }
         }
 
         return smoothed;
