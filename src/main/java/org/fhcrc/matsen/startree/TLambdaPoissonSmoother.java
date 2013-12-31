@@ -211,7 +211,7 @@ public class TLambdaPoissonSmoother {
         final double initial[] = new double[]{mom_alpha, mom_beta};
         try {
             PointValuePair result = optimizer.optimize(
-                    new MaxEval(500),
+                    new MaxEval(2000),
                     new InitialGuess(initial),
                     GoalType.MAXIMIZE,
                     new ObjectiveFunction(fn),
