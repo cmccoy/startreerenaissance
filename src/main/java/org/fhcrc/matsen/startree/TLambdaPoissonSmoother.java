@@ -12,6 +12,7 @@ import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.SimpleBounds;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
+import org.apache.commons.math3.stat.descriptive.moment.Variance;
 import org.apache.commons.math3.stat.StatUtils;
 
 import java.util.logging.Level;
@@ -71,8 +72,10 @@ public class TLambdaPoissonSmoother {
         try {
             result = estimateAlphaBeta(c, t);
         } catch (org.apache.commons.math3.exception.MathIllegalStateException e) {
-            logger.log(Level.WARNING, "Optimization failed", e);
             final double mean = new Mean().evaluate(c, t);
+            final double var = new Variance().evaluate(c, t, mean);
+            logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}",
+               new Object[]{ mean, var, e });
 
             for (int i = 0; i < c.length; i++) {
                 smoothed[i] = mean;
