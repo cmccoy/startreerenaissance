@@ -79,11 +79,16 @@ object StarTreeSpark {
         SAMBEASTUtils.alignmentOfRecord(r, ref)
       }).toList, config.parallelism).keyBy(_.getTaxon(0).getId)
 
-    alignments.mapValues(a => {
+    val result = alignments.mapValues(a => {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
-      }).reduceByKey(_.plus(_), config.parallelism).collect.foreach {
+      }).reduceByKey(_.plus(_), config.parallelism).collect
+
+    // Stop the Spark context - remaining work is local.
+    sc.stop()
+
+    result.foreach {
         case (refName, v) => {
           val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
