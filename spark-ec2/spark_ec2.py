@@ -23,7 +23,6 @@ from __future__ import with_statement
 
 import logging
 import os
-import pipes
 import random
 import shutil
 import subprocess
@@ -36,9 +35,6 @@ from sys import stderr
 import boto
 from boto.ec2.blockdevicemapping import BlockDeviceMapping, EBSBlockDeviceType
 from boto import ec2
-
-class UsageError(Exception):
-  pass
 
 # A URL prefix from which to fetch AMI information
 AMI_PREFIX = "https://raw.github.com/mesos/spark-ec2/v2/ami-list"
@@ -70,14 +66,14 @@ def parse_args():
            "slaves across multiple (an additional $0.01/Gb for bandwidth" +
            "between zones applies)")
   parser.add_option("-a", "--ami", help="Amazon Machine Image ID to use")
-  parser.add_option("-v", "--spark-version", default="0.8.0",
+  parser.add_option("-v", "--spark-version", default="0.8.1",
       help="Version of Spark to use: 'X.Y.Z' or a specific git hash")
-  parser.add_option("--spark-git-repo",
+  parser.add_option("--spark-git-repo", 
       default="https://github.com/apache/incubator-spark",
       help="Github repo from which to checkout supplied commit hash")
   parser.add_option("--hadoop-major-version", default="1",
       help="Major version of Hadoop (default: 1)")
-  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port",
+  parser.add_option("-D", metavar="[ADDRESS:]PORT", dest="proxy_port", 
       help="Use SSH dynamic port forwarding to create a SOCKS proxy at " +
             "the given local address (for use with login)")
   parser.add_option("--resume", action="store_true", default=False,
@@ -109,7 +105,11 @@ def parse_args():
     parser.print_help()
     sys.exit(1)
   (action, cluster_name) = args
-
+  if opts.identity_file == None and action in ['launch', 'login', 'start']:
+    print >> stderr, ("ERROR: The -i or --identity-file argument is " +
+                      "required for " + action)
+    sys.exit(1)
+  
   # Boto config check
   # http://boto.cloudhackers.com/en/latest/boto_config_tut.html
   home_dir = os.getenv('HOME')
@@ -157,7 +157,7 @@ def is_active(instance):
 
 # Return correct versions of Spark and Shark, given the supplied Spark version
 def get_spark_shark_version(opts):
-  spark_shark_map = {"0.7.3": "0.7.1", "0.8.0": "0.8.0"}
+  spark_shark_map = {"0.7.3": "0.7.1", "0.8.0": "0.8.0", "0.8.1": "0.8.1"}
   version = opts.spark_version.replace("v", "")
   if version not in spark_shark_map:
     print >> stderr, "Don't know about Spark version: %s" % version
@@ -193,7 +193,7 @@ def get_spark_ami(opts):
     instance_type = "pvm"
     print >> stderr,\
         "Don't recognize %s, assuming type is pvm" % opts.instance_type
-
+  
   ami_path = "%s/%s/%s" % (AMI_PREFIX, opts.region, instance_type)
   try:
     ami = urllib2.urlopen(ami_path).read().strip()
@@ -217,7 +217,6 @@ def launch_cluster(conn, opts, cluster_name):
     master_group.authorize(src_group=slave_group)
     master_group.authorize('tcp', 22, 22, '0.0.0.0/0')
     master_group.authorize('tcp', 8080, 8081, '0.0.0.0/0')
-    master_group.authorize('tcp', 19999, 19999, '0.0.0.0/0')
     master_group.authorize('tcp', 50030, 50030, '0.0.0.0/0')
     master_group.authorize('tcp', 50070, 50070, '0.0.0.0/0')
     master_group.authorize('tcp', 60070, 60070, '0.0.0.0/0')
@@ -400,21 +399,13 @@ def get_existing_cluster(conn, opts, cluster_name, die_on_error=True):
 def setup_cluster(conn, master_nodes, slave_nodes, opts, deploy_ssh_key):
   master = master_nodes[0].public_dns_name
   if deploy_ssh_key:
-    print "Generating cluster's SSH key on master..."
-    key_setup = """
-      [ -f ~/.ssh/id_rsa ] ||
-        (ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa &&
-         cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys)
-    """
-    ssh(master, opts, key_setup)
-    dot_ssh_tar = ssh_read(master, opts, ['tar', 'c', '.ssh'])
-    print "Transferring cluster's SSH key to slaves..."
-    for slave in slave_nodes:
-      print slave.public_dns_name
-      ssh_write(slave.public_dns_name, opts, ['tar', 'x'], dot_ssh_tar)
+    print "Copying SSH key %s to master..." % opts.identity_file
+    ssh(master, opts, 'mkdir -p ~/.ssh')
+    scp(master, opts, opts.identity_file, '~/.ssh/id_rsa')
+    ssh(master, opts, 'chmod 600 ~/.ssh/id_rsa')
 
-  modules = ['spark', 'shark', 'ephemeral-hdfs', 'persistent-hdfs',
-             'mapreduce', 'spark-standalone', 'tachyon']
+  modules = ['spark', 'shark', 'ephemeral-hdfs', 'persistent-hdfs', 
+             'mapreduce', 'spark-standalone']
 
   if opts.hadoop_major_version == "1":
     modules = filter(lambda x: x != "mapreduce", modules)
@@ -553,33 +544,18 @@ def deploy_files(conn, root_dir, opts, master_nodes, slave_nodes, modules):
               dest.write(text)
               dest.close()
   # rsync the whole directory over to the master machine
-  command = [
-      'rsync', '-rv',
-      '-e', stringify_command(ssh_command(opts)),
-      "%s/" % tmp_dir,
-      "%s@%s:/" % (opts.user, active_master)
-    ]
-  subprocess.check_call(command)
+  command = (("rsync -rv -e 'ssh -o StrictHostKeyChecking=no -i %s' " +
+      "'%s/' '%s@%s:/'") % (opts.identity_file, tmp_dir, opts.user, active_master))
+  subprocess.check_call(command, shell=True)
   # Remove the temp directory we created above
   shutil.rmtree(tmp_dir)
 
 
-def stringify_command(parts):
-  if isinstance(parts, str):
-    return parts
-  else:
-    return ' '.join(map(pipes.quote, parts))
-
-
-def ssh_args(opts):
-  parts = ['-o', 'StrictHostKeyChecking=no']
-  if opts.identity_file is not None:
-    parts += ['-i', opts.identity_file]
-  return parts
-
-
-def ssh_command(opts):
-  return ['ssh'] + ssh_args(opts)
+# Copy a file to a given host through scp, throwing an exception if scp fails
+def scp(host, opts, local_file, dest_file):
+  subprocess.check_call(
+      "scp -q -o StrictHostKeyChecking=no -i %s '%s' '%s@%s:%s'" %
+      (opts.identity_file, local_file, opts.user, host, dest_file), shell=True)
 
 
 # Run a command on a host through ssh, retrying up to two times
@@ -589,41 +565,17 @@ def ssh(host, opts, command):
   while True:
     try:
       return subprocess.check_call(
-        ssh_command(opts) + ['-t', '-t', '%s@%s' % (opts.user, host), stringify_command(command)])
+        "ssh -t -o StrictHostKeyChecking=no -i %s %s@%s '%s'" %
+        (opts.identity_file, opts.user, host, command), shell=True)
     except subprocess.CalledProcessError as e:
       if (tries > 2):
-        # If this was an ssh failure, provide the user with hints.
-        if e.returncode == 255:
-          raise UsageError("Failed to SSH to remote host {0}.\nPlease check that you have provided the correct --identity-file and --key-pair parameters and try again.".format(host))
-        else:
-          raise e
-      print >> stderr, "Error executing remote command, retrying after 30 seconds: {0}".format(e)
+        raise e
+      print "Couldn't connect to host {0}, waiting 30 seconds".format(e)
       time.sleep(30)
       tries = tries + 1
 
 
-def ssh_read(host, opts, command):
-  return subprocess.check_output(
-      ssh_command(opts) + ['%s@%s' % (opts.user, host), stringify_command(command)])
 
-
-def ssh_write(host, opts, command, input):
-  tries = 0
-  while True:
-    proc = subprocess.Popen(
-        ssh_command(opts) + ['%s@%s' % (opts.user, host), stringify_command(command)],
-        stdin=subprocess.PIPE)
-    proc.stdin.write(input)
-    proc.stdin.close()
-    status = proc.wait()
-    if status == 0:
-      break
-    elif (tries > 2):
-      raise RuntimeError("ssh_write failed with error %s" % proc.returncode)
-    else:
-      print >> stderr, "Error {0} while executing remote command, retrying after 30 seconds".format(status)
-      time.sleep(30)
-      tries = tries + 1
 
 
 # Gets a list of zones to launch instances in
@@ -643,7 +595,7 @@ def get_partition(total, num_partitions, current_partitions):
   return num_slaves_this_zone
 
 
-def real_main():
+def main():
   (opts, action, cluster_name) = parse_args()
   try:
     conn = ec2.connect_to_region(opts.region)
@@ -678,12 +630,12 @@ def real_main():
       print "Terminating slaves..."
       for inst in slave_nodes:
         inst.terminate()
-
+      
       # Delete security groups as well
       if opts.delete_groups:
         print "Deleting security groups (this will take some time)..."
         group_names = [cluster_name + "-master", cluster_name + "-slaves"]
-
+        
         attempt = 1;
         while attempt <= 3:
           print "Attempt %d" % attempt
@@ -726,11 +678,11 @@ def real_main():
         conn, opts, cluster_name)
     master = master_nodes[0].public_dns_name
     print "Logging into master " + master + "..."
-    proxy_opt = []
+    proxy_opt = ""
     if opts.proxy_port != None:
-      proxy_opt = ['-D', opts.proxy_port]
-    subprocess.check_call(
-        ssh_command(opts) + proxy_opt + ['-t', '-t', "%s@%s" % (opts.user, master)])
+      proxy_opt = "-D " + opts.proxy_port
+    subprocess.check_call("ssh -o StrictHostKeyChecking=no -i %s %s %s@%s" %
+        (opts.identity_file, proxy_opt, opts.user, master), shell=True)
 
   elif action == "get-master":
     (master_nodes, slave_nodes) = get_existing_cluster(conn, opts, cluster_name)
@@ -774,13 +726,6 @@ def real_main():
   else:
     print >> stderr, "Invalid action: %s" % action
     sys.exit(1)
-
-
-def main():
-  try:
-    real_main()
-  except UsageError, e:
-    print >> stderr, "\nError:\n", e
 
 
 if __name__ == "__main__":
