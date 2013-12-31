@@ -20,7 +20,7 @@ libraryDependencies ++= {
     "org.scalatest" %% "scalatest" % "1.9.1" % "test",
     "org.apache.commons" % "commons-math3" % "3.2",
     "com.github.scopt" %% "scopt" % "3.2.0",
-    "org.apache.spark" % "spark-core_2.9.3" % "0.8.0-incubating" % "provided"
+    "org.apache.spark" % "spark-core_2.9.3" % "0.8.1-incubating" % "provided"
   )
 }
 
