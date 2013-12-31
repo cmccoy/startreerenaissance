@@ -90,8 +90,9 @@ public class TLambdaPoissonSmoother {
         } catch (org.apache.commons.math3.exception.MathIllegalStateException e) {
             final double mean = new Mean().evaluate(c, t);
             final double var = new Variance().evaluate(c, t, mean);
-            logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}",
+            logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}\nUsing Poisson.",
                     new Object[]{mean, var, e});
+
             final double lambda = fitLambda(c, t);
 
             for (int i = 0; i < c.length; i++) {
@@ -172,9 +173,9 @@ public class TLambdaPoissonSmoother {
     /**
      * Estimate alpha, beta given c, t
      *
-     * @param c
-     * @param t
-     * @return
+     * @param c Counts
+     * @param t Branch lengths
+     * @return Point, containing (alpha, beta), and associated log-likelihood
      */
     @VisibleForTesting
     static PointValuePair estimateAlphaBeta(final double[] c, final double[] t) {
@@ -218,11 +219,11 @@ public class TLambdaPoissonSmoother {
             logger.log(Level.FINE, "BOBYQA finished in {0} iterations", optimizer.getIterations());
             return result;
         } catch (Exception e) {
-            logger.log(Level.SEVERE,
-                    "Optimization failed [mom_alpha: {0}, mom_beta: {1}]\nc={2}\nt={3}",
-                    new Object[]{mom_alpha, mom_beta,
-                            java.util.Arrays.toString(c),
-                            java.util.Arrays.toString(t)});
+//            logger.log(Level.SEVERE,
+//                    "Optimization failed [mom_alpha: {0}, mom_beta: {1}]\nc={2}\nt={3}",
+//                    new Object[]{mom_alpha, mom_beta,
+//                            java.util.Arrays.toString(c),
+//                            java.util.Arrays.toString(t)});
             throw e;
         }
     }
