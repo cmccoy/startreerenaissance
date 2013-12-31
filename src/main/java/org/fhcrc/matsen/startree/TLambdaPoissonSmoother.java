@@ -63,7 +63,7 @@ public class TLambdaPoissonSmoother {
                 "Non-matching array lengths: %s vs %s", c.length, t.length);
 
         // Empirical Bayes
-        logger.log(Level.INFO, "Starting Empirical Bayes estimation of alpha, beta.");
+        logger.log(Level.FINE, "Starting Empirical Bayes estimation of alpha, beta.");
 
         final double[] smoothed = new double[c.length];
 
@@ -71,7 +71,7 @@ public class TLambdaPoissonSmoother {
         try {
             result = estimateAlphaBeta(c, t);
         } catch (org.apache.commons.math3.exception.MathIllegalStateException e) {
-            logger.log(Level.WARNING, "optimization failed", e);
+            logger.log(Level.WARNING, "Optimization failed", e);
             final double mean = new Mean().evaluate(c, t);
 
             for (int i = 0; i < c.length; i++) {
