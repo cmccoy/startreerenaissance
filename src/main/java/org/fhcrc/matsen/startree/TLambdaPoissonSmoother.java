@@ -2,18 +2,25 @@ package org.fhcrc.matsen.startree;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import org.apache.commons.math3.special.Gamma;
+import dr.math.Poisson;
 import org.apache.commons.math3.analysis.MultivariateFunction;
+import org.apache.commons.math3.analysis.UnivariateFunction;
+import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.apache.commons.math3.optim.InitialGuess;
 import org.apache.commons.math3.optim.MaxEval;
-import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
-import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
-import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
 import org.apache.commons.math3.optim.PointValuePair;
 import org.apache.commons.math3.optim.SimpleBounds;
+import org.apache.commons.math3.optim.nonlinear.scalar.GoalType;
+import org.apache.commons.math3.optim.nonlinear.scalar.ObjectiveFunction;
+import org.apache.commons.math3.optim.nonlinear.scalar.noderiv.BOBYQAOptimizer;
+import org.apache.commons.math3.optim.univariate.BrentOptimizer;
+import org.apache.commons.math3.optim.univariate.SearchInterval;
+import org.apache.commons.math3.optim.univariate.UnivariateObjectiveFunction;
+import org.apache.commons.math3.optim.univariate.UnivariatePointValuePair;
+import org.apache.commons.math3.special.Gamma;
+import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.stat.descriptive.moment.Mean;
 import org.apache.commons.math3.stat.descriptive.moment.Variance;
-import org.apache.commons.math3.stat.StatUtils;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -32,6 +39,7 @@ public class TLambdaPoissonSmoother {
 
     private static final Logger logger = Logger.getLogger(TLambdaPoissonSmoother.class.getName());
 
+    private final static double BRENT_TOL = 1e-3;
     private final static int ADDL_INTERPOLATION_PTS = 2;
 
     private TLambdaPoissonSmoother() {
@@ -52,8 +60,16 @@ public class TLambdaPoissonSmoother {
     /**
      * Smooth the counts <c>c</c>, producing per-site rates
      *
-     * @param c Substitution counts
-     * @param t Total branch lengths for each entry in <c>c</c>
+     * In the event that the variance of lambda is less than the mean, we fit:
+     *
+     * <code>
+     *     c_i \sim Poisson(t_i * lambda)
+     * </code>
+     *
+     * Where lambda is estimated from the data
+     *
+     * @param c      Substitution counts
+     * @param t      Total branch lengths for each entry in <c>c</c>
      * @param sample Should rates be sampled from the posterior distribution? If not, posterior mean is used.
      * @return Smoothed rates
      */
@@ -75,11 +91,17 @@ public class TLambdaPoissonSmoother {
             final double mean = new Mean().evaluate(c, t);
             final double var = new Variance().evaluate(c, t, mean);
             logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}",
-               new Object[]{ mean, var, e });
+                    new Object[]{mean, var, e});
+            final double lambda = fitLambda(c, t);
 
             for (int i = 0; i < c.length; i++) {
-                smoothed[i] = mean;
+                if(sample) {
+                    smoothed[i] = Poisson.nextPoisson(lambda * t[i]);
+                } else {
+                    smoothed[i] = lambda;
+                }
             }
+
             return smoothed;
         }
 
@@ -88,8 +110,6 @@ public class TLambdaPoissonSmoother {
         logger.log(Level.FINE, "MLE: alpha={0} beta={1} logL={2}",
                 new Object[]{alpha, beta, result.getValue()});
 
-
-        // TODO: support random draws
         for (int i = 0; i < c.length; i++) {
             // posterior mean = alpha / beta
             if (sample) {
@@ -102,6 +122,51 @@ public class TLambdaPoissonSmoother {
         }
 
         return smoothed;
+    }
+
+    /**
+     * Fits:
+     * <code>
+     *     c_i \sim Poisson(t_i * lambda)
+     * </code>
+     *
+     * Using Brent's method.
+     * @param c counts
+     * @param t branch lengths
+     * @return estimate of lambda
+     */
+    @VisibleForTesting
+    static double fitLambda(final double[] c, final double[] t) {
+        final BrentOptimizer optimizer = new BrentOptimizer(BRENT_TOL, BRENT_TOL);
+
+        final UnivariateFunction fn = new UnivariateFunction() {
+            @Override
+            public double value(double x) {
+                // poisson pmf = lambda^k / k! * e^-lambda
+                //             = lambda^k / Gamma(k + 1) * e^-lambda
+                // In our case, lambda = x * t[i]
+                // log likelihood:
+                // log(x * ti) * ci - logGamma(ci+1) - x * ti
+                double result = 0;
+                for (int i = 0; i < c.length; i++) {
+                    PoissonDistribution p = new PoissonDistribution(x * t[i]);
+                    result += Math.log(p.probability((int)c[i]));
+                }
+
+                return result;
+            }
+        };
+
+        final UnivariatePointValuePair result = optimizer.optimize(
+                new MaxEval(100),
+                new UnivariateObjectiveFunction(fn),
+                GoalType.MAXIMIZE,
+                new SearchInterval(0.0001, 1000));
+
+        logger.log(Level.FINE, "Brent finished in {0} steps",
+                optimizer.getIterations());
+
+        return result.getPoint();
     }
 
     /**
@@ -128,7 +193,7 @@ public class TLambdaPoissonSmoother {
 
         // Start with method-of-moments
         final double mean = StatUtils.mean(c),
-              var = StatUtils.variance(c);
+                var = StatUtils.variance(c);
 
         double mom_alpha, mom_beta;
         if (var > mean) {
@@ -145,18 +210,19 @@ public class TLambdaPoissonSmoother {
         final double initial[] = new double[]{mom_alpha, mom_beta};
         try {
             PointValuePair result = optimizer.optimize(
-                    new MaxEval(1000),
+                    new MaxEval(500),
                     new InitialGuess(initial),
                     GoalType.MAXIMIZE,
                     new ObjectiveFunction(fn),
                     new SimpleBounds(lowerBounds, upperBounds));
+            logger.log(Level.FINE, "BOBYQA finished in {0} iterations", optimizer.getIterations());
             return result;
         } catch (Exception e) {
             logger.log(Level.SEVERE,
-                "Optimization failed [mom_alpha: {0}, mom_beta: {1}]\nc={2}\nt={3}",
-                new Object[]{ mom_alpha, mom_beta,
-                  java.util.Arrays.toString(c),
-                  java.util.Arrays.toString(t)});
+                    "Optimization failed [mom_alpha: {0}, mom_beta: {1}]\nc={2}\nt={3}",
+                    new Object[]{mom_alpha, mom_beta,
+                            java.util.Arrays.toString(c),
+                            java.util.Arrays.toString(t)});
             throw e;
         }
     }
@@ -192,7 +258,7 @@ public class TLambdaPoissonSmoother {
             final double ci = c[i], ti = t[i];
 
             // Special case for zero branch length (no coverage)
-            if(ti == 0.0) {
+            if (ti == 0.0) {
                 continue;
             }
 

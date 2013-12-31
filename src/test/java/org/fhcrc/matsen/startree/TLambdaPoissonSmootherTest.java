@@ -6,7 +6,6 @@ import org.apache.commons.math3.stat.StatUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.FileWriter;
 import java.util.Arrays;
 
 /**
@@ -29,12 +28,12 @@ import java.util.Arrays;
 public class TLambdaPoissonSmootherTest {
     public final double TOL = 3e-2;
 
-//    @Test
-//    public void testTempSmooth() throws Exception {
-//        final double[] c = new double[]{ 10.0, 16.0, 25.0, 10.0, 13.0, 15.0, 18.0, 16.0, 18.0, 14.0, 19.0, 18.0, 17.0, 15.0, 19.0, 10.0, 17.0, 19.0, 13.0, 11.0, 10.0, 10.0, 14.0, 16.0, 7.0, 11.0, 15.0, 16.0, 15.0, 15.0, 14.0, 12.0, 19.0, 20.0, 12.0, 13.0, 21.0, 16.0, 15.0, 12.0, 9.0, 5.0, 12.0, 14.0, 14.0, 13.0, 15.0, 24.0, 12.0, 19.0, 15.0, 16.0, 16.0, 19.0, 11.0, 13.0, 17.0, 16.0, 12.0, 10.0, 16.0, 25.0, 14.0, 11.0, 20.0, 13.0, 16.0, 16.0, 14.0, 12.0, 23.0, 14.0, 15.0, 9.0, 11.0, 13.0, 19.0, 13.0, 11.0, 10.0, 15.0, 16.0, 11.0, 12.0, 15.0, 20.0, 14.0, 22.0, 11.0, 9.0, 13.0, 15.0, 24.0, 17.0, 19.0, 15.0, 17.0, 15.0, 15.0, 11.0 };
-//        final double[] t = new double[c.length];
-//        Arrays.fill(t, 9.918035);
-//
+    @Test
+    public void testUnderdispersedSmooth() throws Exception {
+        final double[] c = new double[]{ 10.0, 16.0, 25.0, 10.0, 13.0, 15.0, 18.0, 16.0, 18.0, 14.0, 19.0, 18.0, 17.0, 15.0, 19.0, 10.0, 17.0, 19.0, 13.0, 11.0, 10.0, 10.0, 14.0, 16.0, 7.0, 11.0, 15.0, 16.0, 15.0, 15.0, 14.0, 12.0, 19.0, 20.0, 12.0, 13.0, 21.0, 16.0, 15.0, 12.0, 9.0, 5.0, 12.0, 14.0, 14.0, 13.0, 15.0, 24.0, 12.0, 19.0, 15.0, 16.0, 16.0, 19.0, 11.0, 13.0, 17.0, 16.0, 12.0, 10.0, 16.0, 25.0, 14.0, 11.0, 20.0, 13.0, 16.0, 16.0, 14.0, 12.0, 23.0, 14.0, 15.0, 9.0, 11.0, 13.0, 19.0, 13.0, 11.0, 10.0, 15.0, 16.0, 11.0, 12.0, 15.0, 20.0, 14.0, 22.0, 11.0, 9.0, 13.0, 15.0, 24.0, 17.0, 19.0, 15.0, 17.0, 15.0, 15.0, 11.0 };
+        final double[] t = new double[c.length];
+        Arrays.fill(t, 9.918035);
+
 //        try(java.io.FileWriter w = new java.io.FileWriter("test.csv")) {
 //          w.write("alpha,beta,ll\n");
 //          final double n = 50;
@@ -47,7 +46,14 @@ public class TLambdaPoissonSmootherTest {
 //              }
 //          }
 //        }
-//    }
+
+        final double fitLambda = TLambdaPoissonSmoother.fitLambda(c, t);
+        final double[] smoothed = TLambdaPoissonSmoother.smooth(c, t, false);
+
+        for(int i = 0; i < smoothed.length; i++) {
+            Assert.assertEquals(fitLambda, smoothed[i], 1e-3);
+        }
+    }
 
     @Test
     public void testSmooth() throws Exception {

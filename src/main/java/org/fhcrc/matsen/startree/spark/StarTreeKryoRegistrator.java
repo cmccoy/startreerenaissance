@@ -11,8 +11,8 @@ public class StarTreeKryoRegistrator implements org.apache.spark.serializer.Kryo
     @Override
     public void registerClasses(Kryo kryo) {
         kryo.register(SimpleAlignment.class);
-        kryo.register(TwoTaxonResult.class);
         kryo.register(org.apache.commons.math.linear.ArrayRealVector.class);
         kryo.register(org.apache.commons.math.linear.BlockRealMatrix.class);
+        kryo.register(TwoTaxonResult.class);
     }
 }
