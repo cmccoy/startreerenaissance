@@ -4,13 +4,23 @@ import org.apache.commons.math.linear.ArrayRealVector;
 import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
 
 /**
  * Created by cmccoy on 12/16/13.
  */
-public class TwoTaxonResultTest {
+public class TwoTaxonResultTestCase {
+    @Before
+    public void setUp() throws Exception {
+    }
+
+    @After
+    public void tearDown() throws Exception {
+    }
+
     public static final double TOL = 1e-6;
     private static RealMatrix createRealMatrix(final int rows, final int cols, final double value) {
         RealMatrix result = new BlockRealMatrix(rows, cols);

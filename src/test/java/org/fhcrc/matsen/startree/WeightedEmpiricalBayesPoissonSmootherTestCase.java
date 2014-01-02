@@ -10,7 +10,7 @@ import org.junit.Test;
  * Created by cmccoy on 12/16/13.
  */
 @Deprecated
-public class WeightedEmpiricalBayesPoissonSmootherTest {
+public class WeightedEmpiricalBayesPoissonSmootherTestCase {
     public static final double TOL = 1e-5;
     /**
      * Verify the unweighted case against the original Poisson smoothing code

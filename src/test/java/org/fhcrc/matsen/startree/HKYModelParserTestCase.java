@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Created by cmccoy on 12/5/13.
  */
-public class HKYModelParserTest {
+public class HKYModelParserTestCase {
     Reader reader = null;
     @Before
     public void setUp() throws Exception {

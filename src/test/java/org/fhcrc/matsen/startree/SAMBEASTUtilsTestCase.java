@@ -16,7 +16,7 @@ import org.junit.Test;
  * Time: 6:52 PM
  * To change this template use File | Settings | File Templates.
  */
-public class SAMBEASTUtilsTest {
+public class SAMBEASTUtilsTestCase {
     private final byte[] reference = "ACCGTACTA".getBytes();
     private final String referenceName = "Ref1";
     private final String queryName = "QSEQ1";
