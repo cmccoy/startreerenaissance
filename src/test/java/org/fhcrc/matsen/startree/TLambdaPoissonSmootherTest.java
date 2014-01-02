@@ -54,9 +54,12 @@ public class TLambdaPoissonSmootherTest {
 
         final double fitLambda = TLambdaPoissonSmoother.fitLambda(c, t);
         final double[] smoothed = TLambdaPoissonSmoother.smooth(c, t, false);
+        final double[] smoothedBl = TLambdaPoissonSmoother.smooth(c, constantArray(c.length, 10.0), false);
+        scalarMultiply(smoothedBl, 10);
 
         for(int i = 0; i < smoothed.length; i++) {
             Assert.assertEquals(fitLambda, smoothed[i], 1e-3);
+            Assert.assertEquals(fitLambda, smoothedBl[i], 5e-2);
         }
     }
 

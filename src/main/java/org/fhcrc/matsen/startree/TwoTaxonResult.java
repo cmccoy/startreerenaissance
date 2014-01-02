@@ -95,27 +95,25 @@ public class TwoTaxonResult implements java.io.Serializable {
                    us = unconditionalSynonymous.getData(),
                    bl = totalBranchLength.getData();
 
-
         double[][][] arrays = new double[][][]{cn, cs, un, us};
-        final double[] cov = coverage.toArray();
 
-        for(int i = 0; i < arrays.length; i++) {
-            for(int j = 0; j < arrays[i].length; j++) {
-                if (StatUtils.sum(arrays[i][j]) == 0.0) {
-                    logger.warning(String.format("No counts observed at %d, %d", i, j));
+        for(int arr = 0; arr < arrays.length; arr++) {
+            for(int row = 0; row < arrays[arr].length; row++) {
+                if (StatUtils.sum(arrays[arr][row]) == 0.0) {
+                    logger.warning(String.format("No counts observed at array %d row %d", arr, row));
                 }
-                arrays[i][j] = TLambdaPoissonSmoother.smooth(arrays[i][j], bl[j], sample);
+                arrays[arr][row] = TLambdaPoissonSmoother.smooth(arrays[arr][row], bl[row], sample);
             }
         }
 
         return new TwoTaxonResult(
-            state,
+            state.copy(),
             new BlockRealMatrix(cn),
             new BlockRealMatrix(cs),
             new BlockRealMatrix(un),
             new BlockRealMatrix(us),
-            cov,
-            new BlockRealMatrix(bl));
+            coverage.toArray(),
+            totalBranchLength.copy());
     }
 
     public RealMatrix getDNdSMatrix() {
