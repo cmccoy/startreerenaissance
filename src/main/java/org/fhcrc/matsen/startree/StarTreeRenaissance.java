@@ -161,8 +161,13 @@ public class StarTreeRenaissance {
                 "Expected 2 sequences, got %s", alignment.getSequenceCount());
 
         // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
-        java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
-        java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
+        final java.util.logging.Logger[] toDisable = new java.util.logging.Logger[] {
+          java.util.logging.Logger.getLogger("dr.evomodel"),
+          java.util.logging.Logger.getLogger("dr.app.beagle")
+        };
+        for (final java.util.logging.Logger l : toDisable) {
+          l.setLevel(java.util.logging.Level.WARNING);
+        }
 
         int minIndex = findOffset(alignment);
         log.log(Level.CONFIG, "offset: {0}", new Object[] { minIndex });
