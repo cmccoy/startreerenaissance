@@ -16,7 +16,7 @@ resolvers ++= Seq(
 
 libraryDependencies ++= { 
   Seq(
-    "com.novocode" % "junit-interface" % "0.9" % "test",
+    "com.novocode" % "junit-interface" % "0.10" % "test",
     "org.scalatest" %% "scalatest" % "1.9.1" % "test",
     "org.apache.commons" % "commons-math3" % "3.2",
     "com.github.scopt" %% "scopt" % "3.2.0",
