@@ -57,6 +57,22 @@ public class TLambdaPoissonSmoother {
         return smooth(c, t, false);
     }
 
+    private static double[] smoothPoissonOnly(final double[] c, final double[] t, final boolean sample) {
+        final double[] smoothed = new double[c.length];
+
+        final double lambda = fitLambda(c, t);
+
+        for (int i = 0; i < c.length; i++) {
+            if(sample) {
+                smoothed[i] = Poisson.nextPoisson(lambda * t[i]);
+            } else {
+                smoothed[i] = lambda;
+            }
+        }
+
+        return smoothed;
+    }
+
     /**
      * Smooth the counts <c>c</c>, producing per-site rates
      *
@@ -93,17 +109,7 @@ public class TLambdaPoissonSmoother {
             logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}\nUsing Poisson.",
                     new Object[]{mean, var, e});
 
-            final double lambda = fitLambda(c, t);
-
-            for (int i = 0; i < c.length; i++) {
-                if(sample) {
-                    smoothed[i] = Poisson.nextPoisson(lambda * t[i]);
-                } else {
-                    smoothed[i] = lambda;
-                }
-            }
-
-            return smoothed;
+            return smoothPoissonOnly(c, t, sample);
         }
 
         final double alpha = result.getPoint()[0],
