@@ -135,7 +135,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                              us = unconditionalSynonymous.getEntry(i, j);
                 final double d = (cn / un) / (cs / us);
                 if(Double.isInfinite(d)) {
-                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f - using 1.0", i, j, cn, un, cs, us));
+                    //logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f - using 1.0", i, j, cn, un, cs, us));
                     result.setEntry(i, j, 1.0);
                 } else {
                     result.setEntry(i, j, d);
