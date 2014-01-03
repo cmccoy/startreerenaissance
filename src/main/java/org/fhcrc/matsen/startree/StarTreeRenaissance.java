@@ -75,6 +75,8 @@ public class StarTreeRenaissance {
 
     private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree");
 
+    private static final String ROOT_HEIGHT_NAME = "rootHeight";
+
     /**
      * Find start of first non-gap codon
      */
@@ -159,8 +161,13 @@ public class StarTreeRenaissance {
                 "Expected 2 sequences, got %s", alignment.getSequenceCount());
 
         // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
-        java.util.logging.Logger.getLogger("dr.evomodel").setLevel(java.util.logging.Level.WARNING);
-        java.util.logging.Logger.getLogger("dr.app.beagle").setLevel(java.util.logging.Level.WARNING);
+        final java.util.logging.Logger[] toDisable = new java.util.logging.Logger[] {
+          java.util.logging.Logger.getLogger("dr.evomodel"),
+          java.util.logging.Logger.getLogger("dr.app.beagle")
+        };
+        for (final java.util.logging.Logger l : toDisable) {
+          l.setLevel(java.util.logging.Level.WARNING);
+        }
 
         int minIndex = findOffset(alignment);
         log.log(Level.CONFIG, "offset: {0}", new Object[] { minIndex });
@@ -184,7 +191,9 @@ public class StarTreeRenaissance {
         // Tree model
         CoalescentSimulator coalSim = new CoalescentSimulator();
         final TreeModel treeModel = new TreeModel("treeModel", coalSim.simulateTree(alignment, coalModel));
-        treeModel.getRootHeightParameter().setParameterValueQuietly(0, 0.05);
+        final Parameter rootHeightParameter = treeModel.getRootHeightParameter();
+        rootHeightParameter.setParameterValueQuietly(0, 0.05);
+        rootHeightParameter.setId(ROOT_HEIGHT_NAME);
 
         // Tree likelihoods
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = getAncestralStateBeagleTreeLikelihoods(subsModels, siteModels, p, branchRates, treeModel);
@@ -213,6 +222,7 @@ public class StarTreeRenaissance {
         ArrayLogFormatter formatter = new ArrayLogFormatter(false);
         MCLogger logger = new MCLogger(formatter, sampleEvery, false);
         createdNdSloggers(treeModel, robustCounts, logger);
+        logger.add(rootHeightParameter);
 
         MCMCOptions options = new MCMCOptions(chainLength);
         MCMC mcmc = new MCMC("mcmc");
@@ -237,7 +247,8 @@ public class StarTreeRenaissance {
         final RealMatrix cn = new BlockRealMatrix(traceLength, offset + nCodons),
                 cs = new BlockRealMatrix(traceLength, offset + nCodons),
                 un = new BlockRealMatrix(traceLength, offset + nCodons),
-                us = new BlockRealMatrix(traceLength, offset + nCodons);
+                us = new BlockRealMatrix(traceLength, offset + nCodons),
+                bl = new BlockRealMatrix(traceLength, offset + nCodons);
 
         final RealVector state = new ArrayRealVector(traceLength);
 
@@ -249,6 +260,15 @@ public class StarTreeRenaissance {
                     @SuppressWarnings("unchecked")
                     final Trace<Double> dTrace = (Trace<Double>) trace;
                     state.setEntry(i, dTrace.getValue(i));
+                    continue;
+                } else if(name.equals(ROOT_HEIGHT_NAME)) {
+                    @SuppressWarnings("unchecked")
+                    final Trace<Double> dTrace = (Trace<Double>) trace;
+
+                    final double d = dTrace.getValue(i);
+                    for(int j = 0; j < bl.getColumnDimension(); j++) {
+                      bl.setEntry(i, j, coverage[j] > 0 ? d : 0);
+                    }
                     continue;
                 }
                 final Matcher m = p.matcher(name);
@@ -275,7 +295,7 @@ public class StarTreeRenaissance {
             }
         }
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage);
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage, bl);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {

@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * Created by cmccoy on 12/5/13.
  */
-public class StarTreeRenaissanceTest {
+public class StarTreeRenaissanceTestCase {
 
     //@org.junit.Ignore("Just runs a sampler")
     @Test

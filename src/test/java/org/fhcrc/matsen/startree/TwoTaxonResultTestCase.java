@@ -4,13 +4,23 @@ import org.apache.commons.math.linear.ArrayRealVector;
 import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
 
 /**
  * Created by cmccoy on 12/16/13.
  */
-public class TwoTaxonResultTest {
+public class TwoTaxonResultTestCase {
+    @Before
+    public void setUp() throws Exception {
+    }
+
+    @After
+    public void tearDown() throws Exception {
+    }
+
     public static final double TOL = 1e-6;
     private static RealMatrix createRealMatrix(final int rows, final int cols, final double value) {
         RealMatrix result = new BlockRealMatrix(rows, cols);
@@ -54,7 +64,15 @@ public class TwoTaxonResultTest {
                 cs2 = createRealMatrix(r, c, 2.74),
 
                 us1 = createRealMatrix(r, c, 7.7),
-                us2 = createRealMatrix(r, c, 3.14);
+                us2 = createRealMatrix(r, c, 3.14),
+
+                bl1 = createRealMatrix(r, c, 14.1),
+                bl2 = createRealMatrix(r, c, 1.4);
+
+        for(int i = 0; i < r; i++) {
+            bl1.setEntry(i, 0, 0);
+            bl1.setEntry(i, 0, 1);
+        }
 
         final double[] stateArr = new double[] {1, 20, 40, 80};
         final RealVector state = new ArrayRealVector(stateArr);
@@ -62,8 +80,8 @@ public class TwoTaxonResultTest {
         final RealVector cov1 = createRealVector(c, 1.0);
         final RealVector cov2 = createRealVector(c, 1.0);
 
-        final TwoTaxonResult t1 = new TwoTaxonResult(state, cn1, cs1, un1, us1, cov1.toArray()),
-                             t2 = new TwoTaxonResult(state, cn2, cs2, un2, us2, cov2.toArray());
+        final TwoTaxonResult t1 = new TwoTaxonResult(state, cn1, cs1, un1, us1, cov1.toArray(), bl1),
+                             t2 = new TwoTaxonResult(state, cn2, cs2, un2, us2, cov2.toArray(), bl2);
 
         final TwoTaxonResult summed = t1.plus(t2);
 
@@ -71,6 +89,7 @@ public class TwoTaxonResultTest {
         checkSum(un1, un2, summed.getUnconditionalNonsynonymous());
         checkSum(cs1, cs2, summed.getConditionalSynonymous());
         checkSum(us1, us2, summed.getUnconditionalSynonymous());
+        checkSum(bl1, bl2, summed.getTotalBranchLength());
 
         final RealVector totalCov = cov1.add(cov2);
         Assert.assertArrayEquals(totalCov.getData(), summed.getCoverage().getData(), TOL);

@@ -26,19 +26,21 @@ public class TwoTaxonResult implements java.io.Serializable {
     private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
 
     final RealMatrix conditionalNonsynonymous, conditionalSynonymous,
-            unconditionalNonsynonymous, unconditionalSynonymous, dNdS;
-    final RealVector state;
-    final RealVector coverage;
+            unconditionalNonsynonymous, unconditionalSynonymous, dNdS, totalBranchLength;
+    final RealVector state, coverage;
 
-    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage) {
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == conditionalSynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalNonsynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == unconditionalSynonymous.getRowDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == conditionalSynonymous.getColumnDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalNonsynonymous.getColumnDimension());
-        Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == unconditionalSynonymous.getColumnDimension());
+    private static void checkDimensions(final RealMatrix a, final RealMatrix b) {
+        Preconditions.checkArgument(a.getRowDimension() == b.getRowDimension());
+        Preconditions.checkArgument(a.getColumnDimension() == b.getColumnDimension());
+    }
+
+    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage, RealMatrix totalBranchLength) {
+        checkDimensions(conditionalNonsynonymous, conditionalSynonymous);
+        checkDimensions(conditionalNonsynonymous, unconditionalNonsynonymous);
+        checkDimensions(conditionalNonsynonymous, unconditionalSynonymous);
         Preconditions.checkArgument(conditionalNonsynonymous.getRowDimension() == state.getDimension());
         Preconditions.checkArgument(conditionalNonsynonymous.getColumnDimension() == coverage.length);
+        checkDimensions(conditionalNonsynonymous, totalBranchLength);
 
         this.conditionalNonsynonymous = conditionalNonsynonymous;
         this.conditionalSynonymous = conditionalSynonymous;
@@ -46,6 +48,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         this.unconditionalSynonymous = unconditionalSynonymous;
         this.state = state;
         this.coverage = new ArrayRealVector(coverage);
+        this.totalBranchLength = totalBranchLength;
         this.dNdS = computeDNdSMatrix();
     }
 
@@ -58,7 +61,8 @@ public class TwoTaxonResult implements java.io.Serializable {
                 un = unconditionalNonsynonymous.add(other.unconditionalNonsynonymous),
                 us = unconditionalSynonymous.add(other.unconditionalSynonymous);
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray());
+        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray(),
+            totalBranchLength.add(other.totalBranchLength));
     }
 
     public RealMatrix getUnconditionalSynonymous() {
@@ -77,6 +81,8 @@ public class TwoTaxonResult implements java.io.Serializable {
 
     public RealVector getCoverage() { return coverage; }
 
+    public RealMatrix getTotalBranchLength() { return totalBranchLength; }
+
     /**
      * Get a smoothed equivalent of this result. 
      *
@@ -86,27 +92,28 @@ public class TwoTaxonResult implements java.io.Serializable {
         double[][] cn = conditionalNonsynonymous.getData(),
                    cs = conditionalSynonymous.getData(),
                    un = unconditionalNonsynonymous.getData(),
-                   us = unconditionalSynonymous.getData();
+                   us = unconditionalSynonymous.getData(),
+                   bl = totalBranchLength.getData();
 
         double[][][] arrays = new double[][][]{cn, cs, un, us};
-        final double[] cov = coverage.toArray();
 
-        for(int i = 0; i < arrays.length; i++) {
-            for(int j = 0; j < arrays[i].length; j++) {
-                if (StatUtils.sum(arrays[i][j]) == 0.0) {
-                    logger.warning(String.format("No counts observed at %d, %d", i, j));
+        for(int arr = 0; arr < arrays.length; arr++) {
+            for(int row = 0; row < arrays[arr].length; row++) {
+                if (StatUtils.sum(arrays[arr][row]) == 0.0) {
+                    logger.warning(String.format("No counts observed at array %d row %d", arr, row));
                 }
-                arrays[i][j] = WeightedEmpiricalBayesPoissonSmoother.smooth(arrays[i][j], cov, sample);
+                arrays[arr][row] = TLambdaPoissonSmoother.smooth(arrays[arr][row], bl[row], sample);
             }
         }
 
         return new TwoTaxonResult(
-            state,
+            state.copy(),
             new BlockRealMatrix(cn),
             new BlockRealMatrix(cs),
             new BlockRealMatrix(un),
             new BlockRealMatrix(us),
-            cov);
+            coverage.toArray(),
+            totalBranchLength.copy());
     }
 
     public RealMatrix getDNdSMatrix() {
@@ -128,7 +135,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                              us = unconditionalSynonymous.getEntry(i, j);
                 final double d = (cn / un) / (cs / us);
                 if(Double.isInfinite(d)) {
-                    logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f - using 1.0", i, j, cn, un, cs, us));
+                    //logger.warning(String.format("Infinite dNdS for (%d, %d): cn=%f un=%f cs=%f us=%f - using 1.0", i, j, cn, un, cs, us));
                     result.setEntry(i, j, 1.0);
                 } else {
                     result.setEntry(i, j, d);

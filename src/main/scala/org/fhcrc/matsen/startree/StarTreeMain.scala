@@ -5,11 +5,7 @@ import java.util.logging._
 import scala.collection.JavaConverters._
 
 import net.sf.samtools.SAMFileReader
-import net.sf.samtools.SAMRecord
 
-import dr.app.beagle.evomodel.sitemodel.SiteRateModel
-import dr.app.beagle.evomodel.substmodel.HKY
-import dr.evolution.alignment.Alignment
 
 import com.google.common.base.Preconditions
 import com.google.gson.GsonBuilder
@@ -78,7 +74,7 @@ object StarTreeMain {
       .create
     val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
     gson.toJson(result, jsonWriter)
-    jsonWriter.close
+    jsonWriter.close()
   }
 
   def main(args: Array[String]) {
