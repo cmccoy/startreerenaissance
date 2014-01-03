@@ -9,11 +9,7 @@ import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 
 import net.sf.samtools.SAMFileReader
-import net.sf.samtools.SAMRecord
 
-import dr.app.beagle.evomodel.sitemodel.SiteRateModel
-import dr.app.beagle.evomodel.substmodel.HKY
-import dr.evolution.alignment.Alignment
 import org.fhcrc.matsen.startree._
 import org.fhcrc.matsen.startree.gson._
 
@@ -109,7 +105,7 @@ object StarTreeSpark {
             .create
           val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
           gson.toJson(result, jsonWriter)
-          jsonWriter.close
+          jsonWriter.close()
         }
       }
   }
