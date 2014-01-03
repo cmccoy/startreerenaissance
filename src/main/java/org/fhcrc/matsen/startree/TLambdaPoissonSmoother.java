@@ -106,7 +106,7 @@ public class TLambdaPoissonSmoother {
         } catch (org.apache.commons.math3.exception.MathIllegalStateException e) {
             final double mean = new Mean().evaluate(c, t);
             final double var = new Variance().evaluate(c, t, mean);
-            logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}\n{2}\nUsing Poisson.",
+            logger.log(Level.WARNING, "Optimization failed. mean: {0} var: {1}. Using Poisson.\n{2}",
                     new Object[]{mean, var, e});
 
             return smoothPoissonOnly(c, t, sample);
