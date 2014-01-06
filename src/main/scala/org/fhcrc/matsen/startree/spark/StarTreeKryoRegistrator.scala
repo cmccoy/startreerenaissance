@@ -11,7 +11,7 @@ import org.apache.spark.serializer.KryoRegistrator
  */
 class StarTreeKryoRegistrator extends KryoRegistrator {
   // Classes to register with Kryo
-  val classes = Seq(classOf[SimpleAlignment],
+  private[this] val classes = Seq(classOf[SimpleAlignment],
     classOf[ArrayRealVector],
     classOf[BlockRealMatrix],
     classOf[TwoTaxonResult])
