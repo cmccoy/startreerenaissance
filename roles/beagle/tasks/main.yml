@@ -1,7 +1,6 @@
 ---
 - name: install BEAGLE RPM
   yum: pkg=https://s3.amazonaws.com/startreerenaissance/rpm/beagle_2.1.x86_64.rpm
-  when: ec2_master_group_name in ec2_security_group_names or ec2_slave_group_name in ec2_security_group_names
 
 - name: Add /usr/local/lib to java.library.path in SPARK
   lineinfile: dest=/root/spark/conf/spark-env.sh
@@ -11,7 +10,6 @@
               insertafter=EOF
               state=present
               owner=root
-  when: ec2_master_group_name in ec2_security_group_names or ec2_slave_group_name in ec2_security_group_names
   notify:
     - stop spark
     - start spark

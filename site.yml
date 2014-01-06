@@ -5,4 +5,4 @@
   remote_user: ec2-user
   sudo: yes
   roles:
-    - beagle
+    - { role: beagle, when: ec2_master_group_name in ec2_security_group_names or ec2_slave_group_name in ec2_security_group_names }
