@@ -1,7 +1,10 @@
 package org.fhcrc.matsen.startree;
 
 import com.google.common.base.Preconditions;
+import org.apache.commons.math.linear.ArrayRealVector;
+import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
+import org.apache.commons.math.linear.RealVector;
 import org.apache.commons.math.stat.StatUtils;
 
 
@@ -26,4 +29,21 @@ public class MatrixUtils {
         return result;
     }
 
+
+    public static RealMatrix createRealMatrix(final int rows, final int cols, final double value) {
+        RealMatrix result = new BlockRealMatrix(rows, cols);
+        for(int i = 0; i < rows; i++) {
+            for(int j = 0; j < cols; j++) {
+                result.setEntry(i, j, value);
+            }
+        }
+
+        return result;
+    }
+
+    public static RealVector createRealVector(final int length, final double value) {
+        RealVector result = new ArrayRealVector(length);
+        result.set(value);
+        return result;
+    }
 }

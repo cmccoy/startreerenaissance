@@ -104,10 +104,7 @@ object StarTreeSpark {
           val jsonName = config.prefix + refName.replaceAll("\\*", "_") + ".json.gz"
           val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
           val jsonWriter = new PrintStream(jsonStream)
-          val gson = new GsonBuilder()
-            .registerTypeAdapter(BlockRealMatrixSerializer.serializedType, new BlockRealMatrixSerializer)
-            .serializeSpecialFloatingPointValues()
-            .create
+          val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
           val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
           gson.toJson(result, jsonWriter)
           jsonWriter.close()

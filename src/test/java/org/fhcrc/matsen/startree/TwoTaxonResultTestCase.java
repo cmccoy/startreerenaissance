@@ -1,13 +1,15 @@
 package org.fhcrc.matsen.startree;
 
 import org.apache.commons.math.linear.ArrayRealVector;
-import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Assert;
+
+import static org.fhcrc.matsen.startree.MatrixUtils.createRealMatrix;
+import static org.fhcrc.matsen.startree.MatrixUtils.createRealVector;
 
 /**
  * Created by cmccoy on 12/16/13.
@@ -22,22 +24,6 @@ public class TwoTaxonResultTestCase {
     }
 
     public static final double TOL = 1e-6;
-    private static RealMatrix createRealMatrix(final int rows, final int cols, final double value) {
-        RealMatrix result = new BlockRealMatrix(rows, cols);
-        for(int i = 0; i < rows; i++) {
-            for(int j = 0; j < cols; j++) {
-                result.setEntry(i, j, value);
-            }
-        }
-
-        return result;
-    }
-
-    private static RealVector createRealVector(final int length, final double value) {
-        RealVector result = new ArrayRealVector(length);
-        result.set(value);
-        return result;
-    }
 
     private void checkSum(final RealMatrix m1, final RealMatrix m2, final RealMatrix result) {
         Assert.assertEquals(m1.getColumnDimension(), m2.getColumnDimension());
