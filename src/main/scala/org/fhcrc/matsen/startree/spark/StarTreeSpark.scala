@@ -15,6 +15,7 @@ import org.fhcrc.matsen.startree.gson._
 
 import com.google.common.base.Preconditions
 import com.google.gson.GsonBuilder
+import com.google.gson.reflect.TypeToken
 
 case class Config(parallelism: Int = 12,
                   prefix: String = "",
@@ -106,7 +107,8 @@ object StarTreeSpark {
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
           val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-          gson.toJson(result, jsonWriter)
+          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
+          gson.toJson(result, typeToken, jsonWriter)
           jsonWriter.close()
         }
       }
