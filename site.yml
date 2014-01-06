@@ -1,8 +1,10 @@
 ---
 # This playbook sets up my workstation
 
-- hosts: all
+- hosts:
+    - tag_spark_node_type_master
+    - tag_spark_node_type_slave
   remote_user: ec2-user
   sudo: yes
   roles:
-    - { role: beagle, when: ec2_master_group_name in ec2_security_group_names or ec2_slave_group_name in ec2_security_group_names }
+    - beagle

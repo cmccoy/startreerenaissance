@@ -3,7 +3,10 @@ KEY_ID := cmccoy@stoat
 REGION := us-west-2
 INSTANCE_TYPE := m1.large
 CLUSTER_NAME := test-spark
-SLAVES := 1
+SLAVES ?= 1
+
+get-master:
+	spark-ec2/spark-ec2 --region $(REGION) get-master $(CLUSTER_NAME)
 
 launch:
 	spark-ec2/spark-ec2 \
@@ -14,15 +17,14 @@ launch:
 		--region $(REGION) \
 		--instance-type $(INSTANCE_TYPE) \
 		--wait 300 \
-		launch $(CLUSTER_NAME)
+		launch $(CLUSTER_NAME) && \
+		python tag-instances.py $(CLUSTER_NAME)
+	
 
 destroy:
 	spark-ec2/spark-ec2 \
 		--region $(REGION) \
 		destroy $(CLUSTER_NAME)
-
-get-master:
-	spark-ec2/spark-ec2 --region $(REGION) get-master $(CLUSTER_NAME)
 
 login:
 	spark-ec2/spark-ec2 \
