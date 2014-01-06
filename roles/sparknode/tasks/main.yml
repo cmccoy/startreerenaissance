@@ -14,8 +14,11 @@
     - stop spark
     - start spark
 
-- name: Install some useful things
+- name: Install some useful packages
   yum: pkg={{item}} state=installed
   with_items:
     - tree
     - htop
+
+- name: Install ack
+  copy: src=ack dest=/usr/bin/ack owner=root group=root mode=0755
