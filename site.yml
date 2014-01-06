@@ -7,4 +7,4 @@
   remote_user: ec2-user
   sudo: yes
   roles:
-    - beagle
+    - sparknode

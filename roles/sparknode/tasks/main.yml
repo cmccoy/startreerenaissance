@@ -13,3 +13,9 @@
   notify:
     - stop spark
     - start spark
+
+- name: Install some useful things
+  yum: pkg={{item}} state=installed
+  with_items:
+    - tree
+    - htop

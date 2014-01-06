@@ -8,6 +8,9 @@ SLAVES ?= 1
 get-master:
 	spark-ec2/spark-ec2 --region $(REGION) get-master $(CLUSTER_NAME)
 
+ssh:
+	spark-ec2/spark-ec2 --identity-file $(PK) --region $(REGION) login $(CLUSTER_NAME)
+
 launch:
 	spark-ec2/spark-ec2 \
 		--identity-file $(PK) \
@@ -39,4 +42,4 @@ ansible-list:
 ansible-provision:
 	ansible-playbook -i ec2.py site.yml
 
-.PHONY: launch get-master login ansible-list ansible-provision destroy
+.PHONY: launch get-master login ansible-list ansible-provision destroy ssh
