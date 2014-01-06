@@ -24,7 +24,8 @@ case class Config(parallelism: Int = 12,
                   masterPath: String = "",
                   sparkHome: String = "/root/spark",
                   jarPath: String = "/root/startreerenaissance/target/scala-2.9.3/startreerenaissance-assembly-0.1.jar",
-                  executorMemory: String = "16g",
+                  consolidateFiles: Boolean = true,
+                  executorMemory: String = "8g",
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
                   bamPath: File = new File("."))
@@ -38,6 +39,7 @@ object StarTreeSpark {
     opt[Int]('j', "parallelism") action { (x, c) => c.copy(parallelism = x) } text("Parallelism level")
     opt[String]('p', "prefix") action { (x, c) => c.copy(prefix = x) } text("Prefix to add to each output file")
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
+    opt[Unit]("no-consolidate-files") action { (_, c) => c.copy(consolidateFiles = false) } text("Do *not* consolidate files")
     opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
     opt[String]('s', "spark-home") action { (x, c) => c.copy(sparkHome = x) } text("Spark home")
     opt[String]('j', "jar-path") action { (x, c) => c.copy(jarPath = x) } text("Path to the application JAR")
@@ -61,7 +63,8 @@ object StarTreeSpark {
     System.setProperty("spark.kryoserializer.buffer.mb", "256")
     System.setProperty("spark.executor.memory", config.executorMemory)
     System.setProperty("spark.akka.frameSize", "512")
-    System.setProperty("spark.shuffle.consolidateFiles", "true")
+    if (config.consolidateFiles)
+      System.setProperty("spark.shuffle.consolidateFiles", "true")
 
     val sc = config.masterPath match {
       case mp if mp.startsWith("local") =>
