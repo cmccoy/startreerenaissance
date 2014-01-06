@@ -19,14 +19,16 @@ import java.util.List;
  * To change this template use File | Settings | File Templates.
  */
 public class SAMBEASTUtils {
-    private SAMBEASTUtils() { throw new UnsupportedOperationException(); }
+    private SAMBEASTUtils() {
+        throw new UnsupportedOperationException();
+    }
 
     private static List<AlignedPair> getAlignedPairs(final SAMRecord record) {
         int q = 0, r = record.getAlignmentStart() - 1;
         List<AlignedPair> result = new ArrayList<AlignedPair>();
-        for(final CigarElement e : record.getCigar().getCigarElements()) {
+        for (final CigarElement e : record.getCigar().getCigarElements()) {
             final CigarOperator op = e.getOperator();
-            for(int i = 0; i < e.getLength(); i++) {
+            for (int i = 0; i < e.getLength(); i++) {
                 result.add(new AlignedPair(op.consumesReadBases() ? q++ : -1,
                         op.consumesReferenceBases() ? r++ : -1));
             }
@@ -36,8 +38,9 @@ public class SAMBEASTUtils {
 
     /**
      * Create a BEAST-compatible alignment from a SAM record and reference bases.
+     *
      * @param record Aligned read
-     * @param rSeq All reference sequence bases
+     * @param rSeq   All reference sequence bases
      * @return An alignment, covering all bases of rSeq
      */
     public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rSeq) {
@@ -46,20 +49,20 @@ public class SAMBEASTUtils {
 
         final byte[] qSeq = record.getReadBases();
 
-        for(int i = 0; i < record.getAlignmentStart() - 1; i++) {
+        for (int i = 0; i < record.getAlignmentStart() - 1; i++) {
             rAln.append((char) rSeq[i]);
             qAln.append('-');
         }
-        for(AlignedPair p : getAlignedPairs(record)) {
-            if(p.consumesReference()) {
+        for (AlignedPair p : getAlignedPairs(record)) {
+            if (p.consumesReference()) {
                 rAln.append((char) rSeq[p.getReferencePosition()]);
-                if(p.consumesQuery())
-                    qAln.append((char)qSeq[p.getQueryPosition()]);
+                if (p.consumesQuery())
+                    qAln.append((char) qSeq[p.getQueryPosition()]);
                 else
                     qAln.append('-');
             }
         }
-        for(int i = qAln.length(); i < rSeq.length; i++) {
+        for (int i = qAln.length(); i < rSeq.length; i++) {
             rAln.append((char) rSeq[i]);
             qAln.append('-');
         }

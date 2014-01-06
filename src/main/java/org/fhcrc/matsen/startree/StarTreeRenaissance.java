@@ -1,10 +1,7 @@
 package org.fhcrc.matsen.startree;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
-import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
 import dr.app.beagle.evomodel.substmodel.CodonLabeling;
 import dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting;
@@ -36,21 +33,15 @@ import dr.inference.operators.ScaleOperator;
 import dr.inference.operators.SimpleOperatorSchedule;
 import dr.inference.trace.Trace;
 import dr.math.distributions.ExponentialDistribution;
-import net.sf.samtools.SAMFileReader;
-import net.sf.samtools.SAMRecord;
 import org.apache.commons.math.linear.ArrayRealVector;
 import org.apache.commons.math.linear.BlockRealMatrix;
 import org.apache.commons.math.linear.RealMatrix;
 import org.apache.commons.math.linear.RealVector;
 import org.apache.commons.math.stat.StatUtils;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -82,13 +73,13 @@ public class StarTreeRenaissance {
      */
     private static int findOffset(final Alignment alignment) {
         Preconditions.checkState(alignment.getSequenceCount() == 2,
-            "Unexpected number of sequences");
+                "Unexpected number of sequences");
         final String query = alignment.getAlignedSequenceString(1);
         int offset = 0;
-        for(int i = 0; i < query.length(); i += 3) {
-            for(int j = i; j < i + 3; j++) {
-              if(query.charAt(j) != '-')
-                  return offset;
+        for (int i = 0; i < query.length(); i += 3) {
+            for (int j = i; j < i + 3; j++) {
+                if (query.charAt(j) != '-')
+                    return offset;
             }
             offset = i;
         }
@@ -97,7 +88,7 @@ public class StarTreeRenaissance {
 
     /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
-     *
+     * <p/>
      * Creates @link N_SAMPLES from a chain length of @link CHAIN_LENGTH
      *
      * @param alignment  An alignment with two taxa - no tree moves are performed!
@@ -120,11 +111,11 @@ public class StarTreeRenaissance {
         final double[] result = new double[alignment.getPatternCount() / 3];
         final String qry = alignment.getAlignedSequenceString(1);
 
-        for(int i = 0; i < result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             result[i] = 0.0;
-            for(int j = 0; j < 3; j++) {
+            for (int j = 0; j < 3; j++) {
                 final char c = qry.charAt(3 * i + j);
-                if(c != 'N' && c != '-') {
+                if (c != 'N' && c != '-') {
                     result[i] = 1;
                     continue;
                 }
@@ -132,16 +123,16 @@ public class StarTreeRenaissance {
         }
 
         Preconditions.checkState(StatUtils.max(result) == 1.0,
-            "Unexpected maximum value: %f", StatUtils.max(result));
+                "Unexpected maximum value: %f", StatUtils.max(result));
         return result;
     }
 
     /**
      * Generate some MCMC samples of synonymous / nonsynonymous substitutions both conditioned and unconditioned on data.
      *
-     * @param alignment  An alignment with two taxa - no tree moves are performed!
-     * @param subsModels One substitution model for each site.
-     * @param siteModels One site model for each site.
+     * @param alignment   An alignment with two taxa - no tree moves are performed!
+     * @param subsModels  One substitution model for each site.
+     * @param siteModels  One site model for each site.
      * @param chainLength Length of the MCMC chain
      * @param sampleEvery Sampling frequency
      * @return A TwoTaxonResult, with counts by iteration.
@@ -161,16 +152,16 @@ public class StarTreeRenaissance {
                 "Expected 2 sequences, got %s", alignment.getSequenceCount());
 
         // This is a hack, since this function often runs on a worker node, and we don't need to see citations for every pair
-        final java.util.logging.Logger[] toDisable = new java.util.logging.Logger[] {
-          java.util.logging.Logger.getLogger("dr.evomodel"),
-          java.util.logging.Logger.getLogger("dr.app.beagle")
+        final java.util.logging.Logger[] toDisable = new java.util.logging.Logger[]{
+                java.util.logging.Logger.getLogger("dr.evomodel"),
+                java.util.logging.Logger.getLogger("dr.app.beagle")
         };
         for (final java.util.logging.Logger l : toDisable) {
-          l.setLevel(java.util.logging.Level.WARNING);
+            l.setLevel(java.util.logging.Level.WARNING);
         }
 
         int minIndex = findOffset(alignment);
-        log.log(Level.CONFIG, "offset: {0}", new Object[] { minIndex });
+        log.log(Level.CONFIG, "offset: {0}", new Object[]{minIndex});
         Preconditions.checkState(minIndex % 3 == 0);
 
         // Patterns
@@ -261,13 +252,13 @@ public class StarTreeRenaissance {
                     final Trace<Double> dTrace = (Trace<Double>) trace;
                     state.setEntry(i, dTrace.getValue(i));
                     continue;
-                } else if(name.equals(ROOT_HEIGHT_NAME)) {
+                } else if (name.equals(ROOT_HEIGHT_NAME)) {
                     @SuppressWarnings("unchecked")
                     final Trace<Double> dTrace = (Trace<Double>) trace;
 
                     final double d = dTrace.getValue(i);
-                    for(int j = 0; j < bl.getColumnDimension(); j++) {
-                      bl.setEntry(i, j, coverage[j] > 0 ? d : 0);
+                    for (int j = 0; j < bl.getColumnDimension(); j++) {
+                        bl.setEntry(i, j, coverage[j] > 0 ? d : 0);
                     }
                     continue;
                 }
@@ -277,7 +268,7 @@ public class StarTreeRenaissance {
                 final int pos = Integer.parseInt(m.group(1)) - 1 + offset;
 
                 final RealMatrix target;
-                if(name.startsWith("CN"))
+                if (name.startsWith("CN"))
                     target = cn;
                 else if (name.startsWith("CS"))
                     target = cs;
@@ -354,10 +345,10 @@ public class StarTreeRenaissance {
     private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
         // expected trait order: c_S u_S c_N u_N
         final TreeTrait[] traits = new TreeTrait[4];
-        final String[] expectedNames = new String[] { "c_S", "u_S", "c_N", "u_N" };
+        final String[] expectedNames = new String[]{"c_S", "u_S", "c_N", "u_N"};
         for (final CodonPartitionedRobustCounting rc : robustCounts) {
             for (TreeTrait trait : rc.getTreeTraits()) {
-                if(trait.getTraitName().matches("[cu]_[NS]")) {
+                if (trait.getTraitName().matches("[cu]_[NS]")) {
                     final String name = trait.getTraitName();
                     // Generate index to match expected order above
                     final int idx = (name.endsWith("S") ? 0 : 2) + (name.startsWith("c") ? 0 : 1);
@@ -366,10 +357,10 @@ public class StarTreeRenaissance {
                 }
             }
         }
-        for(int i = 0; i < traits.length; i++) {
+        for (int i = 0; i < traits.length; i++) {
             Preconditions.checkState(traits[i] != null, "Missing trait %d", i);
             Preconditions.checkState(traits[i].getTraitName().equals(expectedNames[i]),
-                "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
+                    "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
         }
 
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));

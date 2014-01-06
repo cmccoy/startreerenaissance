@@ -63,7 +63,7 @@ public class TLambdaPoissonSmoother {
         final double lambda = fitLambda(c, t);
 
         for (int i = 0; i < c.length; i++) {
-            if(sample) {
+            if (sample) {
                 smoothed[i] = Poisson.nextPoisson(lambda * t[i]);
             } else {
                 smoothed[i] = lambda;
@@ -75,13 +75,13 @@ public class TLambdaPoissonSmoother {
 
     /**
      * Smooth the counts <c>c</c>, producing per-site rates
-     *
+     * <p/>
      * In the event that the variance of lambda is less than the mean, we fit:
-     *
+     * <p/>
      * <code>
-     *     c_i \sim Poisson(t_i * lambda)
+     * c_i \sim Poisson(t_i * lambda)
      * </code>
-     *
+     * <p/>
      * Where lambda is estimated from the data
      *
      * @param c      Substitution counts
@@ -134,10 +134,11 @@ public class TLambdaPoissonSmoother {
     /**
      * Fits:
      * <code>
-     *     c_i \sim Poisson(t_i * lambda)
+     * c_i \sim Poisson(t_i * lambda)
      * </code>
-     *
+     * <p/>
      * Using Brent's method.
+     *
      * @param c counts
      * @param t branch lengths
      * @return estimate of lambda
@@ -157,7 +158,7 @@ public class TLambdaPoissonSmoother {
                 double result = 0;
                 for (int i = 0; i < c.length; i++) {
                     PoissonDistribution p = new PoissonDistribution(x * t[i]);
-                    result += Math.log(p.probability((int)c[i]));
+                    result += Math.log(p.probability((int) c[i]));
                 }
 
                 return result;

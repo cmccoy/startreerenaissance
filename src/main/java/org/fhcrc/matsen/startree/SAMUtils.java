@@ -9,7 +9,6 @@ import net.sf.samtools.CigarOperator;
 import net.sf.samtools.SAMRecord;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +19,9 @@ import java.util.Map;
 public class SAMUtils {
     /**
      * Get aligned pairs from a SAM record
-     *
+     * <p/>
      * This mimics pysams AlignedRead.aligned_pairs
+     *
      * @param record Aligned read
      * @return List of aligned (reference, query) indices
      */
@@ -29,9 +29,9 @@ public class SAMUtils {
         Preconditions.checkNotNull(record);
         int q = 0, r = record.getAlignmentStart() - 1;
         List<AlignedPair> result = Lists.newArrayList();
-        for(final CigarElement e : record.getCigar().getCigarElements()) {
+        for (final CigarElement e : record.getCigar().getCigarElements()) {
             final CigarOperator op = e.getOperator();
-            for(int i = 0; i < e.getLength(); i++) {
+            for (int i = 0; i < e.getLength(); i++) {
                 result.add(new AlignedPair(op.consumesReadBases() ? q++ : -1,
                         op.consumesReferenceBases() ? r++ : -1));
             }
@@ -41,6 +41,7 @@ public class SAMUtils {
 
     /**
      * Read all sequences from a FASTA file, returning a map from name to sequence
+     *
      * @param path Path to FASTA file
      * @return Map from name to sequence
      */
@@ -50,7 +51,7 @@ public class SAMUtils {
 
         final FastaSequenceFile file = new FastaSequenceFile(path, true);
         ReferenceSequence sequence = file.nextSequence();
-        while(sequence != null) {
+        while (sequence != null) {
             result.put(sequence.getName(), sequence.getBases());
             sequence = file.nextSequence();
         }

@@ -25,12 +25,12 @@ public class HKYModelParser {
 
         JsonArray partitions = parsed.getAsJsonArray("partitions");
         List<HKYAndRate> result = new ArrayList<HKYAndRate>(partitions.size());
-        for(int i = 0; i < partitions.size(); i++) {
+        for (int i = 0; i < partitions.size(); i++) {
             final JsonObject p = partitions.get(i).getAsJsonObject();
             final double kappa = p.get("parameters").getAsJsonObject().get("HKY85.kappa").getAsDouble();
             final double[] pi = new double[4];
             final JsonArray piNode = p.get("pi").getAsJsonArray();
-            for(int j = 0; j < piNode.size(); j++) {
+            for (int j = 0; j < piNode.size(); j++) {
                 pi[j] = piNode.get(j).getAsDouble();
             }
 
