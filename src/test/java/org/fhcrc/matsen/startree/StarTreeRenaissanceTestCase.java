@@ -38,10 +38,5 @@ public class StarTreeRenaissanceTestCase {
         //TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 20);
         TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates);
         assertEquals(r.getUnconditionalNonsynonymous().getColumnDimension(), alignment.getPatternCount() / 3);
-        //System.err.format("uN:\n%s\nuS:\n%s\ncN:\n%s\ncS:\n%s\n",
-                //r.getUnconditionalNonsynonymous(),
-                //r.getUnconditionalSynonymous(),
-                //r.getConditionalNonsynonymous(),
-                //r.getConditionalSynonymous());
     }
 }
