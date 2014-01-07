@@ -1,2 +1,2 @@
-boto
-ansible
+boto>=2.20.1
+ansible>=1.4.2
