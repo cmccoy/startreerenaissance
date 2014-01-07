@@ -1,0 +1,10 @@
+---
+# This playbook sets up my workstation
+
+- hosts:
+    - tag_spark_node_type_master
+    - tag_spark_node_type_slave
+  remote_user: ec2-user
+  sudo: yes
+  roles:
+    - sparknode

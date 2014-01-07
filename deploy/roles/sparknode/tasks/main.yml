@@ -1,0 +1,24 @@
+---
+- name: install BEAGLE RPM
+  yum: pkg=https://s3.amazonaws.com/startreerenaissance/rpm/beagle_2.1.x86_64.rpm
+
+- name: Add /usr/local/lib to java.library.path in SPARK
+  lineinfile: dest=/root/spark/conf/spark-env.sh
+              line="export SPARK_LIBRARY_PATH=/usr/local/lib:$SPARK_LIBRARY_PATH"
+              regexp="^export SPARK_LIBRARY_PATH=/usr/local/lib:"
+              create=False
+              insertafter=EOF
+              state=present
+              owner=root
+  notify:
+    - stop spark
+    - start spark
+
+- name: Install some useful packages
+  yum: pkg={{item}} state=installed
+  with_items:
+    - tree
+    - htop
+
+- name: Install ack
+  copy: src=ack dest=/usr/bin/ack owner=root group=root mode=0755
