@@ -99,7 +99,7 @@ object StarTreeSpark {
     // Save each target to S3 if a bucket is given
     config.bucket.map {
       bucket => {
-        result map {
+        result foreach {
           case (refName, v) => {
             val smoothed = v.getSmoothed(config.sample)
 
