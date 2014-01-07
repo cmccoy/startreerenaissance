@@ -100,6 +100,8 @@ object StarTreeSpark {
     config.bucket.map {
       bucket => {
         println("Uploading to S3")
+        val cred = sc.broadcast(new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials)
+
         result foreach {
           case (refName, v) => {
             val smoothed = v.getSmoothed(config.sample)
@@ -117,8 +119,7 @@ object StarTreeSpark {
             jsonWriter.close()
 
             // errors on missing credentials
-            val cred = new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials
-            val s3Client = new AmazonS3Client(cred)
+            val s3Client = new AmazonS3Client(cred.value)
 
             try {
               val r = s3Client.putObject(bucket, jsonName, tmpFile)
