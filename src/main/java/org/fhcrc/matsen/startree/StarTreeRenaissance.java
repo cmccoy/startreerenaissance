@@ -61,7 +61,7 @@ public class StarTreeRenaissance {
     // TODO: what about releasing beagle instance?
     private static ReentrantLock beagleLock = new ReentrantLock();
     public static final int CHAIN_LENGTH = 20000;
-    public static final int N_SAMPLES = 1000;
+    public static final int N_SAMPLES = 500;
     public static final int SAMPLE_FREQ = CHAIN_LENGTH / N_SAMPLES;
 
     private static final java.util.logging.Logger log = java.util.logging.Logger.getLogger("org.fhcrc.matsen.startree");
