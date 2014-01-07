@@ -169,7 +169,7 @@ public class TLambdaPoissonSmoother {
                 new MaxEval(100),
                 new UnivariateObjectiveFunction(fn),
                 GoalType.MAXIMIZE,
-                new SearchInterval(0.0001, 1000));
+                new SearchInterval(0.001, 1000));
 
         logger.log(Level.FINE, "Brent finished in {0} steps",
                 optimizer.getIterations());
