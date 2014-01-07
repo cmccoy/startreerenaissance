@@ -16,6 +16,8 @@ import org.fhcrc.matsen.startree.gson._
 import com.google.common.base.Preconditions
 import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.model.{ObjectMetadata, PutObjectRequest}
 
 case class Config(parallelism: Int = 12,
                   prefix: String = "",
@@ -26,6 +28,7 @@ case class Config(parallelism: Int = 12,
                   jarPath: String = "/root/startreerenaissance/target/scala-2.9.3/startreerenaissance-assembly-0.1.jar",
                   consolidateFiles: Boolean = true,
                   executorMemory: String = "8g",
+                  bucket: Option[String] = None,
                   jsonPath: File = new File("."),
                   fastaPath: File = new File("."),
                   bamPath: File = new File("."))
@@ -41,6 +44,7 @@ object StarTreeSpark {
     opt[Unit]('n', "no-smooth") action { (_, c) => c.copy(smooth = false) } text("Do *not* smooth parameter estimates using empirical bayes")
     opt[Unit]("no-consolidate-files") action { (_, c) => c.copy(consolidateFiles = false) } text("Do *not* consolidate files")
     opt[Unit]('n', "sample") action { (_, c) => c.copy(sample = true) } text("Sample rates from poisson-gamma, rather than just using the mean")
+    opt[String]('b', "bucket") action { (x, c) => c.copy(bucket=Some(x)) } text("Upload to bucket")
     opt[String]('s', "spark-home") action { (x, c) => c.copy(sparkHome = x) } text("Spark home")
     opt[String]('j', "jar-path") action { (x, c) => c.copy(jarPath = x) } text("Path to the application JAR")
     opt[String]("executor-memory") action { (x, c) => c.copy(executorMemory = x) } text("Executor memory")
@@ -77,7 +81,6 @@ object StarTreeSpark {
 
     val references = SAMUtils.readAllFasta(config.fastaPath)
 
-
     val alignments = sc.parallelize(reader.asScala.map(
       r => {
         val ref = references.get(r.getReferenceName());
@@ -89,12 +92,52 @@ object StarTreeSpark {
         val model = modelRates.map(hr => hr.getModel).asJava
         val rates = modelRates.map(hr => hr.getSiteRateModel).asJava
         StarTreeRenaissance.calculate(a, model, rates)
-      }).reduceByKey(_.plus(_), config.parallelism).collect
+      }).reduceByKey(_.plus(_), config.parallelism)
+
+    val bcastConfig = sc.broadcast(config)
+
+    // Save each target to S3 if a bucket is given
+    if(!config.bucket.isEmpty) {
+      println("Uploading to S3 bucket " + config.bucket.get)
+      val cred = sc.broadcast(new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials)
+
+      result foreach {
+        case (refName, v) => {
+          val smoothed = v.getSmoothed(bcastConfig.value.sample)
+
+          val jsonBase = config.prefix + refName.replaceAll("\\*", "_")
+          val jsonName = jsonBase + ".json.gz"
+          val tmpFile = File.createTempFile(jsonBase, ".json.gz")
+
+          val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
+          val jsonWriter = new PrintStream(jsonStream)
+          val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
+          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
+          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
+          gson.toJson(result, typeToken, jsonWriter)
+          jsonWriter.close()
+
+          // errors on missing credentials
+          //val s3Client = new AmazonS3Client(new com.amazonaws.auth.BasicAWSCredentials(key_id.value, secret.value))
+          val s3Client = new AmazonS3Client(cred.value)
+
+          try {
+            val r = s3Client.putObject(bcastConfig.value.bucket.get, jsonName, tmpFile)
+            println(r)
+          } finally {
+            val wasDeleted = tmpFile.delete()
+            require(wasDeleted, "failed to delete temp file")
+          }
+        }
+      }
+    }
+
+    val resultLocal = result.collect
 
     // Stop the Spark context - remaining work is local.
     sc.stop()
 
-    result.foreach {
+    resultLocal foreach {
         case (refName, v) => {
           val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
           val writer = new PrintStream(new File(outName))
