@@ -97,42 +97,40 @@ object StarTreeSpark {
     val bcastConfig = sc.broadcast(config)
 
     // Save each target to S3 if a bucket is given
-    config.bucket.map {
-      bucket => {
-        println("Uploading to S3")
-        val cred = sc.broadcast(new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials)
+    if(!config.bucket.isEmpty) {
+      println("Uploading to S3 bucket " + config.bucket.get)
+      val cred = sc.broadcast(new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials)
 
-        result foreach {
-          case (refName, v) => {
-            val smoothed = v.getSmoothed(config.sample)
+      result foreach {
+        case (refName, v) => {
+          val smoothed = v.getSmoothed(bcastConfig.value.sample)
 
-            val jsonBase = config.prefix + refName.replaceAll("\\*", "_")
-            val jsonName = jsonBase + ".json.gz"
-            val tmpFile = File.createTempFile(jsonBase, ".json.gz")
+          val jsonBase = config.prefix + refName.replaceAll("\\*", "_")
+          val jsonName = jsonBase + ".json.gz"
+          val tmpFile = File.createTempFile(jsonBase, ".json.gz")
 
-            val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
-            val jsonWriter = new PrintStream(jsonStream)
-            val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
-            val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-            val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
-            gson.toJson(result, typeToken, jsonWriter)
-            jsonWriter.close()
+          val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
+          val jsonWriter = new PrintStream(jsonStream)
+          val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
+          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
+          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
+          gson.toJson(result, typeToken, jsonWriter)
+          jsonWriter.close()
 
-            // errors on missing credentials
-            val s3Client = new AmazonS3Client(cred.value)
+          // errors on missing credentials
+          //val s3Client = new AmazonS3Client(new com.amazonaws.auth.BasicAWSCredentials(key_id.value, secret.value))
+          val s3Client = new AmazonS3Client(cred.value)
 
-            try {
-              val r = s3Client.putObject(bucket, jsonName, tmpFile)
-              println(r)
-            } finally {
-              val wasDeleted = tmpFile.delete()
-              require(wasDeleted, "failed to delete temp file")
-            }
+          try {
+            val r = s3Client.putObject(bcastConfig.value.bucket.get, jsonName, tmpFile)
+            println(r)
+          } finally {
+            val wasDeleted = tmpFile.delete()
+            require(wasDeleted, "failed to delete temp file")
           }
         }
       }
     }
-
 
     val resultLocal = result.collect
 
