@@ -97,32 +97,39 @@ object StarTreeSpark {
     val bcastConfig = sc.broadcast(config)
 
     // Save each target to S3 if a bucket is given
-    if(config.bucket.isDefined) {
-      result map {
-        case (refName, v) => {
-          val smoothed = v.getSmoothed(config.sample)
+    config.bucket.map {
+      bucket => {
+        result map {
+          case (refName, v) => {
+            val smoothed = v.getSmoothed(config.sample)
 
-          val jsonName = config.prefix + refName.replaceAll("\\*", "_") + ".json.gz"
-          val tmpFile = File.createTempFile("", jsonName)
+            val jsonBase = config.prefix + refName.replaceAll("\\*", "_")
+            val jsonName = jsonBase + ".json.gz"
+            val tmpFile = File.createTempFile(jsonBase, ".json.gz")
 
-          val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
-          val jsonWriter = new PrintStream(jsonStream)
-          val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
-          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
-          gson.toJson(result, typeToken, jsonWriter)
-          jsonWriter.close()
+            val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
+            val jsonWriter = new PrintStream(jsonStream)
+            val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
+            val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
+            val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
+            gson.toJson(result, typeToken, jsonWriter)
+            jsonWriter.close()
 
-          val s3Client = new AmazonS3Client
+            // errors on missing credentials
+            val cred = new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials
+            val s3Client = new AmazonS3Client(cred)
 
-          try {
-            val r = s3Client.putObject(bcastConfig.value.bucket.get, jsonName, tmpFile)
-          } finally {
-            tmpFile.delete()
+            try {
+              val r = s3Client.putObject(bucket, jsonName, tmpFile)
+              println(r)
+            } finally {
+              val wasDeleted = tmpFile.delete()
+              require(wasDeleted, "failed to delete temp file")
+            }
           }
         }
       }
-  }
+    }
 
 
     val resultLocal = result.collect
