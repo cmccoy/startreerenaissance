@@ -266,7 +266,7 @@ public class TLambdaPoissonSmoother {
             final double ci = c[i], ti = t[i];
 
             // Special case for zero branch length (no coverage)
-            if (ti == 0.0) {
+            if (ti <= 1e-8) {
                 continue;
             }
 
