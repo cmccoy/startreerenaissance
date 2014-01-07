@@ -329,6 +329,7 @@ def launch_cluster(conn, opts, cluster_name):
                               security_groups = [slave_group],
                               instance_type = opts.instance_type,
                               placement = zone,
+                              instance_profile_name = "spark-node",
                               min_count = num_slaves_this_zone,
                               max_count = num_slaves_this_zone,
                               block_device_map = block_map)
@@ -356,6 +357,7 @@ def launch_cluster(conn, opts, cluster_name):
                            placement = opts.zone,
                            min_count = 1,
                            max_count = 1,
+                           instance_profile_name = "spark-node",
                            block_device_map = block_map)
     master_nodes = master_res.instances
     print "Launched master in %s, regid = %s" % (zone, master_res.id)
