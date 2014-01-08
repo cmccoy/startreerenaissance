@@ -2,6 +2,8 @@ PK := $(HOME)/.ssh/id_rsa
 KEY_ID := cmccoy@stoat
 REGION := us-west-2
 INSTANCE_TYPE := c3.2xlarge
+MASTER_INSTANCE_TYPE := m1.large
+SPOT_BID := 0,6
 CLUSTER_NAME := test-spark
 SLAVES ?= 5
 
@@ -19,12 +21,13 @@ launch:
 		--identity-file $(PK) \
 		--key-pair $(KEY_ID) \
 		--slaves $(SLAVES) \
-		--spot-price 0.5 \
+		--spot-price $(SPOT_BID) \
 		--region $(REGION) \
 		--instance-type $(INSTANCE_TYPE) \
-		--wait 300 \
-		launch $(CLUSTER_NAME) && \ python tag-instances.py $(CLUSTER_NAME)
-	
+		--master-instance-type $(MASTER_INSTANCE_TYPE) \
+		--wait 240 \
+		launch $(CLUSTER_NAME) && \
+		python tag-instances.py $(CLUSTER_NAME)
 
 destroy:
 	spark-ec2/spark-ec2 \
