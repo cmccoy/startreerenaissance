@@ -5,6 +5,9 @@ INSTANCE_TYPE := m1.large
 CLUSTER_NAME := test-spark
 SLAVES ?= 1
 
+ANSIBLE_NOCOWS=1
+export ANSIBLE_NOCOWS
+
 get-master:
 	spark-ec2/spark-ec2 --region $(REGION) get-master $(CLUSTER_NAME)
 
@@ -42,4 +45,7 @@ ansible-list:
 ansible-provision:
 	ANSIBLE_NOCOWS=1 ansible-playbook -i ec2.py site.yml
 
-.PHONY: launch get-master login ansible-list ansible-provision destroy ssh
+ansible-clear-old-work:
+	ansible -i ec2.py -u ec2-user --sudo -m shell -a 'ls -d /root/spark/work/app-* | head -n -1 | xargs rm -r' tag_spark_node_type_slave
+
+.PHONY: launch get-master login ansible-list ansible-provision ansible-clear-old-work destroy ssh
