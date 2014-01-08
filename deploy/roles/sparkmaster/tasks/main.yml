@@ -1,0 +1,7 @@
+---
+
+- name: Install rsync
+  yum: pkg=rsync state=installed
+
+- name: Copy data for 04-A-M
+  synchronize: src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M/ dest=/root/04-A-M/ recursive=yes

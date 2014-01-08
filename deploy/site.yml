@@ -8,3 +8,10 @@
   sudo: yes
   roles:
     - sparknode
+
+- hosts:
+    - tag_spark_node_type_master
+  remote_user: ec2-user
+  sudo: yes
+  roles:
+    - sparkmaster

@@ -22,3 +22,4 @@
 
 - name: Install ack
   copy: src=ack dest=/usr/bin/ack owner=root group=root mode=0755
+
