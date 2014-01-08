@@ -1,9 +1,9 @@
 PK := $(HOME)/.ssh/id_rsa
 KEY_ID := cmccoy@stoat
 REGION := us-west-2
-INSTANCE_TYPE := m1.large
+INSTANCE_TYPE := c3.2xlarge
 CLUSTER_NAME := test-spark
-SLAVES ?= 1
+SLAVES ?= 5
 
 ANSIBLE_NOCOWS=1
 export ANSIBLE_NOCOWS
@@ -19,12 +19,11 @@ launch:
 		--identity-file $(PK) \
 		--key-pair $(KEY_ID) \
 		--slaves $(SLAVES) \
-		--spot-price 0.09 \
+		--spot-price 0.5 \
 		--region $(REGION) \
 		--instance-type $(INSTANCE_TYPE) \
 		--wait 300 \
-		launch $(CLUSTER_NAME) && \
-		python tag-instances.py $(CLUSTER_NAME)
+		launch $(CLUSTER_NAME) && \ python tag-instances.py $(CLUSTER_NAME)
 	
 
 destroy:
