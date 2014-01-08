@@ -40,6 +40,6 @@ ansible-list:
 	ansible-playbook -i ec2.py site.yml --list-hosts
 
 ansible-provision:
-	ansible-playbook -i ec2.py site.yml
+	ANSIBLE_NOCOWS=1 ansible-playbook -i ec2.py site.yml
 
 .PHONY: launch get-master login ansible-list ansible-provision destroy ssh

@@ -3,5 +3,36 @@
 - name: Install rsync
   yum: pkg=rsync state=installed
 
+- name: Install AWS utilities
+  yum: pkg={{ item }} state=installed
+  with_items:
+    - python-boto
+    - aws-apitools-ec2
+
 - name: Copy data for 04-A-M
-  synchronize: src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M/ dest=/root/04-A-M/ recursive=yes
+  remote_user: root
+  synchronize: src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M dest=/root/
+
+- name: Copy GTR fit for 04-A-M
+  remote_user: root
+  synchronize: >
+    src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M_IGHV_model.json
+    dest=/root/04-A-M/
+
+- name: Copy reference sequences
+  remote_user: root
+  synchronize: >
+    src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/refs/ighvdj.fasta
+    dest=/root/04-A-M/
+
+- name: Copy JAR
+  remote_user: root
+  synchronize: >
+    src=../target/scala-2.9.3/startreerenaissance-assembly-0.1.jar
+    dest=/root/04-A-M/
+
+- name: Copy script
+  copy: >
+    src=run_analysis.sh
+    dest=/root/04-A-M/
+
