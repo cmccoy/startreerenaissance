@@ -105,7 +105,7 @@ object StarTreeSpark {
         case (refName, v) => {
           val smoothed = v.getSmoothed(bcastConfig.value.sample)
 
-          val jsonBase = config.prefix + refName.replaceAll("\\*", "_")
+          val jsonBase = config.prefix + refName.replaceAll("[*/]+", "_")
           val jsonName = jsonBase + ".json.gz"
           val tmpFile = File.createTempFile(jsonBase, ".json.gz")
 
@@ -139,7 +139,8 @@ object StarTreeSpark {
 
     resultLocal foreach {
         case (refName, v) => {
-          val outName = config.prefix + refName.replaceAll("\\*", "_") + ".log"
+          val sanitized = refName.replaceAll("[*/]+", "_")
+          val outName = config.prefix + sanitized + ".log"
           val writer = new PrintStream(new File(outName))
           lazy val smoothed = v.getSmoothed(config.sample)
           if(config.smooth)
@@ -148,7 +149,7 @@ object StarTreeSpark {
             v.print(writer, true)
           writer.close()
 
-          val jsonName = config.prefix + refName.replaceAll("\\*", "_") + ".json.gz"
+          val jsonName = config.prefix + sanitized + ".json.gz"
           val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
