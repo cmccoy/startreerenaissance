@@ -3,13 +3,14 @@
   yum: pkg=https://s3.amazonaws.com/startreerenaissance/rpm/beagle_2.1.x86_64.rpm
 
 - name: Add /usr/local/lib to java.library.path in SPARK
-  lineinfile: dest=/root/spark/conf/spark-env.sh
-              line="export SPARK_LIBRARY_PATH=/usr/local/lib:$SPARK_LIBRARY_PATH"
-              regexp="^export SPARK_LIBRARY_PATH=/usr/local/lib:"
-              create=False
-              insertafter=EOF
-              state=present
-              owner=root
+  lineinfile: >
+    dest=/root/spark/conf/spark-env.sh
+    line="export SPARK_LIBRARY_PATH=/usr/local/lib:/root/hadoop-native:$SPARK_LIBRARY_PATH"
+    regexp="^export SPARK_LIBRARY_PATH="
+    create=False
+    insertafter=EOF
+    state=present
+    owner=root
   notify:
     - stop spark
     - start spark

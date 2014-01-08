@@ -32,8 +32,15 @@ def main():
 
     logging.info('%d master, %d slave', len(master_nodes), len(slave_nodes))
 
-    conn.create_tags([i.id for i in master_nodes], {'spark_node_type': 'master'})
-    conn.create_tags([i.id for i in slave_nodes], {'spark_node_type': 'slave'})
+    if master_nodes:
+        conn.create_tags([i.id for i in master_nodes], {'spark_node_type': 'master'})
+    if slave_nodes:
+        conn.create_tags([i.id for i in slave_nodes], {'spark_node_type': 'slave'})
+
+    if slave_nodes or master_nodes:
+        ids = [i.id for l in (master_nodes, slave_nodes) for i in l]
+        conn.create_tags(ids, {'Owner': 'cmccoy', 'Purpose': 'b-cell-selection'})
+
 
     logging.info("Tagged nodes.")
 
