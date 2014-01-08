@@ -22,5 +22,4 @@ for f in *.bam; do
     --bucket startreerenaissance \
     --prefix $(basename $f .bam) \
      04-A-M_IGHV_model.json ighvdj.fasta $f
-   break
 done
