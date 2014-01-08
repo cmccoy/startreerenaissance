@@ -2,11 +2,11 @@ PK := $(HOME)/.ssh/id_rsa
 KEY_ID := cmccoy@stoat
 REGION := us-west-2
 ZONE := $(REGION)c
-INSTANCE_TYPE := c3.2xlarge
+INSTANCE_TYPE := m1.xlarge
 MASTER_INSTANCE_TYPE := m1.large
-SPOT_BID := 0.61
+SPOT_BID := 0.30
 CLUSTER_NAME := test-spark
-SLAVES ?= 6
+SLAVES ?= 12
 
 ANSIBLE_NOCOWS=1
 export ANSIBLE_NOCOWS
