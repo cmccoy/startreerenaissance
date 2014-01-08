@@ -1,11 +1,12 @@
 PK := $(HOME)/.ssh/id_rsa
 KEY_ID := cmccoy@stoat
 REGION := us-west-2
+ZONE := $(REGION)c
 INSTANCE_TYPE := c3.2xlarge
 MASTER_INSTANCE_TYPE := m1.large
-SPOT_BID := 0,6
+SPOT_BID := 0.61
 CLUSTER_NAME := test-spark
-SLAVES ?= 5
+SLAVES ?= 6
 
 ANSIBLE_NOCOWS=1
 export ANSIBLE_NOCOWS
@@ -23,6 +24,7 @@ launch:
 		--slaves $(SLAVES) \
 		--spot-price $(SPOT_BID) \
 		--region $(REGION) \
+		--zone $(ZONE) \
 		--instance-type $(INSTANCE_TYPE) \
 		--master-instance-type $(MASTER_INSTANCE_TYPE) \
 		--wait 240 \
