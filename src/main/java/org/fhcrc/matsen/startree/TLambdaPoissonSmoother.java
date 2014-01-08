@@ -157,7 +157,8 @@ public class TLambdaPoissonSmoother {
                 // log(x * ti) * ci - logGamma(ci+1) - x * ti
                 double result = 0;
                 for (int i = 0; i < c.length; i++) {
-                    PoissonDistribution p = new PoissonDistribution(x * t[i]);
+                    final double lambda = Math.max(x * t[i], 1e-6);
+                    PoissonDistribution p = new PoissonDistribution(lambda);
                     result += Math.log(p.probability((int) c[i]));
                 }
 
