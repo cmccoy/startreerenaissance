@@ -139,9 +139,9 @@ object StarTreeSpark {
           val sanitized = refName.replaceAll("[*/]+", "_")
           val outName = config.prefix + sanitized + ".log"
           val writer = new PrintStream(new File(outName))
-          lazy val smoothed = v.getSmoothed(config.sample)
+          val result = new StarTreeRenaissanceResult(v, bcastConfig.value.sample, StarTreeRenaissance.CHAIN_LENGTH / 10)
           if(config.smooth)
-            smoothed.print(writer, true)
+            result.getSmoothed.print(writer, true)
           else
             v.print(writer, true)
           writer.close()
@@ -150,9 +150,7 @@ object StarTreeSpark {
           val jsonStream = new java.util.zip.GZIPOutputStream(new java.io.FileOutputStream(jsonName))
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
-          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-          val typeToken = new TypeToken[java.util.Map[String, StarTreeTraces]]() {}.getType()
-          gson.toJson(result, typeToken, jsonWriter)
+          gson.toJson(result, jsonWriter)
           jsonWriter.close()
         }
       }
