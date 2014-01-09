@@ -103,8 +103,6 @@ object StarTreeSpark {
 
       result foreach {
         case (refName, v) => {
-          val smoothed = v.getSmoothed(bcastConfig.value.sample)
-
           val jsonBase = config.prefix + refName.replaceAll("[*/]+", "_")
           val jsonName = jsonBase + ".json.gz"
           val tmpFile = File.createTempFile(jsonBase, ".json.gz")
@@ -112,9 +110,8 @@ object StarTreeSpark {
           val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
-          val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
-          gson.toJson(result, typeToken, jsonWriter)
+          val result = new StarTreeRenaissanceResult(v, bcastConfig.value.sample, StarTreeRenaissance.CHAIN_LENGTH / 10)
+          gson.toJson(result, jsonWriter)
           jsonWriter.close()
 
           // errors on missing credentials
@@ -154,7 +151,7 @@ object StarTreeSpark {
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
           val result = Map("unsmoothed" -> v, "smoothed" -> smoothed).asJava
-          val typeToken = new TypeToken[java.util.Map[String, TwoTaxonResult]]() {}.getType()
+          val typeToken = new TypeToken[java.util.Map[String, StarTreeTraces]]() {}.getType()
           gson.toJson(result, typeToken, jsonWriter)
           jsonWriter.close()
         }

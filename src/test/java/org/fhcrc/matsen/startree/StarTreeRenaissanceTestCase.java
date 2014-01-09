@@ -35,8 +35,8 @@ public class StarTreeRenaissanceTestCase {
         alignment.addSequence(new Sequence(new Taxon("ref"), "CAGGTTCAGCTGGTGCAGTCTGGAGCTGAGGTGAAGAAGCCTGGGGCCTCAGTGAAGGTCTCCTGCAAGGCTTCTGGTTACACCTTTACCAGCTATGGTATCAGCTGGGTGCGACAGGCCCCTGGACAAGGGCTTGAGTGGATGGGATGGATCAGCGCTTACAATGGTAACACAAACTATGCACAGAAGCTCCAGGGCAGAGTCACCATGACCACAGACACATCCACGAGCACAGCCTACATGGAGCTGAGGAGCCTGAGATCTGACGACACGGCCGTGTATTACTGTGCGAGA"));
         alignment.addSequence(new Sequence(new Taxon("qry"), "----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------NNCAGGGCAGAGTCACCATGACCACAGACACATCCACGAGCACAGCCCACCTGGAACTGAAGAGCCTGAGATCTGACGACACGGCCGTGTATTTCTGTGCGCGA"));
 
-        //TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 20);
-        TwoTaxonResult r = StarTreeRenaissance.calculate(alignment, hkys, rates);
+        //StarTreeTraces r = StarTreeRenaissance.calculate(alignment, hkys, rates, 20000, 20);
+        StarTreeTraces r = StarTreeRenaissance.calculate(alignment, hkys, rates);
         assertEquals(r.getUnconditionalNonsynonymous().getColumnDimension(), alignment.getPatternCount() / 3);
     }
 }

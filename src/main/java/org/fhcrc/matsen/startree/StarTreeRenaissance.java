@@ -94,10 +94,10 @@ public class StarTreeRenaissance {
      * @param alignment  An alignment with two taxa - no tree moves are performed!
      * @param subsModels One substitution model for each site.
      * @param siteModels One site model for each site.
-     * @return A TwoTaxonResult, with counts by iteration.
+     * @return A StarTreeTraces, with counts by iteration.
      * @throws Tree.MissingTaxonException
      */
-    public static TwoTaxonResult calculate(final Alignment alignment,
+    public static StarTreeTraces calculate(final Alignment alignment,
                                            final List<? extends SubstitutionModel> subsModels,
                                            final List<? extends SiteRateModel> siteModels) throws Tree.MissingTaxonException {
         return calculate(alignment, subsModels, siteModels, CHAIN_LENGTH, SAMPLE_FREQ);
@@ -135,10 +135,10 @@ public class StarTreeRenaissance {
      * @param siteModels  One site model for each site.
      * @param chainLength Length of the MCMC chain
      * @param sampleEvery Sampling frequency
-     * @return A TwoTaxonResult, with counts by iteration.
+     * @return A StarTreeTraces, with counts by iteration.
      * @throws Tree.MissingTaxonException
      */
-    public static TwoTaxonResult calculate(final Alignment alignment,
+    public static StarTreeTraces calculate(final Alignment alignment,
                                            final List<? extends SubstitutionModel> subsModels,
                                            final List<? extends SiteRateModel> siteModels,
                                            final int chainLength,
@@ -221,7 +221,7 @@ public class StarTreeRenaissance {
         mcmc.init(options, like, operatorSchedule, new Logger[]{logger});
         mcmc.run();
 
-        final TwoTaxonResult result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount(), minIndex / 3, getCodonCoverage(alignment));
+        final StarTreeTraces result = twoTaxonResultOfTraces(formatter.getTraces(), p[0].getPatternCount(), minIndex / 3, getCodonCoverage(alignment));
 
         final long endTime = System.currentTimeMillis();
 
@@ -233,7 +233,7 @@ public class StarTreeRenaissance {
     /**
      * Pull the statistics we're interested out of a collection of traces
      */
-    private static TwoTaxonResult twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset, final double[] coverage) {
+    private static StarTreeTraces twoTaxonResultOfTraces(final List<Trace> traces, final int nCodons, final int offset, final double[] coverage) {
         final int traceLength = traces.get(0).getValuesSize();
         final RealMatrix cn = new BlockRealMatrix(traceLength, offset + nCodons),
                 cs = new BlockRealMatrix(traceLength, offset + nCodons),
@@ -286,7 +286,7 @@ public class StarTreeRenaissance {
             }
         }
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage, bl);
+        return new StarTreeTraces(state, cn, cs, un, us, coverage, bl);
     }
 
     private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
