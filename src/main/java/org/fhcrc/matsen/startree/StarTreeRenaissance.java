@@ -225,7 +225,7 @@ public class StarTreeRenaissance {
 
         final long endTime = System.currentTimeMillis();
 
-        log.log(Level.INFO, String.format("Sampled in in %d ms", endTime - startTime));
+        log.log(Level.FINE, String.format("Sampled in in %d ms", endTime - startTime));
 
         return result;
     }
