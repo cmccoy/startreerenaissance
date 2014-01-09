@@ -48,12 +48,18 @@ public class StarTreeRenaissanceResult {
         final List<Trace> traces = Lists.newArrayListWithCapacity(dNdS.getColumnDimension() + 1);
 
         final Trace stateTrace = new Trace("state");
-        stateTrace.add(starTraces.getState().toArray());
+        for(final double d : starTraces.getState().toArray())
+            stateTrace.add(d);
         traces.add(stateTrace);
         for(int col = 0; col < dNdS.getColumnDimension(); col++) {
             final double[] colValues = dNdS.getColumn(col);
             Trace t = new Trace(String.format(String.format("dNdS[%d]", col + 1)));
-            t.add(colValues);
+            for(final double d : colValues)
+                t.add(d);
+            Preconditions.checkState(t.getValuesSize() == colValues.length,
+                    "Expected %d values, got %d.",
+                    colValues.length,
+                    t.getValuesSize());
             traces.add(t);
         }
 
