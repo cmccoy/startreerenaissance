@@ -14,7 +14,7 @@ import static org.fhcrc.matsen.startree.MatrixUtils.createRealVector;
 /**
  * Created by cmccoy on 12/16/13.
  */
-public class TwoTaxonResultTestCase {
+public class StarTreeTracesTestCase {
     @Before
     public void setUp() throws Exception {
     }
@@ -66,10 +66,10 @@ public class TwoTaxonResultTestCase {
         final RealVector cov1 = createRealVector(c, 1.0);
         final RealVector cov2 = createRealVector(c, 1.0);
 
-        final TwoTaxonResult t1 = new TwoTaxonResult(state, cn1, cs1, un1, us1, cov1.toArray(), bl1),
-                             t2 = new TwoTaxonResult(state, cn2, cs2, un2, us2, cov2.toArray(), bl2);
+        final StarTreeTraces t1 = new StarTreeTraces(state, cn1, cs1, un1, us1, cov1.toArray(), bl1),
+                             t2 = new StarTreeTraces(state, cn2, cs2, un2, us2, cov2.toArray(), bl2);
 
-        final TwoTaxonResult summed = t1.plus(t2);
+        final StarTreeTraces summed = t1.plus(t2);
 
         checkSum(cn1, cn2, summed.getConditionalNonsynonymous());
         checkSum(un1, un2, summed.getUnconditionalNonsynonymous());

@@ -17,7 +17,7 @@ import java.util.logging.Logger;
  * Time: 12:59 PM
  * To change this template use File | Settings | File Templates.
  */
-public class TwoTaxonResult implements java.io.Serializable {
+public class StarTreeTraces implements java.io.Serializable {
     private static final long serialVersionUID = 1;
 
     private static final Logger logger = Logger.getLogger("org.fhcrc.matsen.startree");
@@ -31,7 +31,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         Preconditions.checkArgument(a.getColumnDimension() == b.getColumnDimension());
     }
 
-    public TwoTaxonResult(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage, RealMatrix totalBranchLength) {
+    public StarTreeTraces(RealVector state, RealMatrix conditionalNonsynonymous, RealMatrix conditionalSynonymous, RealMatrix unconditionalNonsynonymous, RealMatrix unconditionalSynonymous, double[] coverage, RealMatrix totalBranchLength) {
         checkDimensions(conditionalNonsynonymous, conditionalSynonymous);
         checkDimensions(conditionalNonsynonymous, unconditionalNonsynonymous);
         checkDimensions(conditionalNonsynonymous, unconditionalSynonymous);
@@ -49,7 +49,7 @@ public class TwoTaxonResult implements java.io.Serializable {
         this.dNdS = computeDNdSMatrix();
     }
 
-    public TwoTaxonResult plus(final TwoTaxonResult other) {
+    public StarTreeTraces plus(final StarTreeTraces other) {
         Preconditions.checkArgument(other.conditionalNonsynonymous.getRowDimension() == conditionalNonsynonymous.getRowDimension());
         Preconditions.checkArgument(other.conditionalNonsynonymous.getColumnDimension() == conditionalNonsynonymous.getColumnDimension());
 
@@ -58,7 +58,7 @@ public class TwoTaxonResult implements java.io.Serializable {
                 un = unconditionalNonsynonymous.add(other.unconditionalNonsynonymous),
                 us = unconditionalSynonymous.add(other.unconditionalSynonymous);
 
-        return new TwoTaxonResult(state, cn, cs, un, us, coverage.add(other.coverage).toArray(),
+        return new StarTreeTraces(state, cn, cs, un, us, coverage.add(other.coverage).toArray(),
                 totalBranchLength.add(other.totalBranchLength));
     }
 
@@ -91,7 +91,7 @@ public class TwoTaxonResult implements java.io.Serializable {
      * <p/>
      * This applies the Empirical Bayes smoothing of Lemey et. al. to each row of each matrix.
      */
-    public TwoTaxonResult getSmoothed(boolean sample) {
+    public StarTreeTraces getSmoothed(boolean sample) {
         double[][] cn = conditionalNonsynonymous.getData(),
                 cs = conditionalSynonymous.getData(),
                 un = unconditionalNonsynonymous.getData(),
@@ -109,7 +109,7 @@ public class TwoTaxonResult implements java.io.Serializable {
             }
         }
 
-        return new TwoTaxonResult(
+        return new StarTreeTraces(
                 state.copy(),
                 new BlockRealMatrix(cn),
                 new BlockRealMatrix(cs),
@@ -209,5 +209,9 @@ public class TwoTaxonResult implements java.io.Serializable {
 
             ps.print('\n');
         }
+    }
+
+    public RealVector getState() {
+        return state;
     }
 }

@@ -2,7 +2,7 @@ package org.fhcrc.matsen.startree.spark
 
 import com.esotericsoftware.kryo.Kryo
 import dr.evolution.alignment.SimpleAlignment
-import org.fhcrc.matsen.startree.TwoTaxonResult
+import org.fhcrc.matsen.startree.StarTreeTraces
 import org.apache.commons.math.linear.{ArrayRealVector,BlockRealMatrix}
 import org.apache.spark.serializer.KryoRegistrator
 
@@ -14,7 +14,7 @@ class StarTreeKryoRegistrator extends KryoRegistrator {
   private[this] val classes = Seq(classOf[SimpleAlignment],
     classOf[ArrayRealVector],
     classOf[BlockRealMatrix],
-    classOf[TwoTaxonResult])
+    classOf[StarTreeTraces])
 
   def registerClasses(kryo : Kryo) = {
     classes.foreach(kryo.register)
