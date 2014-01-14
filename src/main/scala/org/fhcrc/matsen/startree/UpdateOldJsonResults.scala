@@ -65,7 +65,7 @@ object UpdateOldJsonResults {
 
         reader.close()
 
-        val r = new StarTreeRenaissanceResult(unsmoothed, true, 2000)
+        val r = new StarTreeRenaissanceResult("unknown", unsmoothed, true, 2000)
 
         if(Files.getFileExtension(jsonPath.getCanonicalPath) == "gz")
           require(jsonPath.getCanonicalPath.matches(".*.json.gz"))

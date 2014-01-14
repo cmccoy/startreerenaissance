@@ -15,6 +15,7 @@ import java.util.Map;
  * Created by cmccoy on 1/8/14.
  */
 public class StarTreeRenaissanceResult {
+    private String geneName;
     private StarTreeTraces unsmoothed, smoothed;
     private Map<String, List<TraceDistribution>> traceDistributions;
 
@@ -23,7 +24,8 @@ public class StarTreeRenaissanceResult {
 
     }
 
-    public StarTreeRenaissanceResult(final StarTreeTraces unsmoothed, final boolean sample, final int burnin) {
+    public StarTreeRenaissanceResult(final String geneName, final StarTreeTraces unsmoothed, final boolean sample, final int burnin) {
+        this.geneName = geneName;
         this.unsmoothed = unsmoothed;
         this.smoothed = unsmoothed.getSmoothed(sample);
         this.traceDistributions = getTraceDistributions(smoothed, burnin);
@@ -39,6 +41,10 @@ public class StarTreeRenaissanceResult {
 
     public Map<String, List<TraceDistribution>> getTraceDistributions() {
         return traceDistributions;
+    }
+
+    public String getGeneName() {
+        return geneName;
     }
 
     private static Map<String, List<TraceDistribution>> getTraceDistributions(final StarTreeTraces starTraces, final int burnin) {
