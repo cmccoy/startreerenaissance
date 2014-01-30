@@ -51,6 +51,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * @author Connor McCoy
  * @author Marc A. Suchard
  * @author Vladimir Minin
  *         <p/>
@@ -59,6 +60,13 @@ import java.util.logging.Logger;
  *         <p/>
  *         O'Brien JD, Minin VN and Suchard MA (2009) Learning to count: robust estimates for labeled distances between
  *         molecular sequences. Molecular Biology and Evolution, 26, 801-814
+ *
+ * Modification of @link dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting, adapted to two taxon trees.
+ * This version treats the root state as fixed to the state of the first taxon, and enforces that the branch length
+ * leading to that taxon be very short.
+ *
+ * Unconditional counts are then simulated from the root node to the second taxon, starting from the first taxon state,
+ * unconditional on the ending state.
  */
 
 public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel implements TreeTraitProvider, Loggable {
