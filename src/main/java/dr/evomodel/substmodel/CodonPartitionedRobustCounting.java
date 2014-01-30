@@ -25,6 +25,7 @@
 
 package dr.app.beagle.evomodel.substmodel;
 
+import com.google.common.base.Preconditions;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
 import dr.app.beagle.evomodel.treelikelihood.AncestralStateBeagleTreeLikelihood;
 import dr.app.beagle.evomodel.utilities.TreeTraitLogger;
@@ -46,6 +47,8 @@ import dr.math.MathUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Marc A. Suchard
@@ -59,7 +62,7 @@ import java.util.List;
  */
 
 public class CodonPartitionedRobustCounting extends AbstractModel implements TreeTraitProvider, Loggable {
-
+    private static final Logger logger = Logger.getLogger(CodonPartitionedRobustCounting.class.getName());
     private static final boolean DEBUG = false;
 
     public static final String UNCONDITIONED_PREFIX = "u_";
@@ -348,45 +351,60 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
             treeTraits.addTrait(stringTrait);
         }
 
-        TreeTrait unconditionedSum;
-        if (!TRIAL) {
-            unconditionedSum = new TreeTrait.D() {
-                public String getTraitName() {
-                    return UNCONDITIONED_PREFIX + codonLabeling.getText();
-                }
+        // Unconditioned
+        TreeTrait unconditionedBase = new TreeTrait.DA() {
 
-                public Intent getIntent() {
-                    return Intent.WHOLE_TREE;
-                }
+            public String getTraitName() {
+                return UNCONDITIONED_PER_BRANCH_PREFIX + codonLabeling.getText();
+            }
 
-                public Double getTrait(Tree tree, NodeRef node) {
-                    return getUnconditionedTraitValue();
-                }
+            public Intent getIntent() {
+                return Intent.BRANCH;
+            }
 
-                public boolean getLoggable() {
-                    return false;
-                }
-            };
-        } else {
-            unconditionedSum = new TreeTrait.DA() {
-                public String getTraitName() {
-                    return UNCONDITIONED_PREFIX + codonLabeling.getText();
-                }
+            public double[] getTrait(Tree tree, NodeRef node) {
+                return getUnconditionalCountsForBranch(node);
+            }
 
-                public Intent getIntent() {
-                    return Intent.WHOLE_TREE;
-                }
+            public boolean getLoggable() {
+                return false;   // TODO Should be switched to true to log unconditioned values per branch
+            }
+        };
 
-                public double[] getTrait(Tree tree, NodeRef node) {
-                    return getUnconditionedTraitValues();
-                }
+        TreeTrait unconditionedSumOverTreeTrait = new TreeTrait.SumOverTreeDA(
+                UNCONDITIONED_PREFIX + SITE_SPECIFIC_PREFIX + codonLabeling.getText(),
+                unconditionedBase,
+                includeExternalBranches,
+                includeInternalBranches) {
+            @Override
+            public boolean getLoggable() {
+                return false;
+            }
+        };
 
-                public boolean getLoggable() {
-                    return false;
-                }
-            };
-        }
+        // This should be the default output in tree logs
+        TreeTrait unconditionedSumOverSitesTrait = new TreeTrait.SumAcrossArrayD(
+                UNCONDITIONED_PREFIX + codonLabeling.getText(),
+                unconditionedBase) {
+            @Override
+            public boolean getLoggable() {
+                return true;
+            }
+        };
 
+        // This should be the default output in columns logs
+        TreeTrait unconditionedSumOverSitesAndTreeTrait = new TreeTrait.SumOverTreeD(
+                UNCONDITIONED_PREFIX + TOTAL_PREFIX + codonLabeling.getText(),
+                unconditionedSumOverSitesTrait,
+                includeExternalBranches,
+                includeInternalBranches) {
+            @Override
+            public boolean getLoggable() {
+                return true;
+            }
+        };
+
+        // Conditioned
         TreeTrait sumOverTreeTrait = new TreeTrait.SumOverTreeDA(
                 SITE_SPECIFIC_PREFIX + codonLabeling.getText(),
                 baseTrait,
@@ -427,42 +445,15 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
         );
 
         treeTraits.addTrait(baseTrait);
-        treeTraits.addTrait(unconditionedSum);
+        treeTraits.addTrait(unconditionedSumOverTreeTrait);
+        treeTraits.addTrait(unconditionedSumOverSitesAndTreeTrait);
         treeTraits.addTrait(sumOverSitesTrait);
         treeTraits.addTrait(sumOverTreeTrait);
         treeTraits.addTrait(sumOverSitesAndTreeTrait);
 
         if (doUnconditionedPerBranch) {
-            TreeTrait unconditionedBase = new TreeTrait.DA() {
-
-                public String getTraitName() {
-                    return UNCONDITIONED_PER_BRANCH_PREFIX + codonLabeling.getText();
-                }
-
-                public Intent getIntent() {
-                    return Intent.BRANCH;
-                }
-
-                public double[] getTrait(Tree tree, NodeRef node) {
-                    return getUnconditionalCountsForBranch(node);
-                }
-
-                public boolean getLoggable() {
-                    return false;   // TODO Should be switched to true to log unconditioned values per branch
-                }
-            };
-
-            TreeTrait sumUnconditionedOverSitesTrait = new TreeTrait.SumAcrossArrayD(
-                    UNCONDITIONED_PER_BRANCH_PREFIX + codonLabeling.getText(),
-                    unconditionedBase) {
-                @Override
-                public boolean getLoggable() {
-                    return true;
-                }
-            };
-
             treeTraits.addTrait(unconditionedBase);
-            treeTraits.addTrait(sumUnconditionedOverSitesTrait);
+            treeTraits.addTrait(unconditionedSumOverSitesTrait);
         }
     }
 
@@ -504,6 +495,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
             unconditionedCountsPerBranch = new double[tree.getNodeCount()][numCodons];
         }
         double[] rootDistribution = productChainModel.getFrequencyModel().getFrequencies();
+
         for (int i = 0; i < tree.getNodeCount(); i++) {
             NodeRef node = tree.getNode(i);
             if (!tree.isRoot(node)) {
@@ -540,8 +532,20 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
         final int stateCount = 64;
         double[] lambda = new double[stateCount * stateCount];
         productChainModel.getInfinitesimalMatrix(lambda);
+
+        Preconditions.checkState(tree.getExternalNodeCount() == 2,
+                "Unexpected number of external nodes: %s",
+                tree.getExternalNodeCount());
+
+        final NodeRef referenceNode = tree.getExternalNode(0);
+        logger.log(Level.INFO, "Using state from {}", tree.getNodeTaxon(referenceNode).getId());
+
+        final int[][] childSeqs = new int[3][];
+        for(int i = 0; i < 3; i++)
+            childSeqs[i] = partition[i].getStatesForNode(tree, referenceNode);
+
         for (int i = 0; i < numCodons; i++) {
-            final int startingState = MathUtils.randomChoicePDF(freq);
+            final int startingState = getCanonicalState(childSeqs[0][i], childSeqs[1][i], childSeqs[2][i]);
             StateHistory history = StateHistory.simulateUnconditionalOnEndingState(
                     0.0,
                     startingState,
