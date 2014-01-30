@@ -500,6 +500,19 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         return tree.getExternalNode(0);
     }
 
+    private int[] getReferenceStates() {
+        final NodeRef ref = getReferenceNode();
+        final int[][] referenceStates = new int[3][];
+        for(int i = 0; i < 3; i++)
+            referenceStates[i] = partition[i].getStatesForNode(tree, ref);
+        final int[] result = new int[referenceStates[0].length];
+        Preconditions.checkState(result.length == numCodons,
+                "Ancestral state length does not match number of codons. (%s vs %s)", result.length, numCodons);
+        for(int i = 0; i < result.length; i++)
+            result[i] = getCanonicalState(referenceStates[0][i], referenceStates[1][i], referenceStates[2][i]);
+        return result;
+    }
+
     private void computeAllUnconditionalCountsPerBranch() {
         if (unconditionedCountsPerBranch == null) {
             unconditionedCountsPerBranch = new double[tree.getNodeCount()][numCodons];
@@ -558,12 +571,12 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         final NodeRef referenceNode = getReferenceNode();
         logger.log(Level.FINE, "Using state from {0}", tree.getNodeTaxon(referenceNode).getId());
 
-        final int[][] referenceStates = new int[3][];
-        for(int i = 0; i < 3; i++)
-            referenceStates[i] = partition[i].getStatesForNode(tree, referenceNode);
+        final int[] referenceStates = getReferenceStates();
+        Preconditions.checkState(referenceStates.length == numCodons,
+                "Number of states does not match number of codons");
 
         for (int i = 0; i < numCodons; i++) {
-            final int startingState = getCanonicalState(referenceStates[0][i], referenceStates[1][i], referenceStates[2][i]);
+            final int startingState = referenceStates[i];
             StateHistory history = StateHistory.simulateUnconditionalOnEndingState(
                     0.0,
                     startingState,
