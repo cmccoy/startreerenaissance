@@ -550,7 +550,7 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
                 tree.getExternalNodeCount());
 
         final NodeRef referenceNode = getReferenceNode();
-        logger.log(Level.INFO, "Using state from {0}", tree.getNodeTaxon(referenceNode).getId());
+        logger.log(Level.FINE, "Using state from {0}", tree.getNodeTaxon(referenceNode).getId());
 
         final int[][] referenceStates = new int[3][];
         for(int i = 0; i < 3; i++)
