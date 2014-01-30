@@ -351,7 +351,10 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
             treeTraits.addTrait(stringTrait);
         }
 
-        // Unconditioned
+        /*****************/
+        /* Unconditioned */
+        /*****************/
+        // unconditionedBase contains number of events per branch per site
         TreeTrait unconditionedBase = new TreeTrait.DA() {
 
             public String getTraitName() {
@@ -371,6 +374,7 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
             }
         };
 
+        // Number of events per site
         TreeTrait unconditionedSumOverTreeTrait = new TreeTrait.SumOverTreeDA(
                 UNCONDITIONED_PREFIX + codonLabeling.getText(),
                 unconditionedBase,
@@ -383,8 +387,9 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         };
 
         // This should be the default output in tree logs
+        // Number of events per branch
         TreeTrait unconditionedSumOverSitesTrait = new TreeTrait.SumAcrossArrayD(
-                UNCONDITIONED_PREFIX + "_sites_" + codonLabeling.getText(),
+                UNCONDITIONED_PREFIX + "_branch_" + codonLabeling.getText(),
                 unconditionedBase) {
             @Override
             public boolean getLoggable() {
@@ -393,6 +398,7 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         };
 
         // This should be the default output in columns logs
+        // Number of events on the whole tree
         TreeTrait unconditionedSumOverSitesAndTreeTrait = new TreeTrait.SumOverTreeD(
                 UNCONDITIONED_PREFIX + TOTAL_PREFIX + codonLabeling.getText(),
                 unconditionedSumOverSitesTrait,
