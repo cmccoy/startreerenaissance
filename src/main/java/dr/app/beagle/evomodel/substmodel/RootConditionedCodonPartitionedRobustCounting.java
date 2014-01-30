@@ -490,15 +490,27 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         return numCodons;
     }
 
+    private NodeRef getReferenceNode() {
+        return tree.getExternalNode(0);
+    }
+
     private void computeAllUnconditionalCountsPerBranch() {
         if (unconditionedCountsPerBranch == null) {
             unconditionedCountsPerBranch = new double[tree.getNodeCount()][numCodons];
         }
         double[] rootDistribution = productChainModel.getFrequencyModel().getFrequencies();
 
+        final NodeRef referenceNode = getReferenceNode();
         for (int i = 0; i < tree.getNodeCount(); i++) {
             NodeRef node = tree.getNode(i);
-            if (!tree.isRoot(node)) {
+            if (node == referenceNode) {
+                final double expectedLength = getExpectedBranchLength(node);
+                Preconditions.checkState(expectedLength < 1e-3,
+                        "Reference node branch length should be 0; was: %s (node %s).",
+                        expectedLength,
+                        tree.getNodeTaxon(referenceNode).getId());
+                java.util.Arrays.fill(unconditionedCountsPerBranch[node.getNumber()], 0.0);
+            } else if (!tree.isRoot(node)) {
                 final double expectedLength = getExpectedBranchLength(node);
                 fillInUnconditionalTraitValues(expectedLength, rootDistribution, unconditionedCountsPerBranch[node.getNumber()]);
             }
@@ -537,8 +549,8 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
                 "Unexpected number of external nodes: %s",
                 tree.getExternalNodeCount());
 
-        final NodeRef referenceNode = tree.getExternalNode(0);
-        logger.log(Level.INFO, "Using state from {}", tree.getNodeTaxon(referenceNode).getId());
+        final NodeRef referenceNode = getReferenceNode();
+        logger.log(Level.INFO, "Using state from {0}", tree.getNodeTaxon(referenceNode).getId());
 
         final int[][] referenceStates = new int[3][];
         for(int i = 0; i < 3; i++)
