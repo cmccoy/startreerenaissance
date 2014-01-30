@@ -540,12 +540,12 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
         final NodeRef referenceNode = tree.getExternalNode(0);
         logger.log(Level.INFO, "Using state from {}", tree.getNodeTaxon(referenceNode).getId());
 
-        final int[][] childSeqs = new int[3][];
+        final int[][] referenceStates = new int[3][];
         for(int i = 0; i < 3; i++)
-            childSeqs[i] = partition[i].getStatesForNode(tree, referenceNode);
+            referenceStates[i] = partition[i].getStatesForNode(tree, referenceNode);
 
         for (int i = 0; i < numCodons; i++) {
-            final int startingState = getCanonicalState(childSeqs[0][i], childSeqs[1][i], childSeqs[2][i]);
+            final int startingState = getCanonicalState(referenceStates[0][i], referenceStates[1][i], referenceStates[2][i]);
             StateHistory history = StateHistory.simulateUnconditionalOnEndingState(
                     0.0,
                     startingState,

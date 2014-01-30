@@ -192,7 +192,6 @@ public class StarTreeRenaissance {
         final TreeModel treeModel = new TreeModel("treeModel", coalSim.simulateTree(alignment, coalModel));
 
         final Parameter rootHeightParameter = treeModel.getRootHeightParameter();
-        rootHeightParameter.setId(ROOT_HEIGHT_NAME);
         rootHeightParameter.setParameterValueQuietly(0, 1e-8);
 
         // We keep the reference sequence fixed at t = 0 (present),
@@ -200,7 +199,7 @@ public class StarTreeRenaissance {
         // This seems to work (in terms of the output trees), where I was unable to get co-varying root height and
         // reference height to work sensibly.
         final Parameter queryHeightParameter = treeModel.getLeafHeightParameter(treeModel.getExternalNode(1));
-        queryHeightParameter.setId(alignment.getTaxon(1).getId() + ".height");
+        queryHeightParameter.setId(ROOT_HEIGHT_NAME);
         queryHeightParameter.setParameterValueQuietly(0, -0.01);
 
         // Tree likelihoods
@@ -239,7 +238,7 @@ public class StarTreeRenaissance {
         ArrayLogFormatter formatter = new ArrayLogFormatter(false);
         MCLogger logger = new MCLogger(formatter, sampleEvery, false);
         createdNdSloggers(treeModel, robustCounts, logger);
-        logger.add(rootHeightParameter);
+        logger.add(new NegativeStatistic(ROOT_HEIGHT_NAME, queryHeightParameter));
 
         // Actually run the MCMC
         MCMCOptions options = new MCMCOptions(chainLength);
