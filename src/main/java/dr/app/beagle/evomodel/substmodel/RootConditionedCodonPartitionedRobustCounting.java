@@ -61,8 +61,8 @@ import java.util.logging.Logger;
  *         molecular sequences. Molecular Biology and Evolution, 26, 801-814
  */
 
-public class CodonPartitionedRobustCounting extends AbstractModel implements TreeTraitProvider, Loggable {
-    private static final Logger logger = Logger.getLogger(CodonPartitionedRobustCounting.class.getName());
+public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel implements TreeTraitProvider, Loggable {
+    private static final Logger logger = Logger.getLogger(RootConditionedCodonPartitionedRobustCounting.class.getName());
     private static final boolean DEBUG = false;
 
     public static final String UNCONDITIONED_PREFIX = "u_";
@@ -72,7 +72,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
     public static final String COMPLETE_HISTORY_PREFIX = "all_";
     public static final String UNCONDITIONED_PER_BRANCH_PREFIX = "b_u_";
 
-//    public CodonPartitionedRobustCounting(String name, TreeModel tree,
+//    public RootConditionedCodonPartitionedRobustCounting(String name, TreeModel tree,
 //                                          AncestralStateBeagleTreeLikelihood[] partition,
 //                                          Codons codons,
 //                                          CodonLabeling codonLabeling,
@@ -82,17 +82,17 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
 //
 //    }
 
-    public CodonPartitionedRobustCounting(String name, TreeModel tree,
-                                          AncestralStateBeagleTreeLikelihood[] partition,
-                                          Codons codons,
-                                          CodonLabeling codonLabeling,
-                                          boolean useUniformization,
-                                          boolean includeExternalBranches,
-                                          boolean includeInternalBranches,
-                                          boolean doUnconditionalPerBranch,
-                                          boolean saveCompleteHistory,
-                                          StratifiedTraitOutputFormat branchFormat,
-                                          StratifiedTraitOutputFormat logFormat) {
+    public RootConditionedCodonPartitionedRobustCounting(String name, TreeModel tree,
+                                                         AncestralStateBeagleTreeLikelihood[] partition,
+                                                         Codons codons,
+                                                         CodonLabeling codonLabeling,
+                                                         boolean useUniformization,
+                                                         boolean includeExternalBranches,
+                                                         boolean includeInternalBranches,
+                                                         boolean doUnconditionalPerBranch,
+                                                         boolean saveCompleteHistory,
+                                                         StratifiedTraitOutputFormat branchFormat,
+                                                         StratifiedTraitOutputFormat logFormat) {
         super(name);
         this.tree = tree;
         addModel(tree);
@@ -115,7 +115,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
             substModelsList.add(partition[i].getBranchModel().getRootSubstitutionModel());
             siteRateModelsList.add(partition[i].getSiteRateModel());
             if (partition[i].getPatternWeights().length != numCodons) {
-                throw new RuntimeException("All sequence lengths must be equal in CodonPartitionedRobustCounting");
+                throw new RuntimeException("All sequence lengths must be equal in RootConditionedCodonPartitionedRobustCounting");
             }
         }
 

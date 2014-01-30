@@ -3,10 +3,7 @@ package org.fhcrc.matsen.startree;
 import com.google.common.base.Preconditions;
 import dr.app.beagle.evomodel.branchmodel.HomogeneousBranchModel;
 import dr.app.beagle.evomodel.sitemodel.SiteRateModel;
-import dr.app.beagle.evomodel.substmodel.CodonLabeling;
-import dr.app.beagle.evomodel.substmodel.CodonPartitionedRobustCounting;
-import dr.app.beagle.evomodel.substmodel.StratifiedTraitOutputFormat;
-import dr.app.beagle.evomodel.substmodel.SubstitutionModel;
+import dr.app.beagle.evomodel.substmodel.*;
 import dr.app.beagle.evomodel.treelikelihood.AncestralStateBeagleTreeLikelihood;
 import dr.app.beagle.evomodel.treelikelihood.PartialsRescalingScheme;
 import dr.app.beagle.evomodel.utilities.DnDsLogger;
@@ -206,7 +203,7 @@ public class StarTreeRenaissance {
         AncestralStateBeagleTreeLikelihood[] treeLikelihoods = getAncestralStateBeagleTreeLikelihoods(subsModels, siteModels, p, branchRates, treeModel);
 
         // dNdS Counts
-        CodonPartitionedRobustCounting[] robustCounts = getCodonPartitionedRobustCountings(treeModel, treeLikelihoods);
+        RootConditionedCodonPartitionedRobustCounting[] robustCounts = getCodonPartitionedRobustCountings(treeModel, treeLikelihoods);
 
         // Priors
         List<Likelihood> priors = new ArrayList<Likelihood>(1);
@@ -315,14 +312,14 @@ public class StarTreeRenaissance {
         return new StarTreeTraces(state, cn, cs, un, us, coverage, bl);
     }
 
-    private static CodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
-        CodonPartitionedRobustCounting[] robustCounts = new CodonPartitionedRobustCounting[2];
+    private static RootConditionedCodonPartitionedRobustCounting[] getCodonPartitionedRobustCountings(final TreeModel treeModel, final AncestralStateBeagleTreeLikelihood[] treeLikelihoods) {
+        RootConditionedCodonPartitionedRobustCounting[] robustCounts = new RootConditionedCodonPartitionedRobustCounting[2];
 
         String[] type = new String[]{"S", "N"};
         StratifiedTraitOutputFormat branchFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         StratifiedTraitOutputFormat logFormat = StratifiedTraitOutputFormat.SUM_OVER_SITES;
         for (int i = 0; i < 2; i++) {
-            robustCounts[i] = new CodonPartitionedRobustCounting(
+            robustCounts[i] = new RootConditionedCodonPartitionedRobustCounting(
                     type[i],
                     treeModel,
                     treeLikelihoods,
@@ -368,11 +365,11 @@ public class StarTreeRenaissance {
         return treeLikelihoods;
     }
 
-    private static void createdNdSloggers(TreeModel treeModel, CodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
+    private static void createdNdSloggers(TreeModel treeModel, RootConditionedCodonPartitionedRobustCounting[] robustCounts, MCLogger logger) {
         // expected trait order: c_S u_S c_N u_N
         final TreeTrait[] traits = new TreeTrait[4];
         final String[] expectedNames = new String[]{"c_S", "u_S", "c_N", "u_N"};
-        for (final CodonPartitionedRobustCounting rc : robustCounts) {
+        for (final RootConditionedCodonPartitionedRobustCounting rc : robustCounts) {
             for (TreeTrait trait : rc.getTreeTraits()) {
                 if (trait.getTraitName().matches("[cu]_[NS]")) {
                     final String name = trait.getTraitName();
