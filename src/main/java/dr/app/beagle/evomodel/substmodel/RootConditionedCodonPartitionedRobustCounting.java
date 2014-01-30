@@ -538,6 +538,7 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
                         tree.getNodeTaxon(referenceNode).getId());
                 java.util.Arrays.fill(unconditionedCountsPerBranch[node.getNumber()], 0.0);
             } else if (!tree.isRoot(node)) {
+                Preconditions.checkState(node == tree.getExternalNode(1));
                 final double expectedLength = getExpectedBranchLength(node);
                 fillInUnconditionalTraitValues(expectedLength, rootDistribution, unconditionedCountsPerBranch[node.getNumber()]);
             }
