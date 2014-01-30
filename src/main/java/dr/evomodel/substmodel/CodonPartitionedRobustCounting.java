@@ -372,7 +372,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
         };
 
         TreeTrait unconditionedSumOverTreeTrait = new TreeTrait.SumOverTreeDA(
-                UNCONDITIONED_PREFIX + SITE_SPECIFIC_PREFIX + codonLabeling.getText(),
+                UNCONDITIONED_PREFIX + codonLabeling.getText(),
                 unconditionedBase,
                 includeExternalBranches,
                 includeInternalBranches) {
@@ -384,7 +384,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
 
         // This should be the default output in tree logs
         TreeTrait unconditionedSumOverSitesTrait = new TreeTrait.SumAcrossArrayD(
-                UNCONDITIONED_PREFIX + codonLabeling.getText(),
+                UNCONDITIONED_PREFIX + "_sites_" + codonLabeling.getText(),
                 unconditionedBase) {
             @Override
             public boolean getLoggable() {
@@ -441,7 +441,7 @@ public class CodonPartitionedRobustCounting extends AbstractModel implements Tre
 
         treeTraitLogger = new TreeTraitLogger(
                 tree,
-                new TreeTrait[]{sumOverSitesAndTreeTrait}
+                new TreeTrait[]{sumOverSitesAndTreeTrait, unconditionedSumOverSitesAndTreeTrait}
         );
 
         treeTraits.addTrait(baseTrait);

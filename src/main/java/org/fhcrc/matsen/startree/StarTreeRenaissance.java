@@ -388,7 +388,12 @@ public class StarTreeRenaissance {
             Preconditions.checkState(traits[i] != null, "Missing trait %d", i);
             Preconditions.checkState(traits[i].getTraitName().equals(expectedNames[i]),
                     "Unexpected name: got %s, expected %s", traits[i].getTraitName(), expectedNames[i]);
+            Preconditions.checkState(TreeTrait.Intent.WHOLE_TREE.equals(traits[i].getIntent()),
+                    "Unsupported intent in trait %s: %s (need WHOLE_TREE)",
+                    traits[i].getTraitName(),
+                    traits[i].getIntent());
         }
+
 
         logger.add(new DnDsLogger("dndsN", treeModel, traits, false, false, true, false));
         logger.add(new DnDsLogger("dndsS", treeModel, traits, false, false, true, true));
