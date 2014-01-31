@@ -139,7 +139,6 @@ object StarTreeSpark {
           jsonWriter.close()
 
           // errors on missing credentials
-          //val s3Client = new AmazonS3Client(new com.amazonaws.auth.BasicAWSCredentials(key_id.value, secret.value))
           val s3Client = new AmazonS3Client(cred.value)
 
           try {

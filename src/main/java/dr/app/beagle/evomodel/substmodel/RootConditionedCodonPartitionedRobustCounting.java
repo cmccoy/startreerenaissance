@@ -597,34 +597,34 @@ public class RootConditionedCodonPartitionedRobustCounting extends AbstractModel
         }
     }
 
-    private double[] getUnconditionedTraitValues() {
-        if (!unconditionsKnown) {
-            computeUnconditionedTraitValues();
-            unconditionsKnown = true;
-        }
-        return unconditionedCounts;
-    }
-
-    public Double getUnconditionedTraitValue() {
-        if (!TRIAL) {
-            return markovJumps.getMarginalRate() * getExpectedTreeLength();
-        } else {
-            final double treeLength = getExpectedTreeLength();
-            double[] rootDistribution = productChainModel.getFrequencyModel().getFrequencies();
-            final int startingState = MathUtils.randomChoicePDF(rootDistribution);
-            final int stateCount = 64;
-            double[] lambda = new double[stateCount * stateCount];
-            productChainModel.getInfinitesimalMatrix(lambda);
-            StateHistory history = StateHistory.simulateUnconditionalOnEndingState(
-                    0.0,
-                    startingState,
-                    treeLength,
-                    lambda,
-                    stateCount
-            );
-            return markovJumps.getProcessForSimulant(history);
-        }
-    }
+//    private double[] getUnconditionedTraitValues() {
+//        if (!unconditionsKnown) {
+//            computeUnconditionedTraitValues();
+//            unconditionsKnown = true;
+//        }
+//        return unconditionedCounts;
+//    }
+//
+//    public Double getUnconditionedTraitValue() {
+//        if (!TRIAL) {
+//            return markovJumps.getMarginalRate() * getExpectedTreeLength();
+//        } else {
+//            final double treeLength = getExpectedTreeLength();
+//            double[] rootDistribution = productChainModel.getFrequencyModel().getFrequencies();
+//            final int startingState = MathUtils.randomChoicePDF(rootDistribution);
+//            final int stateCount = 64;
+//            double[] lambda = new double[stateCount * stateCount];
+//            productChainModel.getInfinitesimalMatrix(lambda);
+//            StateHistory history = StateHistory.simulateUnconditionalOnEndingState(
+//                    0.0,
+//                    startingState,
+//                    treeLength,
+//                    lambda,
+//                    stateCount
+//            );
+//            return markovJumps.getProcessForSimulant(history);
+//        }
+//    }
 
     private double getExpectedBranchLength(NodeRef node) {
         return branchRateModel.getBranchRate(tree, node) * tree.getBranchLength(node);
