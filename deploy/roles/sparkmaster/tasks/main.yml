@@ -11,7 +11,7 @@
 
 - name: Copy data for 04-A-M
   remote_user: root
-  synchronize: src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/startreetest/04-A-M dest=/root/
+  synchronize: src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/startreetest/04-A-M/*.bam dest=/root/04-A-M/
 
 - name: Copy GTR fit for 04-A-M
   remote_user: root
