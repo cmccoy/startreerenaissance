@@ -119,13 +119,19 @@ object StarTreeSpark {
 
     val bcastConfig = sc.broadcast(config)
 
+    val stResults = result.map {
+      case (refName, v) =>
+        (refName,
+         new StarTreeRenaissanceResult(refName, v, bcastConfig.value.sample, StarTreeRenaissance.CHAIN_LENGTH / 10))
+    }
+
     // Save each target to S3 if a bucket is given
     if (!config.bucket.isEmpty) {
       println("Uploading to S3 bucket " + config.bucket.get)
       val cred = sc.broadcast(new com.amazonaws.auth.DefaultAWSCredentialsProviderChain().getCredentials)
 
-      result foreach {
-        case (refName, v) => {
+      stResults foreach {
+        case (refName, result) => {
           val jsonBase = config.prefix + refName.replaceAll("[*/]+", "_")
           val jsonName = jsonBase + ".json.gz"
           val tmpFile = File.createTempFile(jsonBase, ".json.gz")
@@ -133,8 +139,6 @@ object StarTreeSpark {
           val jsonStream = new java.util.zip.GZIPOutputStream(new FileOutputStream(tmpFile))
           val jsonWriter = new PrintStream(jsonStream)
           val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create
-          val result = new StarTreeRenaissanceResult(refName, v, bcastConfig.value.sample,
-            StarTreeRenaissance.CHAIN_LENGTH / 10)
           gson.toJson(result, jsonWriter)
           jsonWriter.close()
 
@@ -152,21 +156,20 @@ object StarTreeSpark {
       }
     }
 
-    val resultLocal = result.collect
+    val resultLocal = stResults.collect
 
     // Stop the Spark context - remaining work is local.
     sc.stop()
 
     resultLocal foreach {
-      case (refName, v) => {
+      case (refName, result) => {
         val sanitized = refName.replaceAll("[*/]+", "_")
         val outName = config.prefix + sanitized + ".log"
         val writer = new PrintStream(new File(outName))
-        val result = new StarTreeRenaissanceResult(refName, v, bcastConfig.value.sample, StarTreeRenaissance.CHAIN_LENGTH / 10)
         if (config.smooth)
           result.getSmoothed.print(writer, true)
         else
-          v.print(writer, true)
+          result.getUnsmoothed.print(writer, true)
         writer.close()
 
         val jsonName = config.prefix + sanitized + ".json.gz"
