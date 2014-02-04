@@ -1,5 +1,6 @@
 package org.fhcrc.matsen.startree;
 
+import com.google.common.base.Preconditions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -25,6 +26,7 @@ public class HKYModelParser {
 
         JsonArray partitions = parsed.getAsJsonArray("partitions");
         List<HKYAndRate> result = new ArrayList<HKYAndRate>(partitions.size());
+        Preconditions.checkState(partitions.size() == 3, "Expected 3 partitions, got %s.", partitions.size());
         for (int i = 0; i < partitions.size(); i++) {
             final JsonObject p = partitions.get(i).getAsJsonObject();
             final double kappa = p.get("parameters").getAsJsonObject().get("HKY85.kappa").getAsDouble();
@@ -34,7 +36,9 @@ public class HKYModelParser {
                 pi[j] = piNode.get(j).getAsDouble();
             }
 
-            assert p.get("name").getAsString().equals("HKY85");
+            Preconditions.checkState("HKY85".equals(p.get("name").getAsString()),
+                    "Unexpected model name: %s",
+                    p.get("name").getAsString());
 
             final double rate = p.get("rate").getAsJsonObject().get("Constant.value").getAsDouble();
             result.add(new HKYAndRate(kappa, pi, rate));
