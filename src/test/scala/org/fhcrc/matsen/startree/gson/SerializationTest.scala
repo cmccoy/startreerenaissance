@@ -4,11 +4,26 @@ import org.scalatest.FlatSpec
 import org.scalatest.matchers.ShouldMatchers
 import org.fhcrc.matsen.startree.MatrixUtils._
 import org.apache.commons.math.linear.ArrayRealVector
-import org.fhcrc.matsen.startree.StarTreeTraces
+import org.fhcrc.matsen.startree.{FitStarResult, StarTreeTraces}
+import java.io.{BufferedReader, InputStreamReader}
 
 /**
  * Created by cmccoy on 1/6/14.
  */
+class GsonModelDeserializerTestCase extends FlatSpec with ShouldMatchers {
+  "test file" should "parse successfully" in {
+    val reader = new BufferedReader(new InputStreamReader(this.getClass().getResourceAsStream("/org/fhcrc/matsen/startree/sample_model2.json")));
+
+    val gson = org.fhcrc.matsen.startree.gson.getGsonBuilder.create()
+    val parsed = gson.fromJson(reader, classOf[FitStarResult])
+    reader.close()
+
+    parsed.getMeanBranchLength should be (0.1039193927994448 plusOrMinus 1e-7)
+    parsed.getDegreesOfFreedom should be (1730)
+  }
+}
+
+
 class StarTreeTracesTestCase extends FlatSpec with ShouldMatchers {
   "round trips" should "succeed" in {
     val r = 4

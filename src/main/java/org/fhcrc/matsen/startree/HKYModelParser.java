@@ -2,6 +2,7 @@ package org.fhcrc.matsen.startree;
 
 import com.google.common.base.Preconditions;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dr.app.beagle.evomodel.sitemodel.GammaSiteRateModel;
@@ -14,6 +15,7 @@ import dr.inference.model.Parameter;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Parses JSON models
@@ -36,11 +38,19 @@ public class HKYModelParser {
                 pi[j] = piNode.get(j).getAsDouble();
             }
 
-            Preconditions.checkState("HKY85".equals(p.get("name").getAsString()),
+            Preconditions.checkState(p.has("modelName"), "Missing modelName key.");
+            Preconditions.checkState("HKY85".equals(p.get("modelName").getAsString()),
                     "Unexpected model name: %s",
-                    p.get("name").getAsString());
+                    p.get("modelName").getAsString());
 
-            final double rate = p.get("rate").getAsJsonObject().get("Constant.value").getAsDouble();
+            final double rate;
+            if(i == 0) {
+                rate = 1.0;
+            } else {
+                Preconditions.checkState(p.get("parameters").getAsJsonObject().has("HKY85.rate"),
+                        "missing HKY85.rate");
+                rate = p.get("parameters").getAsJsonObject().get("HKY85.rate").getAsDouble();
+            }
             result.add(new HKYAndRate(kappa, pi, rate));
         }
         return result;
