@@ -123,7 +123,7 @@ object StarTreeSpark {
       case (refName, v) =>
         (refName,
          new StarTreeRenaissanceResult(refName, v, bcastConfig.value.sample, StarTreeRenaissance.CHAIN_LENGTH / 10))
-    }
+    }.cache
 
     // Save each target to S3 if a bucket is given
     if (!config.bucket.isEmpty) {
