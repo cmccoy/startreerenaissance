@@ -36,18 +36,24 @@ public class SAMBEASTUtils {
         return result;
     }
 
+
     /**
      * Create a BEAST-compatible alignment from a SAM record and reference bases.
      *
      * @param record Aligned read
      * @param rSeq   All reference sequence bases
+     * @param onlyCertain Convert uncertain bases to 'N'?
      * @return An alignment, covering all bases of rSeq
      */
-    public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rSeq) {
+    public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rSeq, final boolean onlyCertain) {
         StringBuilder rAln = new StringBuilder(), qAln = new StringBuilder();
         SimpleAlignment alignment = new SimpleAlignment();
 
         final byte[] qSeq = record.getReadBases();
+        byte[] certainty = null;
+        if (onlyCertain)
+            certainty = record.getByteArrayAttribute("bq");
+
 
         for (int i = 0; i < record.getAlignmentStart() - 1; i++) {
             rAln.append((char) rSeq[i]);
@@ -56,9 +62,12 @@ public class SAMBEASTUtils {
         for (AlignedPair p : getAlignedPairs(record)) {
             if (p.consumesReference()) {
                 rAln.append((char) rSeq[p.getReferencePosition()]);
-                if (p.consumesQuery())
-                    qAln.append((char) qSeq[p.getQueryPosition()]);
-                else
+                if (p.consumesQuery()) {
+                    if(onlyCertain && certainty[p.getQueryPosition()] % 100 != 0)
+                        qAln.append('N');
+                    else
+                        qAln.append((char) qSeq[p.getQueryPosition()]);
+                } else
                     qAln.append('-');
             }
         }
@@ -71,5 +80,16 @@ public class SAMBEASTUtils {
         alignment.addSequence(new Sequence(new Taxon(record.getReadName()), qAln.toString()));
 
         return alignment;
+    }
+
+    /**
+     * Create a BEAST-compatible alignment from a SAM record and reference bases.
+     *
+     * @param record Aligned read
+     * @param rSeq   All reference sequence bases
+     * @return An alignment, covering all bases of rSeq
+     */
+    public static Alignment alignmentOfRecord(final SAMRecord record, final byte[] rSeq) {
+        return alignmentOfRecord(record, rSeq, false);
     }
 }
