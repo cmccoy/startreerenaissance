@@ -13,8 +13,6 @@ def main():
 
     conn = boto.connect_ec2()
 
-    reservations = conn.get_all_instances()
-
     active = [instance for res in conn.get_all_instances()
               for instance in res.instances
               if instance.state in set(['pending', 'running', 'stopping', 'stopped'])]
@@ -33,14 +31,17 @@ def main():
     logging.info('%d master, %d slave', len(master_nodes), len(slave_nodes))
 
     if master_nodes:
-        conn.create_tags([i.id for i in master_nodes], {'spark_node_type': 'master'})
+        conn.create_tags([i.id for i in master_nodes],
+                         {'spark_node_type': 'master'})
     if slave_nodes:
-        conn.create_tags([i.id for i in slave_nodes], {'spark_node_type': 'slave'})
+        conn.create_tags([i.id for i in slave_nodes],
+                         {'spark_node_type': 'slave'})
 
     if slave_nodes or master_nodes:
         ids = [i.id for l in (master_nodes, slave_nodes) for i in l]
-        conn.create_tags(ids, {'Owner': 'cmccoy', 'Purpose': 'b-cell-selection'})
-
+        conn.create_tags(ids, {'Owner': 'cmccoy',
+                               'Purpose': 'b-cell-selection',
+                               'spark_cluster_name': a.cluster_name})
 
     logging.info("Tagged nodes.")
 

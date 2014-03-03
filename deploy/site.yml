@@ -4,14 +4,30 @@
 - hosts:
     - tag_spark_node_type_master
     - tag_spark_node_type_slave
-  remote_user: ec2-user
   sudo: yes
   roles:
     - sparknode
 
 - hosts:
     - tag_spark_node_type_master
-  remote_user: ec2-user
   sudo: yes
   roles:
     - sparkmaster
+    - { role: prep_analysis,
+        sample: 04-A-M,
+        base_dir: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M-all,
+        json_path: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/A/04-A-M_hky.json.gz }
+    - { role: prep_analysis,
+        sample: 06-B-M,
+        base_dir: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/B/06-B-M-all,
+        json_path: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/B/06-B-M_hky.json.gz }
+    - { role: prep_analysis,
+        sample: 02-C-M,
+        base_dir: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/C/02-C-M-all,
+        json_path: /shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/output_sw/C/02-C-M_hky.json.gz }
+
+- hosts:
+    - tag_spark_node_type_slave
+  roles:
+    - sparkslave
+  sudo: yes

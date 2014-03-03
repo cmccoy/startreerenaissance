@@ -2,6 +2,9 @@
 - name: install BEAGLE RPM
   yum: pkg=https://s3.amazonaws.com/startreerenaissance/rpm/beagle_2.1.x86_64.rpm
 
+- name: install samtools
+  yum: pkg=http://dl.fedoraproject.org/pub/epel/6/x86_64/samtools-0.1.18-2.el6.x86_64.rpm
+
 - name: Add /usr/local/lib to java.library.path in SPARK
   lineinfile: >
     dest=/root/spark/conf/spark-env.sh
@@ -20,7 +23,19 @@
   with_items:
     - tree
     - htop
+    - tmux
 
 - name: Install ack
   copy: src=ack dest=/usr/bin/ack owner=root group=root mode=0755
+
+- name: Install tmux config
+  copy: src=tmux.conf dest=/root/.tmux.conf
+
+- name: Template out sudoer no tty
+  template: >
+    src=ec2-user-notty.j2
+    dest=/etc/sudoers.d/ec2-user-notty
+    mode=440
+    owner=root
+    group=root
 

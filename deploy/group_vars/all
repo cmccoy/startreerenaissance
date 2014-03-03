@@ -1,2 +1,8 @@
+---
+
+ansible_ssh_user: ec2-user
+
 ec2_master_group_name: test-spark-master
 ec2_slave_group_name: test-spark-slave
+
+startree_jar_name: startreerenaissance-assembly-0.1.jar

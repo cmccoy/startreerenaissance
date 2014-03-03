@@ -1,0 +1,14 @@
+---
+
+- name: Add a crontab entry to remove work
+  cron: >
+    minute=*/3
+    name=spark-clear-old-work
+    job="ls -d /root/spark/work/app-* | grep app- | sort | head -n -{{ sparkslave_keep_n_analysis_dirs }} | xargs rm -rf"
+    user=root
+
+- name: Copy analysis JAR
+  remote_user: root
+  synchronize: >
+    src=../target/scala-2.9.3/{{ startree_jar_name }}
+    dest=/root/

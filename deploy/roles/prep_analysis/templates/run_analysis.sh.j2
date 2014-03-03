@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# {{ ansible_managed }}
+
+set -u
+
+SPARK_HOME=/root/spark
+SPARK_JAR=$SPARK_HOME/assembly/target/scala-2.9.3/spark-assembly_2.9.3-0.8.1-incubating-hadoop1.0.4.jar
+STAR_JAR=/root/{{ startree_jar_name }}
+STAR_JAR_REMOTE=local://$STAR_JAR
+MAIN=org.fhcrc.matsen.startree.spark.StarTreeSpark
+MASTER=spark://$(GET http://169.254.169.254/latest/meta-data/public-hostname):7077
+
+JSON_GZ=$(basename {{ json_path }})
+JSON=$(basename {{ json_path }} .gz)
+
+if [ ! -f $JSON ]; then
+  gunzip $JSON_GZ
+fi
+
+for f in *.bam; do
+  BASE=$(basename $f .bam)
+  if [ -f ${BASE}IGHV*json.gz ]; then
+    echo "$f appears done."
+  else
+    java \
+      -Xmx4g \
+      -Djava.library.path=/usr/local/lib \
+      -cp $SPARK_JAR:$STAR_JAR \
+      $MAIN \
+      $MASTER \
+      --jar-path $STAR_JAR_REMOTE \
+      --executor-memory {{ memory | default("8g") }} \
+      --sample \
+      --parallelism {{parallelism | default("576") }} \
+      --bucket startreerenaissance \
+      --prefix $(basename $f .bam) \
+        $JSON ighvdj.fasta $f
+
+    /root/spark/bin/stop-all.sh || true
+    sleep 10s  # For the master to stop
+    /root/spark/bin/start-all.sh
+  fi
+done

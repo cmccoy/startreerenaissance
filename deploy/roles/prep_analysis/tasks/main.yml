@@ -1,0 +1,38 @@
+---
+
+- name: Make directory
+  file: path=/root/{{sample}} state=directory owner=root group=root mode=777
+
+- name: Copy data
+  remote_user: root
+  synchronize: src={{base_dir}}/*IGHV*.bam dest=/root/{{sample}}/
+
+- name: Copy finished fits
+  remote_user: root
+  synchronize: src={{base_dir}}/*IGHV*.json.gz dest=/root/{{sample}}/
+  ignore_errors: yes
+
+- name: Copy GTR fit
+  remote_user: root
+  synchronize: >
+    src={{ json_path }}
+    dest=/root/{{sample}}/
+
+- name: Copy reference sequences
+  remote_user: root
+  synchronize: >
+    src=/shared/silo_researcher/Matsen_F/MatsenGrp/data/bcr/refs/ighvdj.fasta
+    dest=/root/{{sample}}/
+
+- name: Copy JAR
+  remote_user: root
+  synchronize: >
+    src=../target/scala-2.9.3/{{ startree_jar_name }}
+    dest=/root/
+
+- name: Copy script
+  template: >
+    src=run_analysis.sh.j2
+    dest=/root/{{sample}}/run_analysis.sh
+    mode=0755
+    owner=root
