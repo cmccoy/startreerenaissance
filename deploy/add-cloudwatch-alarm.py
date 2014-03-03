@@ -27,6 +27,8 @@ def main():
 
     cloudwatch = boto.connect_cloudwatch()
 
+    extant_alarms = set(i.name for i in cloudwatch.describe_alarms())
+
     for instance in candidates:
         dimensions = {'InstanceId': instance.id}
         alarm_name = '{0}-idle-term'.format(instance.id)
@@ -41,22 +43,26 @@ def main():
                    'arn:aws:sns:us-west-2:602821995734:cmccoy-alarm']
 
         metric = cloudwatch.list_metrics(dimensions=dimensions,
-                                         metric_name=metric_name)[0]
-        if any(a.name == alarm_name for a in metric.describe_alarms()):
+                                         metric_name=metric_name)
+        if not metric:
+            raise ValueError("Missing: " + metric_name)
+        metric = metric[0]
+        if alarm_name in extant_alarms:
             logging.warn("Alarm %s already exists - overwriting", alarm_name)
 
         # Terminate instances when average CPU < 15% for 18
         # periods of 5 minutes (an hour and a half)
         res = metric.create_alarm(name=alarm_name,
                                   comparison='<=',
-                                  threshold=15,
+                                  threshold=10,
                                   period=300,
-                                  evaluation_periods=18,
+                                  evaluation_periods=24,
                                   statistic='Average',
                                   alarm_actions=actions,
                                   unit='Percent')
         logging.info("%s - %s", alarm_name, res)
 
+        extant_alarms.add(alarm_name)
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)

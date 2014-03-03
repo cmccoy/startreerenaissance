@@ -1,8 +1,8 @@
 ---
 - name: stop spark
   command: "/root/spark/bin/stop-all.sh"
-  when: ec2_master_group_name in ec2_security_group_names
+  when: ec2_tag_spark_node_type == 'master'
 
 - name: start spark
   command: "/root/spark/bin/start-all.sh"
-  when: ec2_master_group_name in ec2_security_group_names
+  when: ec2_tag_spark_node_type == 'master'
