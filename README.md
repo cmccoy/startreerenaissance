@@ -3,6 +3,7 @@
 **this is alpha-quality software**
 
 This package extends the counting renaissance methods of [Lemey et. al. 2012](http://bioinformatics.oxfordjournals.org/content/28/24/3248.short) to estimate site-specific selection from pairwise alignments of deep sequencing data under varying coverage.
+An application to B cell receptor sequences is described in [our preprint on arXiv](http://arxiv.org/abs/1403.3066).
 
 Input sequences should be in [BAM format](http://samtools.sourceforge.net/SAMv1.pdf).
 A site-specific HKY JSON model specification is required - these can be generated via [fit-star](https://github.com/cmccoy/fit-star).
