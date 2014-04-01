@@ -26,7 +26,12 @@
     - tmux
 
 - name: Install ack
-  copy: src=ack dest=/usr/bin/ack owner=root group=root mode=0755
+  get_url: >
+    url=http://beyondgrep.com/ack-2.12-single-file
+    dest=/usr/bin/ack
+    owner=root
+    group=root
+    mode=0755
 
 - name: Install tmux config
   copy: src=tmux.conf dest=/root/.tmux.conf
